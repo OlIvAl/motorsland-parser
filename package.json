@@ -10,6 +10,8 @@
     "node" : ">=16.14.2"
   },
   "scripts": {
-    "start": "concurrently \"cd server && npm run start\" \"cd client && npm run start\""
+    "start": "concurrently \"cd server && npm run start\" \"cd client && npm run start\"",
+    "build" : "(cd server && npm run build) & (cd client && npm run build)",
+    "postinstall" : "(cd server && npm i -p) & (cd client && npm i -p)"
   }
 }

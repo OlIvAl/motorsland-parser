@@ -1,12 +1,15 @@
 {
   "extends": "@tsconfig/node16/tsconfig.json",
   "compilerOptions": {
-    "outDir": "/dist",
+    "outDir": "./build",
     "lib": [
       "dom",
       "es2021"
     ]
   },
   "include": ["src"],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "./build/**/*"
+  ]
 }
