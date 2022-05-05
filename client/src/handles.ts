@@ -11,7 +11,7 @@ export const getDocumentsInfo = async (): Promise<IDocumentInfo[]> => {
   return (await resp.json()).documents;
 };
 export const getNewItemsCount = async (): Promise<number> => {
-  const resp = await fetch("/items/count");
+  const resp = await fetch(apiRoot + "/items/count");
 
   return (await resp.json()).newItemsCount;
 };
