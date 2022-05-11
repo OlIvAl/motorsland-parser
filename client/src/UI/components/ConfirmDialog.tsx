@@ -9,21 +9,21 @@ import {
 } from "@mui/material";
 
 interface IProps {
-  name: string;
+  id: ID;
   close: () => void;
-  handler: (name: string) => Promise<void>;
+  handler: (id: ID) => Promise<void>;
 }
 
-export const ConfirmDialog: FC<IProps> = ({ name, close, handler }) => {
+export const ConfirmDialog: FC<IProps> = ({ id, close, handler }) => {
   const okHandler = () => {
-    handler(name);
+    handler(id);
     close();
   };
   const closeHandler = () => close();
 
   return (
     <Dialog
-      open={!!name}
+      open={!!id}
       onClose={close}
       aria-labelledby="alert-dialog-title"
       aria-describedby="alert-dialog-description"

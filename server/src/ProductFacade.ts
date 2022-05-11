@@ -1,5 +1,5 @@
 import {
-  IAppFacade,
+  IProductFacade,
   IAzureBlobStorageContainer,
   IDocumentInfo,
 } from "./interfases";
@@ -8,14 +8,19 @@ import { DocumentBuilder } from "./DocumentBuilder/DocumentBuilder";
 import { ImageBuilder } from "./ImageBuilder";
 import { create } from "xmlbuilder2";
 import { BlobClient } from "@azure/storage-blob";
+import { CONTAINER_NAME } from "./constants";
 
-export class AppFacade implements IAppFacade {
+export class ProductFacade implements IProductFacade {
   private imagesContainer: IAzureBlobStorageContainer;
   private documentsContainer: IAzureBlobStorageContainer;
 
-  constructor(private url: string) {
-    this.imagesContainer = new AzureBlobStorageContainer("images");
-    this.documentsContainer = new AzureBlobStorageContainer("documents");
+  constructor(private url: string, documentsContainerName: CONTAINER_NAME) {
+    this.imagesContainer = new AzureBlobStorageContainer(
+      CONTAINER_NAME.IMAGES_CONTAINER_NAME
+    );
+    this.documentsContainer = new AzureBlobStorageContainer(
+      documentsContainerName
+    );
   }
 
   async getDocumentsInfo(): Promise<IDocumentInfo[]> {

@@ -4,4 +4,8 @@ export const WATERMARK_FILE = path.resolve(
   __dirname,
   path.normalize("./static/watermark.png")
 );
-export const START_TIME = Date.now();
+
+export enum CONTAINER_NAME {
+  IMAGES_CONTAINER_NAME = "images",
+  ENGINES_CONTAINER_NAME = "engines",
+}

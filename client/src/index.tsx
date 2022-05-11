@@ -1,17 +1,22 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-import { StyledEngineProvider } from '@mui/material/styles';
-import { CssBaseline } from '@mui/material';
+import "reflect-metadata";
+import { Bootstrap } from "./Bootstrap";
+import { initBootstrap } from "./Bootstrap/initBootstrap";
+import { IBootstrap } from "./Bootstrap/interfaces";
+import { ICustomError } from "./libs/ErrorCollector/errors/interfaces";
+import { renderApp } from "./UI";
 
-const root = ReactDOM.createRoot(
-  document.getElementById('root') as HTMLElement
-);
-root.render(
-  <React.StrictMode>
-    <StyledEngineProvider>
-      <CssBaseline />
-      <App />
-    </StyledEngineProvider>
-  </React.StrictMode>
-);
+export type RouterDependencies = Record<string, any>;
+
+initBootstrap(new Bootstrap()).then((bootstrap: IBootstrap) => {
+  const router = bootstrap.getRouter();
+  const container = bootstrap.getDiContainer();
+  const errorCollector = bootstrap.getErrorCollector();
+
+  window.addEventListener("error", (errEvent): void => {
+    errorCollector.setError<ICustomError>(errEvent.error);
+  });
+
+  router.start(() => {
+    renderApp(router, container, errorCollector);
+  });
+});

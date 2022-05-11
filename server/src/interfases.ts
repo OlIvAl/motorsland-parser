@@ -14,7 +14,7 @@ export interface IAzureBlobStorageContainer {
   getItemsList(): Promise<IDocumentInfo[]>;
   getBuffer(name: string): Promise<Buffer>;
 }
-export interface IAppFacade {
+export interface IProductFacade {
   getNewItemsCount(): Promise<number>;
   getDocumentsInfo(): Promise<IDocumentInfo[]>;
   uploadNewDocument(): Promise<void>;
@@ -30,6 +30,7 @@ export interface IImageBuilder {
 export interface IDocumentInfo {
   name: string;
   createdOn?: Date;
+  publicURL: string;
 }
 export interface IEngineItemData {
   name: string;

@@ -23,6 +23,10 @@ export class AzureBlobStorageContainer implements IAzureBlobStorageContainer {
     this.containerClient =
       this.blobServiceClient.getContainerClient(containerName);
     this.containerBatchClient = this.blobServiceClient.getBlobBatchClient();
+
+    if (!this.containerClient.exists()) {
+      throw Error("Container client is not exists!");
+    }
   }
 
   async init(): Promise<void> {
@@ -71,9 +75,11 @@ export class AzureBlobStorageContainer implements IAzureBlobStorageContainer {
     let result: IDocumentInfo[] = [];
 
     for await (const blob of this.containerClient.listBlobsFlat()) {
+      const publicURL = await this.getPublicURL(blob.name);
       result.push({
         name: blob.name,
         createdOn: blob.properties.createdOn,
+        publicURL,
       });
     }
 
