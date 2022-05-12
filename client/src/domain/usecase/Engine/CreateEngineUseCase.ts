@@ -1,14 +1,11 @@
 import { ICreateItemUseCase } from "./interfaces";
 import { IDocumentListModel } from "../../entity/List/models/interfaces";
-import { inject, injectable } from "tsyringe";
-import { REPOSITORY } from "../../../Bootstrap/config/di/repository";
 import { IDocumentRepository } from "../../repository/Document/interfaces";
+import { injected } from "brandi";
+import { REPOSITORY } from "../../../Bootstrap/config/di/repository";
 
-@injectable()
 export class CreateEngineUseCase implements ICreateItemUseCase {
-  constructor(
-    @inject(REPOSITORY.Engine) protected repository: IDocumentRepository
-  ) {}
+  constructor(protected repository: IDocumentRepository) {}
   // ToDo: make async generator
   async execute(model: IDocumentListModel): Promise<IDocumentListModel> {
     model.setProgress();
@@ -24,3 +21,5 @@ export class CreateEngineUseCase implements ICreateItemUseCase {
     }
   }
 }
+
+injected(CreateEngineUseCase, REPOSITORY.Engine);

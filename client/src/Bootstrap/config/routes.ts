@@ -1,9 +1,8 @@
 import { Route, Router } from "router5";
 import { RouterDependencies } from "../../index";
 import { Params } from "router5/dist/types/base";
-import { DependencyContainer } from "tsyringe";
-import { IDocumentListViewModel } from "../../presentation/EngineListViewModel/interfaces";
 import { VIEW_MODEL } from "./di/viewModel";
+import { Container } from "brandi";
 
 export const routes: (
   | Route
@@ -26,10 +25,8 @@ export const routes: (
     name: "engines",
     path: "/engines",
     onEnter: (router: Router<RouterDependencies>): void => {
-      const container: DependencyContainer = router.getDependencies().container;
-      const vm = container.resolve<IDocumentListViewModel>(
-        VIEW_MODEL.EngineList
-      );
+      const container: Container = router.getDependencies().container;
+      const vm = container.get(VIEW_MODEL.EngineList);
 
       vm.getList();
     },

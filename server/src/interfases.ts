@@ -17,10 +17,8 @@ export interface IAzureBlobStorageContainer {
 export interface IProductFacade {
   getNewItemsCount(): Promise<number>;
   getDocumentsInfo(): Promise<IDocumentInfo[]>;
-  uploadNewDocument(): Promise<void>;
-  downloadDocument(name: string): Promise<Buffer>;
+  uploadNewDocument(fields: Record<string, string>): Promise<void>;
   deleteDocument(name: string): Promise<void>;
-  getDocumentPublicURL(name: string): Promise<string>;
 }
 
 export interface IImageBuilder {
@@ -32,26 +30,16 @@ export interface IDocumentInfo {
   createdOn?: Date;
   publicURL: string;
 }
-export interface IEngineItemData {
+export interface IItemData {
   name: string;
   vendor_code: string;
-  mark?: string;
-  model?: string;
-  auto?: string;
-  year?: string;
-  engine_type?: string;
-  engine_mark?: string;
-  engine_number?: string;
-  weight?: string;
-  description?: string;
-  kpp?: string;
-  vin?: string;
   images: {
     image: string[];
   };
+  [field: string]: any;
 }
 export interface IDocumentData {
   offers: {
-    offer: IEngineItemData[];
+    offer: IItemData[];
   };
 }

@@ -2,19 +2,18 @@ import {
   IDocumentPresentationData,
   IDocumentListViewModel,
 } from "./interfaces";
-import { inject, injectable } from "tsyringe";
-import { USE_CASE } from "../../Bootstrap/config/di/usecase";
 import {
   ICreateItemUseCase,
   IDeleteItemUseCase,
   IGetListUseCase,
 } from "../../domain/usecase/Engine/interfaces";
-import { DATA_SOURCE_LOCAL } from "../../Bootstrap/config/di/dataSource";
 import { IDocumentListModel } from "../../domain/entity/List/models/interfaces";
 import { makeAutoObservable, runInAction } from "mobx";
 import { DocumentPresentationData } from "./presentationDataDecorators/DocumentPresentationData";
+import { injected } from "brandi";
+import { BUSINESS_MODELS } from "../../Bootstrap/config/di/dataSource";
+import { USE_CASE } from "../../Bootstrap/config/di/usecase";
 
-@injectable()
 export class EngineListViewModel implements IDocumentListViewModel {
   get list(): IDocumentPresentationData[] {
     return this.model.list.items.map(
@@ -31,12 +30,9 @@ export class EngineListViewModel implements IDocumentListViewModel {
   loadingList: boolean = false;
 
   constructor(
-    @inject(DATA_SOURCE_LOCAL.EngineList) protected model: IDocumentListModel,
-    @inject(USE_CASE.GetEngineList)
+    protected model: IDocumentListModel,
     protected getEngineListUseCase: IGetListUseCase,
-    @inject(USE_CASE.CreateEngine)
     protected createEngineUseCase: ICreateItemUseCase,
-    @inject(USE_CASE.DeleteEngine)
     protected deleteEngineUseCase: IDeleteItemUseCase
   ) {
     makeAutoObservable<IDocumentListViewModel>(this);
@@ -62,3 +58,11 @@ export class EngineListViewModel implements IDocumentListViewModel {
     this.model = await this.deleteEngineUseCase.execute(id, this.model);
   }
 }
+
+injected(
+  EngineListViewModel,
+  BUSINESS_MODELS.EngineList,
+  USE_CASE.GetEngineList,
+  USE_CASE.CreateEngine,
+  USE_CASE.DeleteEngine
+);

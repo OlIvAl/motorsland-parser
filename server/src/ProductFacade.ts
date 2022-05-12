@@ -37,7 +37,7 @@ export class ProductFacade implements IProductFacade {
       await this.documentsContainer.getBuffer(lastDocumentName)
     ).toString();
 
-    const documentBuilder = new DocumentBuilder(this.url);
+    const documentBuilder = new DocumentBuilder(this.url, {});
     await documentBuilder.initBrowser();
     await documentBuilder.setLastDocument(lastDocument);
 
@@ -47,8 +47,8 @@ export class ProductFacade implements IProductFacade {
 
     return result.length;
   }
-  async uploadNewDocument(): Promise<void> {
-    const documentBuilder = new DocumentBuilder(this.url);
+  async uploadNewDocument(fields: Record<string, string>): Promise<void> {
+    const documentBuilder = new DocumentBuilder(this.url, fields);
     await documentBuilder.initBrowser();
     // ToDo: get last document
     await documentBuilder.setLastDocument("");
@@ -60,7 +60,7 @@ export class ProductFacade implements IProductFacade {
 
     for (let i = 0; i < docObj.offers.offer.length; i++) {
       docObj.offers.offer[i].images.image = await Promise.all(
-        docObj.offers.offer[i].images.image.map(async (imgSrc) => {
+        docObj.offers.offer[i].images.image.map(async (imgSrc: string) => {
           const imageBuilder = new ImageBuilder(imgSrc);
           const [fileName, buffer] = await imageBuilder.getBuffer();
 
@@ -77,14 +77,11 @@ export class ProductFacade implements IProductFacade {
 
     await this.documentsContainer.upload(
       Buffer.from(docXML),
-      "uploading-" + new Date().toISOString(),
+      `uploading-${new Date().toISOString()}.xml`,
       "application/xml"
     );
 
     await documentBuilder.dispose();
-  }
-  async downloadDocument(name: string): Promise<Buffer> {
-    return await this.documentsContainer.getBuffer(name);
   }
   async deleteDocument(name: string): Promise<void> {
     const document = (await this.documentsContainer.getBuffer(name)).toString();
@@ -104,8 +101,5 @@ export class ProductFacade implements IProductFacade {
 
     await this.imagesContainer.deleteBlobs(blobClients);
     await this.documentsContainer.deleteBlob(name);
-  }
-  async getDocumentPublicURL(name: string): Promise<string> {
-    return await this.documentsContainer.getPublicURL(name);
   }
 }

@@ -1,13 +1,13 @@
 import { Route, Router } from "router5";
 import { ErrorCollector } from "../libs/ErrorCollector/ErrorCollector";
-import { DependencyContainer } from "tsyringe";
+import { Container } from "brandi";
 
 export interface IBootstrap {
   initAPIClient(apiPrefix: string): void;
   initDI(): void;
   initRouter(routes: Route[]): void;
   routerPostInit(): void;
-  getDiContainer(): DependencyContainer;
+  getDiContainer(): Container;
   getErrorCollector(): ErrorCollector;
   getRouter(): Router;
   dispose(): void;

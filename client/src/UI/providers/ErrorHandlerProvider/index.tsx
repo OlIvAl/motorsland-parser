@@ -7,10 +7,8 @@ interface IProps {
   children: JSX.Element;
 }
 
-const ErrorHandlerProvider: FC<IProps> = ({ handler, children }) => (
+export const ErrorHandlerProvider: FC<IProps> = ({ handler, children }) => (
   <ErrorHandlerContext.Provider value={handler}>
     {children}
   </ErrorHandlerContext.Provider>
 );
-
-export default ErrorHandlerProvider;

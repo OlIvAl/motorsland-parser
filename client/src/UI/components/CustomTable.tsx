@@ -8,6 +8,7 @@ import { CustomTableRow } from "./CustomTableRow";
 import TableContainer from "@mui/material/TableContainer";
 import React, { FC } from "react";
 import { IDocumentPresentationData } from "../../presentation/EngineListViewModel/interfaces";
+import { SkeletonTableRow } from "./SkeletonTableRow";
 
 interface IProps {
   loading: boolean;
@@ -33,17 +34,21 @@ export const CustomTable: FC<IProps> = ({
           </TableRow>
         </TableHead>
         <TableBody>
-          {documents.map((document) => (
-            <CustomTableRow
-              id={document.id}
-              name={document.name}
-              createdOn={document.createdOn}
-              publicURL={document.publicURL}
-              deletedLoading={document.id === deletedId}
-              setDeletedId={setDeletedId}
-              key={document.id}
-            />
-          ))}
+          {!loading
+            ? documents.map((document) => (
+                <CustomTableRow
+                  id={document.id}
+                  name={document.name}
+                  createdOn={document.createdOn}
+                  publicURL={document.publicURL}
+                  deletedLoading={document.id === deletedId}
+                  setDeletedId={setDeletedId}
+                  key={document.id}
+                />
+              ))
+            : Array(5)
+                .fill(1)
+                .map(() => <SkeletonTableRow />)}
         </TableBody>
       </Table>
     </TableContainer>

@@ -1,5 +1,5 @@
 import { IDocumentListModel } from "./interfaces";
-import { IDocumentList, IList } from "../stuctures/interfaces";
+import { IDocumentList } from "../stuctures/interfaces";
 import { ListModel } from "./ListModel";
 import { IDocument } from "../../Document/structures/interfaces";
 import { DocumentList } from "../stuctures/DocumentList";

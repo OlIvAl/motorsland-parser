@@ -1,21 +1,22 @@
-import { DependencyContainer } from "tsyringe";
 import { EngineRepository } from "../../../data/repository/Document/EngineRepository";
 import { IDocumentRepository } from "../../../domain/repository/Document/interfaces";
 import { TransmissionRepository } from "../../../data/repository/Document/TransmissionRepository";
+import { Container, token } from "brandi";
 
 export const REPOSITORY = {
-  Engine: Symbol.for("EngineRepository"),
-  Transmission: Symbol.for("TransmissionRepository"),
+  Engine: token<IDocumentRepository>("EngineRepository"),
+  Transmission: token<IDocumentRepository>("TransmissionRepository"),
 };
 
-export function getContainerWithReps(
-  container: DependencyContainer
-): DependencyContainer {
-  container.register<IDocumentRepository>(REPOSITORY.Engine, EngineRepository);
-  container.register<IDocumentRepository>(
-    REPOSITORY.Transmission,
-    TransmissionRepository
-  );
+export function getContainerWithReps(container: Container): Container {
+  container
+    .bind(REPOSITORY.Engine)
+    .toInstance(EngineRepository)
+    .inTransientScope();
+  container
+    .bind(REPOSITORY.Transmission)
+    .toInstance(TransmissionRepository)
+    .inTransientScope();
 
   return container;
 }

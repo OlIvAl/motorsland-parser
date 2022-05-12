@@ -1,10 +1,9 @@
+import { injected } from "brandi";
 import {
   IDocumentDTO,
   IDocumentListDTO,
   IDocumentRepository,
 } from "../../../domain/repository/Document/interfaces";
-import { inject, injectable } from "tsyringe";
-import { DATA_SOURCE_REMOTE } from "../../../Bootstrap/config/di/dataSource";
 import { IAPIClient } from "../../../libs/API/interfaces";
 import { IDocumentList } from "../../../domain/entity/List/stuctures/interfaces";
 import { IDocument } from "../../../domain/entity/Document/structures/interfaces";
@@ -14,15 +13,13 @@ import {
   DocumentSchema,
 } from "../../validationSchemas/Document";
 import { DocumentList } from "../../../domain/entity/List/stuctures/DocumentList";
+import { DATA_SOURCE_REMOTE } from "../../../Bootstrap/config/di/dataSource";
 
-@injectable()
 export class EngineRepository
   extends DocumentRepository
   implements IDocumentRepository
 {
-  constructor(
-    @inject(DATA_SOURCE_REMOTE.APIClient) protected apiClient: IAPIClient
-  ) {
+  constructor(protected apiClient: IAPIClient) {
     super(apiClient);
   }
 
@@ -61,3 +58,5 @@ export class EngineRepository
     }
   }
 }
+
+injected(EngineRepository, DATA_SOURCE_REMOTE.APIClient);

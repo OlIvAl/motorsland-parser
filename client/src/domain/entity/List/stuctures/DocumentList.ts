@@ -1,4 +1,4 @@
-import { IDocumentList, IList } from "./interfaces";
+import { IDocumentList } from "./interfaces";
 import { List } from "./List";
 import { IDocument } from "../../Document/structures/interfaces";
 import { makeObservable, observable } from "mobx";

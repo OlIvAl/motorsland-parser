@@ -1,12 +1,13 @@
-import React, { useState } from "react";
-import { Button, Container, Typography } from "@mui/material";
+import React, { FC, useState } from "react";
+import { Container, Typography } from "@mui/material";
+import { LoadingButton, Skeleton } from "@mui/lab";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { CustomTable } from "./components/CustomTable";
-import useViewModel from "./hooks/useViewModel";
+import { observer, Observer } from "mobx-react-lite";
+import { useInjection } from "brandi-react";
 import { VIEW_MODEL } from "../Bootstrap/config/di/viewModel";
-import { IDocumentListViewModel } from "../presentation/EngineListViewModel/interfaces";
 
-function App() {
+export const App: FC = observer(() => {
   const [deletedId, setDeletedId] = useState<ID>("");
 
   const {
@@ -16,48 +17,55 @@ function App() {
     createNewItemProcess,
     createItem,
     deleteItem,
-  } = useViewModel<IDocumentListViewModel>(VIEW_MODEL.EngineList);
+  } = useInjection(VIEW_MODEL.EngineList);
 
   return (
-    <Container maxWidth="lg" className="App">
-      <Typography variant="h4" gutterBottom component="div">
-        Список выгрузок с сайта www.motorlandby.ru
-      </Typography>
-      {list.length ? (
-        <CustomTable
-          documents={list}
-          loading={loadingList}
-          deletedId={deletedId}
-          setDeletedId={setDeletedId}
-        />
-      ) : (
-        <Typography variant="h6" gutterBottom component="div">
-          Не создано ни одной выгрузки
-        </Typography>
+    <Observer>
+      {() => (
+        <Container maxWidth="lg" className="App">
+          <Typography variant="h4" gutterBottom component="div">
+            Список выгрузок с сайта www.motorlandby.ru
+          </Typography>
+
+          {!list.length && !loadingList ? (
+            <Typography variant="h6" gutterBottom component="div">
+              Не создано ни одной выгрузки
+            </Typography>
+          ) : (
+            <CustomTable
+              documents={list}
+              loading={loadingList}
+              deletedId={deletedId}
+              setDeletedId={setDeletedId}
+            />
+          )}
+          <div>
+            <LoadingButton
+              loading={createNewItemProcess}
+              disabled={loadingList}
+              variant="contained"
+              color="primary"
+              style={{ marginTop: 16 }}
+              onClick={createItem}
+            >
+              Создать выгрузку
+            </LoadingButton>
+            {!loadingList ? (
+              <Typography gutterBottom component="div">
+                {newItemsCount} новых объявлений появилось со времени последней
+                выгрузки
+              </Typography>
+            ) : (
+              <Skeleton width={550} />
+            )}
+          </div>
+          <ConfirmDialog
+            id={deletedId}
+            close={() => setDeletedId("")}
+            handler={deleteItem}
+          />
+        </Container>
       )}
-
-      <div>
-        <Button
-          variant="contained"
-          color="primary"
-          style={{ marginTop: 16 }}
-          onClick={createItem}
-        >
-          Создать выгрузку
-        </Button>
-        <Typography gutterBottom component="div">
-          {newItemsCount} новых объявлений появилось со времени последней
-          выгрузки
-        </Typography>
-      </div>
-
-      <ConfirmDialog
-        id={deletedId}
-        close={() => setDeletedId("")}
-        handler={deleteItem}
-      />
-    </Container>
+    </Observer>
   );
-}
-
-export default App;
+});

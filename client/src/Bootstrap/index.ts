@@ -1,5 +1,4 @@
 import { IBootstrap } from "./interfaces";
-import { container, DependencyContainer } from "tsyringe";
 import createRouter5, { Route, Router } from "router5";
 import { ErrorCollector } from "../libs/ErrorCollector/ErrorCollector";
 import { createRouter } from "../libs/createRouter";
@@ -7,14 +6,14 @@ import { getContainerWithReps } from "./config/di/repository";
 import { getContainerWithUseCases } from "./config/di/usecase";
 import { getContainerWithViewModels } from "./config/di/viewModel";
 import { APIClient } from "../libs/API/APIClient";
-import { IAPIClient } from "../libs/API/interfaces";
 import {
   DATA_SOURCE_REMOTE,
   getContainerWithDataSource,
 } from "./config/di/dataSource";
+import { Container } from "brandi";
 
 export class Bootstrap implements IBootstrap {
-  private diContainer = container;
+  private container = new Container();
   private router = createRouter5();
   private errorCollector = new ErrorCollector();
 
@@ -25,25 +24,24 @@ export class Bootstrap implements IBootstrap {
     this.dispose = this.dispose.bind(this);
   }
   initAPIClient(apiPrefix: string = ""): void {
-    this.diContainer.registerInstance<IAPIClient>(
-      DATA_SOURCE_REMOTE.APIClient,
-      new APIClient(apiPrefix)
-    );
+    this.container
+      .bind(DATA_SOURCE_REMOTE.APIClient)
+      .toConstant(new APIClient(apiPrefix));
   }
   initDI(): void {
-    this.diContainer = getContainerWithDataSource(this.diContainer);
-    this.diContainer = getContainerWithReps(this.diContainer);
-    this.diContainer = getContainerWithUseCases(this.diContainer);
-    this.diContainer = getContainerWithViewModels(this.diContainer);
+    this.container = getContainerWithDataSource(this.container);
+    this.container = getContainerWithReps(this.container);
+    this.container = getContainerWithUseCases(this.container);
+    this.container = getContainerWithViewModels(this.container);
   }
   initRouter(routes: Route[]): void {
     this.router = createRouter(routes);
   }
   routerPostInit(): void {
-    this.router.setDependency("container", this.diContainer);
+    this.router.setDependency("container", this.container);
   }
-  getDiContainer(): DependencyContainer {
-    return this.diContainer;
+  getDiContainer(): Container {
+    return this.container;
   }
   getErrorCollector(): ErrorCollector {
     return this.errorCollector;
@@ -53,6 +51,6 @@ export class Bootstrap implements IBootstrap {
   }
   dispose(): void {
     this.router.stop();
-    this.diContainer.reset();
+    this.container = new Container();
   }
 }

@@ -1,5 +1,5 @@
 import puppeteer, { Browser, Page } from "puppeteer";
-import { IDocumentData, IEngineItemData } from "../interfases";
+import { IDocumentData, IItemData } from "../interfases";
 import { PageWithList } from "./PageWithList";
 import { IDocumentBuilder } from "./interfaces";
 import { PuppeteerHelpers } from "./PuppeteerHelpers";
@@ -11,7 +11,7 @@ export class DocumentBuilder implements IDocumentBuilder {
   private vendorCodesListFromLastDocument: string[] = [];
   private newLinksList: string[] = [];
 
-  constructor(private url: string) {}
+  constructor(private url: string, private fields: Record<string, string>) {}
 
   async initBrowser(): Promise<void> {
     this.browser = await puppeteer.launch({
@@ -48,7 +48,7 @@ export class DocumentBuilder implements IDocumentBuilder {
   }
 
   private async setData(): Promise<void> {
-    function getNameFromPage(): Pick<IEngineItemData, "name"> {
+    function getNameFromPage(): Pick<IItemData, "name"> {
       const tag = document.querySelector(".cont .navigation .mb-20");
       if (!tag) {
         console.log(`Страница не содержит наименования`);
@@ -58,7 +58,10 @@ export class DocumentBuilder implements IDocumentBuilder {
 
       return { name: tag.textContent || "" };
     }
-    const getDataFromPage = async (page: Page): Promise<IEngineItemData> => {
+    const getDataFromPage = async (
+      fields: Record<string, string>,
+      page: Page
+    ): Promise<IItemData> => {
       async function getData(text: string): Promise<string | undefined> {
         const elements = await page.$x(
           `//th[contains(., '${text}')]/following-sibling::td`
@@ -71,70 +74,25 @@ export class DocumentBuilder implements IDocumentBuilder {
         return await page.evaluate((td) => td.textContent || "", elements[0]);
       }
 
-      const [
-        vendorCode,
-        mark,
-        model,
-        auto,
-        year,
-        engineType,
-        engineMark,
-        engineNumber,
-        weight,
-        description,
-        kpp,
-        vin,
-      ] = await Promise.all(
-        [
-          "Артикул",
-          "Марка",
-          "Модель",
-          "Автомобиль",
-          "Год",
-          "Тип двигателя",
-          "Маркировка двигателя",
-          "Номер двигателя",
-          "Габариты, вес",
-          "Описание",
-          "КПП",
-          "VIN",
-        ].map(async (text) => await getData(text))
+      const fieldValues = await Promise.all(
+        Object.values(fields).map(async (text) => await getData(text))
       );
 
-      const info = {
-        name: "",
-        vendor_code: vendorCode || "",
-        mark,
-        model,
-        auto,
-        year,
-        engine_type: engineType,
-        engine_mark: engineMark,
-        engine_number: engineNumber,
-        weight,
-        description,
-        kpp,
-        vin,
-        images: { image: [] },
-      };
-
-      return (
-        Object.keys(info) as (keyof IEngineItemData)[]
-      ).reduce<IEngineItemData>(
-        (result, key) => {
-          if (info[key]) {
+      return Object.keys(fields).reduce<any>(
+        (result, key, i) => {
+          if (fieldValues[i]) {
             return {
               ...result,
-              [key]: info[key],
+              [key]: fieldValues[i],
             };
           }
 
           return result;
         },
-        { name: info.name, vendor_code: info.vendor_code, images: info.images }
+        { name: "", vendor_code: "", images: { image: [] } }
       );
     };
-    function getImgLinksFromPage(): Pick<IEngineItemData, "images"> {
+    function getImgLinksFromPage(): Pick<IItemData, "images"> {
       const image = Array.from(
         document.querySelectorAll(
           ".viki-gallery.gallery-big.part-carousel img[loading=lazy]"
@@ -155,7 +113,7 @@ export class DocumentBuilder implements IDocumentBuilder {
       const itemPage = await PuppeteerHelpers.getNewPage(this.browser);
       await itemPage.goto(link, { waitUntil: "networkidle2", timeout: 0 });
 
-      const data = await getDataFromPage(itemPage);
+      const data = await getDataFromPage(this.fields, itemPage);
       const name = await itemPage.evaluate(getNameFromPage);
       const images = await itemPage.evaluate(getImgLinksFromPage);
 

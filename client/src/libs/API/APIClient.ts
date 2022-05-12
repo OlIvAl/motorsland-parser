@@ -45,9 +45,7 @@ export class APIClient implements IAPIClient {
       searchParams,
     });
 
-    const result = await response.json();
-
-    return result.body as R;
+    return await response.json();
   }
 
   async getData<P, R>(url: string, requestObj: P | null = null): Promise<R> {

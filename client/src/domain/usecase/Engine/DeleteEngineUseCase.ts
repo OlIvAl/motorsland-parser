@@ -1,14 +1,11 @@
 import { IDocumentListModel } from "../../entity/List/models/interfaces";
 import { IDeleteItemUseCase } from "./interfaces";
-import { inject, injectable } from "tsyringe";
-import { REPOSITORY } from "../../../Bootstrap/config/di/repository";
 import { IDocumentRepository } from "../../repository/Document/interfaces";
+import { injected } from "brandi";
+import { REPOSITORY } from "../../../Bootstrap/config/di/repository";
 
-@injectable()
 export class DeleteEngineUseCase implements IDeleteItemUseCase {
-  constructor(
-    @inject(REPOSITORY.Engine) protected repository: IDocumentRepository
-  ) {}
+  constructor(protected repository: IDocumentRepository) {}
   // ToDo: make async generator
   async execute(
     id: ID,
@@ -21,3 +18,5 @@ export class DeleteEngineUseCase implements IDeleteItemUseCase {
     return model;
   }
 }
+
+injected(DeleteEngineUseCase, REPOSITORY.Engine);

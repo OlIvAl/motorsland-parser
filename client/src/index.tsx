@@ -1,4 +1,3 @@
-import "reflect-metadata";
 import { Bootstrap } from "./Bootstrap";
 import { initBootstrap } from "./Bootstrap/initBootstrap";
 import { IBootstrap } from "./Bootstrap/interfaces";

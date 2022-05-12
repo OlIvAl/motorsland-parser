@@ -1,17 +1,17 @@
 import ReactDOM from "react-dom/client";
 import React from "react";
 import { CssBaseline } from "@mui/material";
-import App from "./App";
+import { App } from "./App";
 import { Router } from "router5";
-import { DependencyContainer } from "tsyringe";
+import { Container } from "brandi";
 import { ErrorCollector } from "../libs/ErrorCollector/ErrorCollector";
 import { RouterProvider } from "react-router5";
-import ErrorHandlerProvider from "./providers/ErrorHandlerProvider";
-import DIContainerProvider from "./providers/DIContainerProvider";
+import { ErrorHandlerProvider } from "./providers/ErrorHandlerProvider";
+import { ContainerProvider } from "brandi-react";
 
 export function renderApp(
   router: Router,
-  container: DependencyContainer,
+  container: Container,
   errorCollector: ErrorCollector
 ): void {
   const root = ReactDOM.createRoot(
@@ -20,14 +20,16 @@ export function renderApp(
   root.render(
     <React.StrictMode>
       <RouterProvider router={router}>
-        <ErrorHandlerProvider handler={errorCollector}>
-          <DIContainerProvider container={container}>
+        {/*
+        // @ts-ignore */}
+        <ContainerProvider container={container}>
+          <ErrorHandlerProvider handler={errorCollector}>
             <div>
               <CssBaseline />
               <App />
             </div>
-          </DIContainerProvider>
-        </ErrorHandlerProvider>
+          </ErrorHandlerProvider>
+        </ContainerProvider>
       </RouterProvider>
     </React.StrictMode>
   );
