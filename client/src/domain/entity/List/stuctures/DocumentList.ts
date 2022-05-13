@@ -9,7 +9,6 @@ export class DocumentList extends List<IDocument> implements IDocumentList {
 
   constructor() {
     super();
-
     makeObservable<IDocumentList>(this, {
       progress: observable,
       newItemsCount: observable,

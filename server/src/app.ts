@@ -4,11 +4,10 @@ import { ProductFacade } from "./ProductFacade";
 import { CONTAINER_NAME } from "./constants";
 import { getRouter } from "./getRouter";
 
-const app: Express = express();
-
-app.set("port", process.env.PORT || 3001);
-app.use(express.json());
-app.use(cors());
+const app: Express = express()
+  .set("port", process.env.PORT || 3001)
+  .use(express.json())
+  .use(cors());
 
 const enginesAPI = new ProductFacade(
   "https://motorlandby.ru/engines/",

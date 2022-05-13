@@ -1,10 +1,10 @@
-import { IGetListUseCase } from "../Document/interfaces";
 import { injected } from "brandi";
 import { REPOSITORY } from "../../../Bootstrap/config/di/repository";
 import { GetDocumentListUseCase } from "../Document/GetDocumentListUseCase";
+import { IGetListUseCase } from "../Document/interfaces";
 
-export class GetEngineListUseCase
+export class GetTransmissionListUseCase
   extends GetDocumentListUseCase
   implements IGetListUseCase {}
 
-injected(GetEngineListUseCase, REPOSITORY.Engine);
+injected(GetTransmissionListUseCase, REPOSITORY.Transmission);

@@ -7,8 +7,8 @@ import TableBody from "@mui/material/TableBody";
 import { CustomTableRow } from "./CustomTableRow";
 import TableContainer from "@mui/material/TableContainer";
 import React, { FC } from "react";
-import { IDocumentPresentationData } from "../../presentation/EngineListViewModel/interfaces";
 import { SkeletonTableRow } from "./SkeletonTableRow";
+import { IDocumentPresentationData } from "../../presentation/DocumentListViewModel/interfaces";
 
 interface IProps {
   loading: boolean;
@@ -48,7 +48,7 @@ export const CustomTable: FC<IProps> = ({
               ))
             : Array(5)
                 .fill(1)
-                .map(() => <SkeletonTableRow />)}
+                .map((val, i) => <SkeletonTableRow key={val + i} />)}
         </TableBody>
       </Table>
     </TableContainer>

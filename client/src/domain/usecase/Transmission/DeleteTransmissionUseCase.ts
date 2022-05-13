@@ -1,10 +1,10 @@
 import { injected } from "brandi";
 import { REPOSITORY } from "../../../Bootstrap/config/di/repository";
 import { IDeleteItemUseCase } from "../Document/interfaces";
-import { DeleteDocumentUseCase } from "../Document/DeleteDocumentUseCase";
+import { DeleteEngineUseCase } from "../Engine/DeleteEngineUseCase";
 
-export class DeleteEngineUseCase
-  extends DeleteDocumentUseCase
+export class DeleteTransmissionUseCase
+  extends DeleteEngineUseCase
   implements IDeleteItemUseCase {}
 
-injected(DeleteEngineUseCase, REPOSITORY.Engine);
+injected(DeleteTransmissionUseCase, REPOSITORY.Transmission);

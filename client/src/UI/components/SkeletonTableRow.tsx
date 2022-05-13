@@ -1,7 +1,6 @@
 import React, { FC } from "react";
 import TableCell from "@mui/material/TableCell";
-import { Skeleton } from "@mui/lab";
-import TableRow from "@mui/material/TableRow";
+import { Skeleton, TableRow } from "@mui/material";
 
 export const SkeletonTableRow: FC = () => (
   <TableRow sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>

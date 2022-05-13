@@ -4,14 +4,14 @@ import { USE_CASE } from "../../Bootstrap/config/di/usecase";
 import { DocumentListViewModel } from "../DocumentListViewModel";
 import { IDocumentListViewModel } from "../DocumentListViewModel/interfaces";
 
-export class EngineListViewModel
+export class TransmissionListViewModel
   extends DocumentListViewModel
   implements IDocumentListViewModel {}
 
 injected(
-  EngineListViewModel,
-  BUSINESS_MODELS.EngineList,
-  USE_CASE.GetEngineList,
-  USE_CASE.CreateEngine,
-  USE_CASE.DeleteEngine
+  TransmissionListViewModel,
+  BUSINESS_MODELS.TransmissionList,
+  USE_CASE.GetTransmissionList,
+  USE_CASE.CreateTransmission,
+  USE_CASE.DeleteTransmission
 );

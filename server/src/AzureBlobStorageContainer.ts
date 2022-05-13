@@ -30,6 +30,18 @@ export class AzureBlobStorageContainer implements IAzureBlobStorageContainer {
   }
 
   async init(): Promise<void> {
+    await this.blobServiceClient.setProperties({
+      cors: [
+        {
+          allowedOrigins: "*",
+          allowedMethods: "GET",
+          allowedHeaders: "*",
+          exposedHeaders: "*",
+          maxAgeInSeconds: 1800,
+        },
+      ],
+    });
+
     await this.containerClient.createIfNotExists();
   }
   async upload(

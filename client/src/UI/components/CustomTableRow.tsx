@@ -2,9 +2,9 @@ import TableCell from "@mui/material/TableCell";
 import { Button, Stack, TableRow } from "@mui/material";
 import { CopyToClipboard } from "./CopyToClipboard";
 import React, { FC } from "react";
-import { IDocumentPresentationData } from "../../presentation/EngineListViewModel/interfaces";
 import { DownloadBtn } from "./DownloadBtn";
 import { Skeleton } from "@mui/lab";
+import { IDocumentPresentationData } from "../../presentation/DocumentListViewModel/interfaces";
 
 export interface IProps extends IDocumentPresentationData {
   deletedLoading: boolean;
