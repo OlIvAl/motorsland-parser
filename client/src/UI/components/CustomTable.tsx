@@ -8,10 +8,11 @@ import { CustomTableRow } from "./CustomTableRow";
 import TableContainer from "@mui/material/TableContainer";
 import React, { FC } from "react";
 import { SkeletonTableRow } from "./SkeletonTableRow";
-import { IDocumentPresentationData } from "../../presentation/DocumentListViewModel/interfaces";
+import { IDocumentPresentationData } from "../../DataFlow/presentation/DocumentListViewModel/interfaces";
 
 interface IProps {
   loading: boolean;
+  createNewItemProcess: boolean;
   documents: IDocumentPresentationData[];
   deletedId: ID;
   setDeletedId(id: ID): void;
@@ -19,6 +20,7 @@ interface IProps {
 
 export const CustomTable: FC<IProps> = ({
   loading = false,
+  createNewItemProcess = false,
   documents = [],
   deletedId,
   setDeletedId,
@@ -43,6 +45,7 @@ export const CustomTable: FC<IProps> = ({
                   publicURL={document.publicURL}
                   deletedLoading={document.id === deletedId}
                   setDeletedId={setDeletedId}
+                  createNewItemProcess={createNewItemProcess}
                   key={document.id}
                 />
               ))

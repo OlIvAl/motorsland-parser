@@ -1,1 +1,1 @@
-type ID = string | number;
+export type ID = string | number;

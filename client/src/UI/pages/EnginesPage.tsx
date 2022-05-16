@@ -16,6 +16,7 @@ export const EnginesPage: FC = observer(() => {
 
   return (
     <DocumentListPage
+      title="Список выгрузок двигателей с сайта www.motorlandby.ru"
       list={list}
       loadingList={loadingList}
       newItemsCount={newItemsCount}

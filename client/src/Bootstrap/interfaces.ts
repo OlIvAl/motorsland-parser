@@ -1,5 +1,5 @@
 import { Route, Router } from "router5";
-import { ErrorCollector } from "../libs/ErrorCollector/ErrorCollector";
+import { ErrorCollector } from "../ErrorCollector/ErrorCollector";
 import { Container } from "brandi";
 
 export interface IBootstrap {

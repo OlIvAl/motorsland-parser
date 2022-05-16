@@ -1,32 +1,26 @@
-import { IProductFacade } from "./interfases";
 import express, { Request, Response, Router } from "express";
+import { IDocumentController } from "./presentation/interfaces";
 
 export function getRouter(
   root: string,
-  fields: Record<string, string>,
-  api: IProductFacade
+  controller: IDocumentController
 ): Router {
   const router = express.Router();
 
   router.get(root, async (req: Request, res: Response) => {
-    const [documents, newItemsCount] = await Promise.all([
-      api.getDocumentsInfo(),
-      api.getNewItemsCount(),
-    ]);
+    const result = await controller.getList();
 
-    res.json({ items: documents, progress: false, newItemsCount });
+    res.json(result);
   });
 
   router.post(root, async (req: Request, res: Response) => {
-    await api.uploadNewDocument(fields);
+    const result = await controller.create();
 
-    const documents = await api.getDocumentsInfo();
-
-    res.json({ document: documents[0] });
+    res.json({ document: result });
   });
 
   router.delete(root + "/:name", async (req: Request, res: Response) => {
-    await api.deleteDocument(req.params.name);
+    await controller.delete(req.params.name);
 
     res.json();
   });

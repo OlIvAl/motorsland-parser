@@ -1,5 +1,5 @@
 import { IBootstrap } from "./interfaces";
-import { routes } from "./config/routes";
+import { routes } from "../Router/routes";
 import { API_ROOT } from "./constants";
 
 export function initBootstrap(bootstrap: IBootstrap): Promise<IBootstrap> {

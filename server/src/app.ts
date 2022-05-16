@@ -1,62 +1,25 @@
 import express, { Express, Request, Response } from "express";
 import cors from "cors";
-import { ProductFacade } from "./ProductFacade";
-import { CONTAINER_NAME } from "./constants";
 import { getRouter } from "./getRouter";
+import { getDIContainer } from "./di";
+import { CONTROLLER } from "./di/controller";
 
 const app: Express = express()
   .set("port", process.env.PORT || 3001)
   .use(express.json())
   .use(cors());
 
-const enginesAPI = new ProductFacade(
-  "https://motorlandby.ru/engines/",
-  CONTAINER_NAME.ENGINES_CONTAINER_NAME
-);
-const transmissionAPI = new ProductFacade(
-  "https://motorlandby.ru/transmission/",
-  CONTAINER_NAME.TRANSMISSIONS_CONTAINER_NAME
-);
-
 app.get("/", (req: Request, res: Response) => {
   res.send("Hello World!!");
 });
 
-const enginesRouter = getRouter(
-  "/engines",
-  {
-    vendor_code: "Артикул",
-    mark: "Марка",
-    model: "Модель",
-    auto: "Автомобиль",
-    year: "Год",
-    engine_type: "Тип двигателя",
-    engine_mark: "Маркировка двигателя",
-    engine_number: "Номер двигателя",
-    weight: "Габариты, вес",
-    description: "Описание",
-    kpp: "КПП",
-    vin: "VIN",
-  },
-  enginesAPI
-);
+const di = getDIContainer();
+
+const enginesRouter = getRouter("/engines", di.get(CONTROLLER.Engine));
 
 const transmissionsRouter = getRouter(
   "/transmissions",
-  {
-    vendor_code: "Артикул",
-    mark: "Марка",
-    model: "Модель",
-    auto: "Автомобиль",
-    constr_number: "Констр.номер",
-    year: "Год",
-    engine_type: "Тип двигателя",
-    engine_mark: "Маркировка двигателя",
-    weight: "Габариты , вес",
-    kpp: "КПП",
-    vin: "VIN",
-  },
-  transmissionAPI
+  di.get(CONTROLLER.Transmission)
 );
 
 app.use(enginesRouter).use(transmissionsRouter);

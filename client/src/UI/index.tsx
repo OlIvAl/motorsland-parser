@@ -4,7 +4,7 @@ import { CssBaseline } from "@mui/material";
 import { App } from "./App";
 import { Router } from "router5";
 import { Container } from "brandi";
-import { ErrorCollector } from "../libs/ErrorCollector/ErrorCollector";
+import { ErrorCollector } from "../ErrorCollector/ErrorCollector";
 import { RouterProvider } from "react-router5";
 import { ErrorHandlerProvider } from "./providers/ErrorHandlerProvider";
 import { ContainerProvider } from "brandi-react";

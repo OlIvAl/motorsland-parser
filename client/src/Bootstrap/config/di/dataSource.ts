@@ -1,7 +1,7 @@
 import { Container, token } from "brandi";
-import { DocumentListModel } from "../../../domain/entity/List/models/DocumentListModel";
-import { IDocumentListModel } from "../../../domain/entity/List/models/interfaces";
-import { IAPIClient } from "../../../libs/API/interfaces";
+import { DocumentListModel } from "../../../DataFlow/domain/entity/List/models/DocumentListModel";
+import { IDocumentListModel } from "../../../DataFlow/domain/entity/List/models/interfaces";
+import { IAPIClient } from "../../../DataFlow/dataSource/API/interfaces";
 
 export const BUSINESS_MODELS = {
   EngineList: token<IDocumentListModel>("EngineList"),

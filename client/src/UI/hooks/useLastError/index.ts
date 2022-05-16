@@ -1,6 +1,6 @@
 import { useContext, useState, useEffect } from "react";
 import { reaction } from "mobx";
-import { ICustomError } from "../../../libs/ErrorCollector/errors/interfaces";
+import { ICustomError } from "../../../ErrorCollector/errors/interfaces";
 import { ErrorHandlerContext } from "../../contexts";
 
 /**

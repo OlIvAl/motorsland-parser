@@ -1,5 +1,5 @@
 import { createContext } from "react";
-import { ErrorCollector } from "../libs/ErrorCollector/ErrorCollector";
+import { ErrorCollector } from "../ErrorCollector/ErrorCollector";
 
 export const ErrorHandlerContext = createContext<ErrorCollector | null>(null);
 

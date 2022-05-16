@@ -1,6 +1,6 @@
-import { EngineRepository } from "../../../data/repository/Document/EngineRepository";
-import { IDocumentRepository } from "../../../domain/repository/Document/interfaces";
-import { TransmissionRepository } from "../../../data/repository/Document/TransmissionRepository";
+import { EngineRepository } from "../../../DataFlow/data/repository/Document/EngineRepository";
+import { IDocumentRepository } from "../../../DataFlow/domain/repository/Document/interfaces";
+import { TransmissionRepository } from "../../../DataFlow/data/repository/Document/TransmissionRepository";
 import { Container, token } from "brandi";
 
 export const REPOSITORY = {

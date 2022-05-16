@@ -15,6 +15,7 @@ export const TransmissionsPage: FC = () => {
 
   return (
     <DocumentListPage
+      title="Список выгрузок АКПП / МКПП с сайта www.motorlandby.ru"
       list={list}
       loadingList={loadingList}
       newItemsCount={newItemsCount}

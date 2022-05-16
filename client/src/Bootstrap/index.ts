@@ -1,11 +1,11 @@
 import { IBootstrap } from "./interfaces";
 import createRouter5, { Route, Router } from "router5";
-import { ErrorCollector } from "../libs/ErrorCollector/ErrorCollector";
-import { createRouter } from "../libs/createRouter";
+import { ErrorCollector } from "../ErrorCollector/ErrorCollector";
+import { createRouter } from "../Router";
 import { getContainerWithReps } from "./config/di/repository";
 import { getContainerWithUseCases } from "./config/di/usecase";
 import { getContainerWithViewModels } from "./config/di/viewModel";
-import { APIClient } from "../libs/API/APIClient";
+import { APIClient } from "../DataFlow/dataSource/API/APIClient";
 import {
   DATA_SOURCE_REMOTE,
   getContainerWithDataSource,

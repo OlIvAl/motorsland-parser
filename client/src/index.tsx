@@ -2,7 +2,7 @@ import { configure } from "mobx";
 import { Bootstrap } from "./Bootstrap";
 import { initBootstrap } from "./Bootstrap/initBootstrap";
 import { IBootstrap } from "./Bootstrap/interfaces";
-import { ICustomError } from "./libs/ErrorCollector/errors/interfaces";
+import { ICustomError } from "./ErrorCollector/errors/interfaces";
 import { renderApp } from "./UI";
 
 configure({ enforceActions: "observed" });

@@ -4,14 +4,14 @@ import { CopyToClipboard } from "./CopyToClipboard";
 import React, { FC } from "react";
 import { DownloadBtn } from "./DownloadBtn";
 import { Skeleton } from "@mui/lab";
-import { IDocumentPresentationData } from "../../presentation/DocumentListViewModel/interfaces";
+import { IDocumentPresentationData } from "../../DataFlow/presentation/DocumentListViewModel/interfaces";
 
 export interface IProps extends IDocumentPresentationData {
   deletedLoading: boolean;
   setDeletedId(name: ID): void;
+  createNewItemProcess: boolean;
 }
 
-// ToDo: make skeletone;
 export const CustomTableRow: FC<IProps> = ({
   id,
   name,
@@ -19,6 +19,7 @@ export const CustomTableRow: FC<IProps> = ({
   publicURL,
   deletedLoading,
   setDeletedId,
+  createNewItemProcess,
 }) => {
   const deleteHandler = (): void => setDeletedId(id);
 
@@ -36,7 +37,12 @@ export const CustomTableRow: FC<IProps> = ({
           <Stack spacing={2} direction="row">
             <CopyToClipboard publicURL={publicURL} />
             <DownloadBtn name={name} url={publicURL} />
-            <Button variant="contained" color="error" onClick={deleteHandler}>
+            <Button
+              variant="contained"
+              color="error"
+              onClick={deleteHandler}
+              disabled={createNewItemProcess}
+            >
               Удалить
             </Button>
           </Stack>

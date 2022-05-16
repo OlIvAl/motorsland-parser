@@ -1,5 +1,5 @@
 import { FC } from "react";
-import { ErrorCollector } from "../../libs/ErrorCollector/ErrorCollector";
+import { ErrorCollector } from "../../ErrorCollector/ErrorCollector";
 import { ErrorHandlerContext } from "../contexts";
 
 interface IProps {
