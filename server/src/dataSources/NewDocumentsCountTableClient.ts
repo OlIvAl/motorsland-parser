@@ -1,8 +1,10 @@
 import { AzureNamedKeyCredential, TableClient } from "@azure/data-tables";
-import { INewItemsCountTableClient } from "./interfases";
+import { INewDocumentsCountTableClient } from "./interfases";
 import { CONTAINER_NAME } from "../constants";
 
-export class NewItemsCountTableClient implements INewItemsCountTableClient {
+export class NewDocumentsCountTableClient
+  implements INewDocumentsCountTableClient
+{
   private static AZURE_ACCOUNT = "motorsland";
   private static AZURE_ACCOUNT_KEY =
     "hW0Z3QW5iJPyKFrJJR4h8sZZu5JsMC8td2ulQel9+Fv0RCzueNpsPCDbp+eDFgdDAMdi9VbC1g8z++mHsXYaDw==";
@@ -11,18 +13,18 @@ export class NewItemsCountTableClient implements INewItemsCountTableClient {
 
   constructor() {
     const credential = new AzureNamedKeyCredential(
-      NewItemsCountTableClient.AZURE_ACCOUNT,
-      NewItemsCountTableClient.AZURE_ACCOUNT_KEY
+      NewDocumentsCountTableClient.AZURE_ACCOUNT,
+      NewDocumentsCountTableClient.AZURE_ACCOUNT_KEY
     );
 
     this.tableClient = new TableClient(
-      `https://${NewItemsCountTableClient.AZURE_ACCOUNT}.table.core.windows.net`,
+      `https://${NewDocumentsCountTableClient.AZURE_ACCOUNT}.table.core.windows.net`,
       "newItemsCount",
       credential
     );
   }
 
-  async getNewItemsCount(storage: CONTAINER_NAME): Promise<number> {
+  async getNewDocumentsCount(storage: CONTAINER_NAME): Promise<number> {
     return (
       await this.tableClient.getEntity<{ count: number }>(
         "newItemsCount",
@@ -30,7 +32,7 @@ export class NewItemsCountTableClient implements INewItemsCountTableClient {
       )
     ).count;
   }
-  async setNewItemsCount(
+  async setNewDocumentsCount(
     storage: CONTAINER_NAME,
     count: number
   ): Promise<void> {

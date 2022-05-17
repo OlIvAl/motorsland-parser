@@ -5,13 +5,13 @@ import { makeObservable, observable } from "mobx";
 
 export class DocumentList extends List<IDocument> implements IDocumentList {
   progress = false;
-  newItemsCount = 0;
+  newDocumentsCount = 0;
 
   constructor() {
     super();
     makeObservable<IDocumentList>(this, {
       progress: observable,
-      newItemsCount: observable,
+      newDocumentsCount: observable,
     });
   }
 }

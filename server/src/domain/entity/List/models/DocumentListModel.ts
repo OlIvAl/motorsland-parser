@@ -19,8 +19,8 @@ export class DocumentListModel
     this._list.progress = process;
   }
 
-  setNewItemsCount(count: number): void {
-    this._list.newItemsCount = count;
+  setNewDocumentsCount(count: number): void {
+    this._list.newDocumentsCount = count;
   }
 
   dispose(): void {

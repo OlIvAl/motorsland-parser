@@ -10,14 +10,14 @@ export abstract class GetDocumentListUseCase
   async execute(): Promise<IDocumentList> {
     const model = new DocumentListModel();
 
-    const [list, newItemsCount, progress] = await Promise.all([
+    const [list, newDocumentsCount, progress] = await Promise.all([
       this.repository.getDocuments(),
-      this.repository.getNewItemsCount(),
+      this.repository.getNewDocumentsCount(),
       this.repository.getProgress(),
     ]);
 
     model.setItems(list);
-    model.setNewItemsCount(newItemsCount);
+    model.setNewDocumentsCount(newDocumentsCount);
     model.setProgress(progress);
 
     return model.list;

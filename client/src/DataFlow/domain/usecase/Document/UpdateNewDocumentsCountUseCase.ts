@@ -8,7 +8,7 @@ export class UpdateNewDocumentsCountUseCase
   constructor(protected repository: IDocumentRepository) {}
 
   async execute(model: IDocumentListModel): Promise<IDocumentListModel> {
-    const count = await this.repository.updateNewItemsCount();
+    const count = await this.repository.updateNewDocumentsCount();
 
     model.setNewDocumentsCount(count);
 

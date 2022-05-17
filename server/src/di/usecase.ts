@@ -11,7 +11,7 @@ import { CreateEngineUseCase } from "../domain/usecase/Engine/CreateEngineUseCas
 import { GetTransmissionListUseCase } from "../domain/usecase/Transmission/GetTransmissionListUseCase";
 import { GetEngineListUseCase } from "../domain/usecase/Engine/GetEngineListUseCase";
 import { DeleteTransmissionUseCase } from "../domain/usecase/Transmission/DeleteTransmissionUseCase";
-import { UpdateNewItemsCountUseCase } from "../domain/usecase/Document/UpdateNewItemsCountUseCase";
+import { UpdateNewDocumentsCountUseCase } from "../domain/usecase/Document/UpdateNewDocumentsCountUseCase";
 import { UpdateNewEnginesCountUseCase } from "../domain/usecase/Document/UpdateNewEnginesCountUseCase";
 import { UpdateNewTransmissionsCountUseCase } from "../domain/usecase/Document/UpdateNewTransmissionsCountUseCase";
 

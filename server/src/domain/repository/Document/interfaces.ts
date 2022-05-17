@@ -3,9 +3,9 @@ import { ID } from "../../../interfaces";
 
 export interface IDocumentRepository {
   getDocuments(): Promise<IDocument[]>;
-  getNewItemsCount(): Promise<number>;
   getProgress(): Promise<boolean>;
-  updateNewItemsCount(): Promise<number>;
+  getNewDocumentsCount(): Promise<number>;
+  updateNewDocumentsCount(): Promise<number>;
   create(fields: Record<string, string>): Promise<IDocument>;
   delete(id: ID): Promise<void>;
 }
@@ -18,5 +18,5 @@ export interface IDocumentDTO {
 export interface IDocumentListDTO {
   items: IDocumentDTO[];
   progress: boolean;
-  newItemsCount: number;
+  newDocumentsCount: number;
 }

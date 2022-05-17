@@ -4,5 +4,5 @@ import { IDocument } from "../../Document/structures/interfaces";
 
 export class DocumentList extends List<IDocument> implements IDocumentList {
   progress = false;
-  newItemsCount = 0;
+  newDocumentsCount = 0;
 }

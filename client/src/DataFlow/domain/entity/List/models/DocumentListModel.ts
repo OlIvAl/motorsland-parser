@@ -31,7 +31,7 @@ export class DocumentListModel
   }
 
   setNewDocumentsCount(count: number): void {
-    this._list.newItemsCount = count;
+    this._list.newDocumentsCount = count;
   }
 
   dispose(): void {

@@ -17,5 +17,5 @@ injected(
   DATA_SOURCE_REMOTE.ImageStorage,
   DATA_SOURCE_REMOTE.EngineListDocumentBuilder,
   DATA_SOURCE_REMOTE.ProgressTableClient,
-  DATA_SOURCE_REMOTE.NewItemsCountTableClient
+  DATA_SOURCE_REMOTE.NewDocumentsCountTableClient
 );

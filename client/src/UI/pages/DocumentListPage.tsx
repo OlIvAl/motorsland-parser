@@ -15,11 +15,11 @@ export const DocumentListPage: FC<IProps> = ({
   list,
   loadingList,
   loadingCount,
-  newItemsCount,
-  createNewItemProcess,
+  newDocumentsCount,
+  createNewDocumentProcess,
   createItem,
   deleteItem,
-  updateNewItemsCount,
+  updateNewDocumentsCount,
 }) => {
   const [deletedId, setDeletedId] = useState<ID>("");
 
@@ -29,7 +29,7 @@ export const DocumentListPage: FC<IProps> = ({
         {title}
       </Typography>
 
-      {createNewItemProcess ? (
+      {createNewDocumentProcess ? (
         <Typography variant="h5" gutterBottom component="div">
           Происходит выгрузка товаров. <br />
           До ее завершения функционал ограничен
@@ -43,7 +43,7 @@ export const DocumentListPage: FC<IProps> = ({
       ) : (
         <CustomTable
           loading={loadingList}
-          createNewItemProcess={createNewItemProcess}
+          createNewItemProcess={createNewDocumentProcess}
           documents={list}
           deletedId={deletedId}
           setDeletedId={setDeletedId}
@@ -51,7 +51,7 @@ export const DocumentListPage: FC<IProps> = ({
       )}
       <div>
         <LoadingButton
-          loading={createNewItemProcess}
+          loading={createNewDocumentProcess}
           disabled={loadingList || !!deletedId || loadingCount}
           variant="contained"
           color="primary"
@@ -63,10 +63,10 @@ export const DocumentListPage: FC<IProps> = ({
 
         <NewDocumentsInfo
           loadingList={loadingList}
-          createNewItemProcess={createNewItemProcess}
+          createNewItemProcess={createNewDocumentProcess}
           loadingCount={loadingCount}
-          newItemsCount={newItemsCount}
-          updateNewItemsCount={updateNewItemsCount}
+          newDocumentsCount={newDocumentsCount}
+          updateNewDocumentsCount={updateNewDocumentsCount}
         />
       </div>
       <ConfirmDialog

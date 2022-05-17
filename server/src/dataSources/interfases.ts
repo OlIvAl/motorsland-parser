@@ -21,9 +21,9 @@ export interface IProgressTableClient {
   setProgress(storage: CONTAINER_NAME): Promise<void>;
   unsetProgress(storage: CONTAINER_NAME): Promise<void>;
 }
-export interface INewItemsCountTableClient {
-  getNewItemsCount(storage: CONTAINER_NAME): Promise<number>;
-  setNewItemsCount(storage: CONTAINER_NAME, count: number): Promise<void>;
+export interface INewDocumentsCountTableClient {
+  getNewDocumentsCount(storage: CONTAINER_NAME): Promise<number>;
+  setNewDocumentsCount(storage: CONTAINER_NAME, count: number): Promise<void>;
 }
 
 export interface IImageBuilder {

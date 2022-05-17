@@ -9,11 +9,11 @@ export const EnginesPage: FC = observer(() => {
     list,
     loadingList,
     loadingCount,
-    newItemsCount,
-    createNewItemProcess,
+    newDocumentsCount,
+    createNewDocumentProcess,
     createItem,
     deleteItem,
-    updateNewItemsCount,
+    updateNewDocumentsCount,
   } = useInjection(VIEW_MODEL.EngineList);
 
   return (
@@ -22,11 +22,11 @@ export const EnginesPage: FC = observer(() => {
       list={list}
       loadingList={loadingList}
       loadingCount={loadingCount}
-      newItemsCount={newItemsCount}
-      createNewItemProcess={createNewItemProcess}
+      newDocumentsCount={newDocumentsCount}
+      createNewDocumentProcess={createNewDocumentProcess}
       createItem={createItem}
       deleteItem={deleteItem}
-      updateNewItemsCount={updateNewItemsCount}
+      updateNewDocumentsCount={updateNewDocumentsCount}
     />
   );
 });

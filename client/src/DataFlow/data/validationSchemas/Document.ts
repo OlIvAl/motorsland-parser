@@ -18,7 +18,7 @@ export const DocumentSchema: Schema<IDocument> = object({
 export const DocumentListSchema: Schema<IDocumentList> = object({
   items: array().of(DocumentSchema).defined(),
   progress: boolean().defined(),
-  newItemsCount: number().defined(),
+  newDocumentsCount: number().defined(),
 })
   .noUnknown()
   .defined();

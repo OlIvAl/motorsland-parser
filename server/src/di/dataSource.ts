@@ -1,7 +1,7 @@
 import { Container, token } from "brandi";
 import {
   IAzureBlobStorage,
-  INewItemsCountTableClient,
+  INewDocumentsCountTableClient,
   IProgressTableClient,
 } from "../dataSources/interfases";
 import { IDocumentBuilder } from "../dataSources/DocumentBuilder/interfaces";
@@ -9,7 +9,7 @@ import { AzureBlobStorage } from "../dataSources/AzureBlobStorage";
 import { CONTAINER_NAME } from "../constants";
 import { DocumentBuilder } from "../dataSources/DocumentBuilder/DocumentBuilder";
 import { ProgressTableClient } from "../dataSources/ProcessTableClient";
-import { NewItemsCountTableClient } from "../dataSources/NewItemsCountTableClient";
+import { NewDocumentsCountTableClient } from "../dataSources/NewDocumentsCountTableClient";
 
 export const DATA_SOURCE_REMOTE = {
   EngineStorage: token<IAzureBlobStorage>("EngineStorage"),
@@ -22,8 +22,8 @@ export const DATA_SOURCE_REMOTE = {
     "TransmissionListDocumentBuilder"
   ),
   ProgressTableClient: token<IProgressTableClient>("ProgressTableClient"),
-  NewItemsCountTableClient: token<INewItemsCountTableClient>(
-    "NewItemsCountTableClient"
+  NewDocumentsCountTableClient: token<INewDocumentsCountTableClient>(
+    "NewDocumentsCountTableClient"
   ),
 };
 
@@ -54,8 +54,8 @@ export function getContainerWithDataSource(container: Container): Container {
     .bind(DATA_SOURCE_REMOTE.ProgressTableClient)
     .toConstant(new ProgressTableClient());
   container
-    .bind(DATA_SOURCE_REMOTE.NewItemsCountTableClient)
-    .toConstant(new NewItemsCountTableClient());
+    .bind(DATA_SOURCE_REMOTE.NewDocumentsCountTableClient)
+    .toConstant(new NewDocumentsCountTableClient());
 
   return container;
 }

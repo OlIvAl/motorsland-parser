@@ -36,7 +36,7 @@ export abstract class DocumentRepository implements IDocumentRepository {
   async delete(id: ID): Promise<void> {
     await this.apiClient.deleteData<void, IDocumentDTO>(`${this.root}/${id}`);
   }
-  async updateNewItemsCount(): Promise<number> {
+  async updateNewDocumentsCount(): Promise<number> {
     const resp = await this.apiClient.postData<void, { count: number }>(
       `${this.root}/items/new`
     );

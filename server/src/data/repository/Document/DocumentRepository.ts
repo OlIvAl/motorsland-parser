@@ -2,7 +2,7 @@ import { IDocument } from "../../../domain/entity/Document/structures/interfaces
 import { IDocumentRepository } from "../../../domain/repository/Document/interfaces";
 import {
   IAzureBlobStorage,
-  INewItemsCountTableClient,
+  INewDocumentsCountTableClient,
   IProgressTableClient,
 } from "../../../dataSources/interfases";
 import { IDocumentBuilder } from "../../../dataSources/DocumentBuilder/interfaces";
@@ -23,7 +23,7 @@ export abstract class DocumentRepository implements IDocumentRepository {
     protected imagesStorage: IAzureBlobStorage,
     protected documentsBuilder: IDocumentBuilder,
     protected progressTableClient: IProgressTableClient,
-    protected newItemsCountTableClient: INewItemsCountTableClient
+    protected newDocumentsCountTableClient: INewDocumentsCountTableClient
   ) {}
 
   async getDocuments(): Promise<IDocument[]> {
@@ -36,10 +36,12 @@ export abstract class DocumentRepository implements IDocumentRepository {
   async getProgress(): Promise<boolean> {
     return await this.progressTableClient.getProgress(this.storage);
   }
-  async getNewItemsCount(): Promise<number> {
-    return await this.newItemsCountTableClient.getNewItemsCount(this.storage);
+  async getNewDocumentsCount(): Promise<number> {
+    return await this.newDocumentsCountTableClient.getNewDocumentsCount(
+      this.storage
+    );
   }
-  async updateNewItemsCount(): Promise<number> {
+  async updateNewDocumentsCount(): Promise<number> {
     const lastDocumentNames = await this.documentsStorage.getItemsList();
     const lastDocumentName = lastDocumentNames.length
       ? lastDocumentNames.slice(-1)[0].name
@@ -55,7 +57,7 @@ export abstract class DocumentRepository implements IDocumentRepository {
 
     await this.documentsBuilder.dispose();
 
-    await this.newItemsCountTableClient.setNewItemsCount(
+    await this.newDocumentsCountTableClient.setNewDocumentsCount(
       this.storage,
       result.length
     );
@@ -138,6 +140,6 @@ export abstract class DocumentRepository implements IDocumentRepository {
 
     await this.imagesStorage.deleteBlobs(blobClients);
     await this.documentsStorage.deleteBlob(id as string);
-    await this.updateNewItemsCount();
+    await this.updateNewDocumentsCount();
   }
 }

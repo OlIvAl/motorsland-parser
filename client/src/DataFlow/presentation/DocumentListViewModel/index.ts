@@ -24,10 +24,10 @@ export abstract class DocumentListViewModel implements IDocumentListViewModel {
       (item) => new DocumentPresentationData(item)
     );
   }
-  get newItemsCount(): number {
-    return this.model.list.newItemsCount;
+  get newDocumentsCount(): number {
+    return this.model.list.newDocumentsCount;
   }
-  get createNewItemProcess(): boolean {
+  get createNewDocumentProcess(): boolean {
     return this.model.list.progress;
   }
 
@@ -43,15 +43,15 @@ export abstract class DocumentListViewModel implements IDocumentListViewModel {
   ) {
     makeObservable<IDocumentListViewModel, "model">(this, {
       list: computed,
-      newItemsCount: computed,
-      createNewItemProcess: computed,
+      newDocumentsCount: computed,
+      createNewDocumentProcess: computed,
       loadingList: observable,
       loadingCount: observable,
       model: observable,
       getList: action.bound,
       createItem: action.bound,
       deleteItem: action.bound,
-      updateNewItemsCount: action.bound,
+      updateNewDocumentsCount: action.bound,
     });
   }
 
@@ -78,7 +78,7 @@ export abstract class DocumentListViewModel implements IDocumentListViewModel {
     this.model = await this.deleteDocumentUseCase.execute(id, this.model);
   }
 
-  async updateNewItemsCount(): Promise<void> {
+  async updateNewDocumentsCount(): Promise<void> {
     this.loadingCount = true;
 
     try {
