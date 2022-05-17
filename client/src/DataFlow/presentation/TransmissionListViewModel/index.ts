@@ -13,5 +13,6 @@ injected(
   BUSINESS_MODELS.TransmissionList,
   USE_CASE.GetTransmissionList,
   USE_CASE.CreateTransmission,
-  USE_CASE.DeleteTransmission
+  USE_CASE.DeleteTransmission,
+  USE_CASE.UpdateNewTransmissionsCount
 );

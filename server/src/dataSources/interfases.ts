@@ -1,4 +1,5 @@
 import { BlobClient, BlobUploadCommonResponse } from "@azure/storage-blob";
+import { CONTAINER_NAME } from "../constants";
 
 // свой инстанс для каждого контейнера
 export interface IAzureBlobStorage {
@@ -15,17 +16,14 @@ export interface IAzureBlobStorage {
   getBuffer(name: string): Promise<Buffer>;
 }
 
-export interface IAzureTableStorage {
-  init(): Promise<void>;
-  insert(): Promise<void>;
-  update(): Promise<void>;
+export interface IProgressTableClient {
+  getProgress(storage: CONTAINER_NAME): Promise<boolean>;
+  setProgress(storage: CONTAINER_NAME): Promise<void>;
+  unsetProgress(storage: CONTAINER_NAME): Promise<void>;
 }
-
-export interface IProductFacade {
-  getNewItemsCount(): Promise<number>;
-  getDocumentsInfo(): Promise<IDocumentInfo[]>;
-  uploadNewDocument(fields: Record<string, string>): Promise<void>;
-  deleteDocument(name: string): Promise<void>;
+export interface INewItemsCountTableClient {
+  getNewItemsCount(storage: CONTAINER_NAME): Promise<number>;
+  setNewItemsCount(storage: CONTAINER_NAME, count: number): Promise<void>;
 }
 
 export interface IImageBuilder {

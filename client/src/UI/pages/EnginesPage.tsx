@@ -8,10 +8,12 @@ export const EnginesPage: FC = observer(() => {
   const {
     list,
     loadingList,
+    loadingCount,
     newItemsCount,
     createNewItemProcess,
     createItem,
     deleteItem,
+    updateNewItemsCount,
   } = useInjection(VIEW_MODEL.EngineList);
 
   return (
@@ -19,10 +21,12 @@ export const EnginesPage: FC = observer(() => {
       title="Список выгрузок двигателей с сайта www.motorlandby.ru"
       list={list}
       loadingList={loadingList}
+      loadingCount={loadingCount}
       newItemsCount={newItemsCount}
       createNewItemProcess={createNewItemProcess}
       createItem={createItem}
       deleteItem={deleteItem}
+      updateNewItemsCount={updateNewItemsCount}
     />
   );
 });

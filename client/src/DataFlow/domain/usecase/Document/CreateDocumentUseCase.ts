@@ -12,6 +12,7 @@ export abstract class CreateDocumentUseCase implements ICreateItemUseCase {
       const result = await this.repository.create();
 
       model.setItem(result);
+      model.setNewDocumentsCount(0);
 
       return model;
     } finally {

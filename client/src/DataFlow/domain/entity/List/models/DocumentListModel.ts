@@ -18,7 +18,7 @@ export class DocumentListModel
     makeObservable(this, {
       setProgress: action.bound,
       unsetProgress: action.bound,
-      setNewItemsCount: action.bound,
+      setNewDocumentsCount: action.bound,
     });
   }
 
@@ -30,7 +30,7 @@ export class DocumentListModel
     this._list.progress = false;
   }
 
-  setNewItemsCount(count: number): void {
+  setNewDocumentsCount(count: number): void {
     this._list.newItemsCount = count;
   }
 

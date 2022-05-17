@@ -1,8 +1,8 @@
-import { IDeleteItemUseCase } from "./interfaces";
+import { IDeleteDocumentUseCase } from "./interfaces";
 import { IDocumentRepository } from "../../repository/Document/interfaces";
 import { ID } from "../../../interfaces";
 
-export abstract class DeleteDocumentUseCase implements IDeleteItemUseCase {
+export abstract class DeleteDocumentUseCase implements IDeleteDocumentUseCase {
   constructor(protected repository: IDocumentRepository) {}
   async execute(id: ID): Promise<void> {
     // Если progress=true - выкидывать ошибку

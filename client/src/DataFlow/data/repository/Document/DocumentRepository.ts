@@ -13,21 +13,34 @@ import {
 import { DocumentList } from "../../../domain/entity/List/stuctures/DocumentList";
 
 export abstract class DocumentRepository implements IDocumentRepository {
-  protected constructor(protected apiClient: IAPIClient) {}
+  protected abstract root: string;
 
-  abstract getList(): Promise<IDocumentList>;
-  abstract create(): Promise<IDocument>;
-  abstract delete(id: ID): Promise<void>;
+  constructor(protected apiClient: IAPIClient) {}
 
-  protected getRequestedList(resp: IDocumentListDTO): IDocumentList {
+  async getList(): Promise<IDocumentList> {
+    const resp = await this.apiClient.getData<void, IDocumentListDTO>(
+      this.root
+    );
+
     const result = DocumentListSchema.cast(resp);
 
     return { ...new DocumentList(), ...result };
   }
+  async create(): Promise<IDocument> {
+    const resp = await this.apiClient.postData<void, IDocumentDTO>(this.root);
 
-  protected getCreatedList(resp: IDocumentDTO): IDocument {
     const result = DocumentSchema.cast(resp);
 
     return { ...new Document(), ...result };
+  }
+  async delete(id: ID): Promise<void> {
+    await this.apiClient.deleteData<void, IDocumentDTO>(`${this.root}/${id}`);
+  }
+  async updateNewItemsCount(): Promise<number> {
+    const resp = await this.apiClient.postData<void, { count: number }>(
+      `${this.root}/items/new`
+    );
+
+    return resp.count;
   }
 }

@@ -8,16 +8,28 @@ import {
   ICreateItemUseCase,
   IDeleteItemUseCase,
   IGetListUseCase,
+  IUpdateNewDocumentsCountUseCase,
 } from "../../../DataFlow/domain/usecase/Document/interfaces";
 import { Container, token } from "brandi";
+import { UpdateNewEnginesCountUseCase } from "../../../DataFlow/domain/usecase/Engine/UpdateNewEnginesCountUseCase";
+import { UpdateNewTransmissionsCountUseCase } from "../../../DataFlow/domain/usecase/Transmission/UpdateNewTransmissionsCountUseCase";
 
 export const USE_CASE = {
   GetEngineList: token<IGetListUseCase>("GetEngineListUseCase"),
-  CreateEngine: token<ICreateItemUseCase>("CreateEngineUseCase"),
-  DeleteEngine: token<IDeleteItemUseCase>("DeleteEngineUseCase"),
   GetTransmissionList: token<IGetListUseCase>("GetTransmissionListUseCase"),
+
+  CreateEngine: token<ICreateItemUseCase>("CreateEngineUseCase"),
   CreateTransmission: token<ICreateItemUseCase>("CreateTransmissionUseCase"),
+
+  DeleteEngine: token<IDeleteItemUseCase>("DeleteEngineUseCase"),
   DeleteTransmission: token<IDeleteItemUseCase>("DeleteTransmissionUseCase"),
+
+  UpdateNewEnginesCount: token<IUpdateNewDocumentsCountUseCase>(
+    "UpdateNewEnginesCount"
+  ),
+  UpdateNewTransmissionsCount: token<IUpdateNewDocumentsCountUseCase>(
+    "UpdateNewTransmissionsCount"
+  ),
 };
 
 export function getContainerWithUseCases(container: Container): Container {
@@ -33,6 +45,10 @@ export function getContainerWithUseCases(container: Container): Container {
     .bind(USE_CASE.DeleteEngine)
     .toInstance(DeleteEngineUseCase)
     .inTransientScope();
+  container
+    .bind(USE_CASE.UpdateNewEnginesCount)
+    .toInstance(UpdateNewEnginesCountUseCase)
+    .inTransientScope();
 
   container
     .bind(USE_CASE.GetTransmissionList)
@@ -45,6 +61,10 @@ export function getContainerWithUseCases(container: Container): Container {
   container
     .bind(USE_CASE.DeleteTransmission)
     .toInstance(DeleteTransmissionUseCase)
+    .inTransientScope();
+  container
+    .bind(USE_CASE.UpdateNewTransmissionsCount)
+    .toInstance(UpdateNewTransmissionsCountUseCase)
     .inTransientScope();
 
   return container;

@@ -5,6 +5,7 @@ export interface IDocumentRepository {
   getList(): Promise<IDocumentList>;
   create(): Promise<IDocument>;
   delete(id: ID): Promise<void>;
+  updateNewItemsCount(): Promise<number>;
 }
 
 export interface IDocumentDTO {

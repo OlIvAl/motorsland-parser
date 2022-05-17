@@ -4,6 +4,8 @@ import { ID } from "../../../interfaces";
 export interface IDocumentRepository {
   getDocuments(): Promise<IDocument[]>;
   getNewItemsCount(): Promise<number>;
+  getProgress(): Promise<boolean>;
+  updateNewItemsCount(): Promise<number>;
   create(fields: Record<string, string>): Promise<IDocument>;
   delete(id: ID): Promise<void>;
 }

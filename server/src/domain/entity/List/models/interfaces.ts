@@ -15,7 +15,6 @@ export interface IListModel<M extends { id: ID }> {
 export interface IDocumentListModel extends IListModel<IDocument> {
   list: IDocumentList;
   setList(list: IDocumentList): void;
-  setProgress(): void;
-  unsetProgress(): void;
+  setProgress(process: boolean): void;
   setNewItemsCount(count: number): void;
 }

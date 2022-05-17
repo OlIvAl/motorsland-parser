@@ -11,5 +11,6 @@ injected(
   TransmissionController,
   USE_CASE.GetTransmissionList,
   USE_CASE.CreateTransmission,
-  USE_CASE.DeleteTransmission
+  USE_CASE.DeleteTransmission,
+  USE_CASE.UpdateNewTransmissionsCountUseCase
 );

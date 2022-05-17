@@ -53,7 +53,7 @@ export class PageWithList implements IPageWithList {
               vendorCodesListFromLastDocument.includes(
                 vendorCode.toString()
               )) ||
-            result.length >= 100
+            result.length >= 50
           ) {
             flag = true;
             break;

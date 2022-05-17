@@ -10,8 +10,9 @@ export abstract class DeleteDocumentUseCase implements IDeleteItemUseCase {
     model: IDocumentListModel
   ): Promise<IDocumentListModel> {
     await this.repository.delete(id);
+    const result = await this.repository.getList();
 
-    model.removeItem(id);
+    model.setList(result);
 
     return model;
   }

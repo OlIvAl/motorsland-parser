@@ -9,3 +9,6 @@ export interface ICreateItemUseCase {
 export interface IDeleteItemUseCase {
   execute(id: ID, model: IDocumentListModel): Promise<IDocumentListModel>;
 }
+export interface IUpdateNewDocumentsCountUseCase {
+  execute(model: IDocumentListModel): Promise<IDocumentListModel>;
+}

@@ -7,10 +7,12 @@ export const TransmissionsPage: FC = () => {
   const {
     list,
     loadingList,
+    loadingCount,
     newItemsCount,
     createNewItemProcess,
     createItem,
     deleteItem,
+    updateNewItemsCount,
   } = useInjection(VIEW_MODEL.TransmissionList);
 
   return (
@@ -18,10 +20,12 @@ export const TransmissionsPage: FC = () => {
       title="Список выгрузок АКПП / МКПП с сайта www.motorlandby.ru"
       list={list}
       loadingList={loadingList}
+      loadingCount={loadingCount}
       newItemsCount={newItemsCount}
       createNewItemProcess={createNewItemProcess}
       createItem={createItem}
       deleteItem={deleteItem}
+      updateNewItemsCount={updateNewItemsCount}
     />
   );
 };

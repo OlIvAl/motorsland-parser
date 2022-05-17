@@ -1,10 +1,10 @@
 import React, { FC, useState } from "react";
-import AutorenewIcon from "@mui/icons-material/Autorenew";
-import { Box, IconButton, Skeleton, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { CustomTable } from "../components/CustomTable";
 import { LoadingButton } from "@mui/lab";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { IDocumentListViewModel } from "../../DataFlow/presentation/DocumentListViewModel/interfaces";
+import { NewDocumentsInfo } from "../components/NewDocumentsInfo";
 
 interface IProps extends Omit<IDocumentListViewModel, "getList"> {
   title: string;
@@ -14,10 +14,12 @@ export const DocumentListPage: FC<IProps> = ({
   title,
   list,
   loadingList,
+  loadingCount,
   newItemsCount,
   createNewItemProcess,
   createItem,
   deleteItem,
+  updateNewItemsCount,
 }) => {
   const [deletedId, setDeletedId] = useState<ID>("");
 
@@ -26,6 +28,13 @@ export const DocumentListPage: FC<IProps> = ({
       <Typography variant="h4" gutterBottom component="div">
         {title}
       </Typography>
+
+      {createNewItemProcess ? (
+        <Typography variant="h5" gutterBottom component="div">
+          Происходит выгрузка товаров. <br />
+          До ее завершения функционал ограничен
+        </Typography>
+      ) : null}
 
       {!list.length && !loadingList ? (
         <Typography variant="h6" gutterBottom component="div">
@@ -43,7 +52,7 @@ export const DocumentListPage: FC<IProps> = ({
       <div>
         <LoadingButton
           loading={createNewItemProcess}
-          disabled={loadingList || !!deletedId}
+          disabled={loadingList || !!deletedId || loadingCount}
           variant="contained"
           color="primary"
           style={{ marginTop: 16 }}
@@ -52,17 +61,13 @@ export const DocumentListPage: FC<IProps> = ({
           Создать выгрузку
         </LoadingButton>
 
-        {!loadingList && !createNewItemProcess ? (
-          <Typography gutterBottom component="div">
-            {newItemsCount} новых объявлений появилось со времени последней
-            выгрузки
-            <IconButton aria-label="delete">
-              <AutorenewIcon />
-            </IconButton>
-          </Typography>
-        ) : null}
-
-        {loadingList && !createNewItemProcess ? <Skeleton width={550} /> : null}
+        <NewDocumentsInfo
+          loadingList={loadingList}
+          createNewItemProcess={createNewItemProcess}
+          loadingCount={loadingCount}
+          newItemsCount={newItemsCount}
+          updateNewItemsCount={updateNewItemsCount}
+        />
       </div>
       <ConfirmDialog
         id={deletedId}

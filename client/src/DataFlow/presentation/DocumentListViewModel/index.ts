@@ -6,6 +6,7 @@ import {
   ICreateItemUseCase,
   IDeleteItemUseCase,
   IGetListUseCase,
+  IUpdateNewDocumentsCountUseCase,
 } from "../../domain/usecase/Document/interfaces";
 import { IDocumentListModel } from "../../domain/entity/List/models/interfaces";
 import {
@@ -31,22 +32,26 @@ export abstract class DocumentListViewModel implements IDocumentListViewModel {
   }
 
   loadingList: boolean = false;
+  loadingCount: boolean = false;
 
   constructor(
     protected model: IDocumentListModel,
-    protected getEngineListUseCase: IGetListUseCase,
-    protected createEngineUseCase: ICreateItemUseCase,
-    protected deleteEngineUseCase: IDeleteItemUseCase
+    protected getDocumentListUseCase: IGetListUseCase,
+    protected createDocumentUseCase: ICreateItemUseCase,
+    protected deleteDocumentUseCase: IDeleteItemUseCase,
+    protected updateNewDocumentsCountUseCase: IUpdateNewDocumentsCountUseCase
   ) {
     makeObservable<IDocumentListViewModel, "model">(this, {
       list: computed,
       newItemsCount: computed,
       createNewItemProcess: computed,
       loadingList: observable,
+      loadingCount: observable,
       model: observable,
       getList: action.bound,
       createItem: action.bound,
       deleteItem: action.bound,
+      updateNewItemsCount: action.bound,
     });
   }
 
@@ -54,7 +59,7 @@ export abstract class DocumentListViewModel implements IDocumentListViewModel {
     this.loadingList = true;
 
     try {
-      const result = await this.getEngineListUseCase.execute();
+      const result = await this.getDocumentListUseCase.execute();
       runInAction(() => {
         this.model = result;
       });
@@ -66,10 +71,24 @@ export abstract class DocumentListViewModel implements IDocumentListViewModel {
   }
 
   async createItem(): Promise<void> {
-    this.model = await this.createEngineUseCase.execute(this.model);
+    this.model = await this.createDocumentUseCase.execute(this.model);
   }
 
   async deleteItem(id: ID): Promise<void> {
-    this.model = await this.deleteEngineUseCase.execute(id, this.model);
+    this.model = await this.deleteDocumentUseCase.execute(id, this.model);
+  }
+
+  async updateNewItemsCount(): Promise<void> {
+    this.loadingCount = true;
+
+    try {
+      this.model = await this.updateNewDocumentsCountUseCase.execute(
+        this.model
+      );
+    } finally {
+      runInAction(() => {
+        this.loadingCount = false;
+      });
+    }
   }
 }

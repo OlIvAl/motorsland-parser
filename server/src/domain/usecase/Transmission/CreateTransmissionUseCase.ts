@@ -1,6 +1,6 @@
 import { injected } from "brandi";
 import { CreateDocumentUseCase } from "../Document/CreateDocumentUseCase";
-import { ICreateItemUseCase } from "../Document/interfaces";
+import { ICreateDocumentUseCase } from "../Document/interfaces";
 import { REPOSITORY } from "../../../di/repository";
 import { IDocument } from "../../entity/Document/structures/interfaces";
 
@@ -20,7 +20,7 @@ const fields = {
 
 export class CreateTransmissionUseCase
   extends CreateDocumentUseCase
-  implements ICreateItemUseCase
+  implements ICreateDocumentUseCase
 {
   async execute(): Promise<IDocument> {
     return super.execute(fields);

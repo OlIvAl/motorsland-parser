@@ -1,4 +1,3 @@
-import { DocumentController } from "./DocumentController";
 import {
   IDocumentDTO,
   IDocumentListDTO,
@@ -9,4 +8,5 @@ export interface IDocumentController {
   getList(): Promise<IDocumentListDTO>;
   create(): Promise<IDocumentDTO>;
   delete(id: ID): Promise<void>;
+  updateNewDocumentsCount(): Promise<number>;
 }

@@ -13,5 +13,6 @@ injected(
   BUSINESS_MODELS.EngineList,
   USE_CASE.GetEngineList,
   USE_CASE.CreateEngine,
-  USE_CASE.DeleteEngine
+  USE_CASE.DeleteEngine,
+  USE_CASE.UpdateNewEnginesCount
 );

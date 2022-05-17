@@ -15,12 +15,8 @@ export class DocumentListModel
     super(_list);
   }
 
-  setProgress() {
-    this._list.progress = true;
-  }
-
-  unsetProgress() {
-    this._list.progress = false;
+  setProgress(process: boolean): void {
+    this._list.progress = process;
   }
 
   setNewItemsCount(count: number): void {

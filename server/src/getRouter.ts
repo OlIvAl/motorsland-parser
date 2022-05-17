@@ -13,6 +13,12 @@ export function getRouter(
     res.json(result);
   });
 
+  router.post(root + "/items/new", async (req: Request, res: Response) => {
+    const count = await controller.updateNewDocumentsCount();
+
+    res.json({ count });
+  });
+
   router.post(root, async (req: Request, res: Response) => {
     const result = await controller.create();
 
