@@ -2,8 +2,9 @@ import React, { FC } from "react";
 import { useInjection } from "brandi-react";
 import { VIEW_MODEL } from "../../Bootstrap/config/di/viewModel";
 import { DocumentListPage } from "./DocumentListPage";
+import { observer } from "mobx-react-lite";
 
-export const TransmissionsPage: FC = () => {
+export const TransmissionsPage: FC = observer(() => {
   const {
     list,
     loadingList,
@@ -28,4 +29,4 @@ export const TransmissionsPage: FC = () => {
       updateNewItemsCount={updateNewItemsCount}
     />
   );
-};
+});

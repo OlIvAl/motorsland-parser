@@ -35,5 +35,11 @@ export const routes: (
     title: "АКПП / МКПП",
     name: "transmissions",
     path: "/transmissions",
+    onEnter: (router: Router<RouterDependencies>): void => {
+      const container: Container = router.getDependencies().container;
+      const vm = container.get(VIEW_MODEL.TransmissionList);
+
+      vm.getList();
+    },
   },
 ];
