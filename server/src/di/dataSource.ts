@@ -8,7 +8,7 @@ import { IDocumentBuilder } from "../dataSources/DocumentBuilder/interfaces";
 import { AzureBlobStorage } from "../dataSources/AzureBlobStorage";
 import { CONTAINER_NAME } from "../constants";
 import { DocumentBuilder } from "../dataSources/DocumentBuilder/DocumentBuilder";
-import { ProgressTableClient } from "../dataSources/ProcessTableClient";
+import { ProgressTableClient } from "../dataSources/ProgressTableClient";
 import { NewDocumentsCountTableClient } from "../dataSources/NewDocumentsCountTableClient";
 
 export const DATA_SOURCE_REMOTE = {

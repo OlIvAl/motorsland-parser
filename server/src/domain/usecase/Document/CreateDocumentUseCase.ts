@@ -5,8 +5,6 @@ import { IDocument } from "../../entity/Document/structures/interfaces";
 export abstract class CreateDocumentUseCase implements ICreateDocumentUseCase {
   constructor(protected repository: IDocumentRepository) {}
   async execute(fields?: Record<string, string>): Promise<IDocument> {
-    // ToDo: update count value in db
-
     return await this.repository.create(fields as Record<string, string>);
   }
 }

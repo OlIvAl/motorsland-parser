@@ -2,8 +2,8 @@ import { IDocumentData } from "../interfases";
 
 export interface IDocumentBuilder {
   initBrowser(): Promise<void>;
-  setLastDocument(document: string): void;
-  getNewLinksList(): Promise<string[]>;
+  setLastDocument(document: string): Promise<void>;
+  getNewLinksList(): string[];
   buildDocument(fields: Record<string, string>): Promise<IDocumentData>;
   dispose(): Promise<void>;
 }

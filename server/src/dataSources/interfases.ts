@@ -20,6 +20,7 @@ export interface IProgressTableClient {
   getProgress(storage: CONTAINER_NAME): Promise<boolean>;
   setProgress(storage: CONTAINER_NAME): Promise<void>;
   unsetProgress(storage: CONTAINER_NAME): Promise<void>;
+  isAnyInProgress(): Promise<boolean>;
 }
 export interface INewDocumentsCountTableClient {
   getNewDocumentsCount(storage: CONTAINER_NAME): Promise<number>;

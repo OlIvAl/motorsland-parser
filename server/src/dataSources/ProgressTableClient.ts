@@ -1,4 +1,8 @@
-import { AzureNamedKeyCredential, TableClient } from "@azure/data-tables";
+import {
+  AzureNamedKeyCredential,
+  odata,
+  TableClient,
+} from "@azure/data-tables";
 import { IProgressTableClient } from "./interfases";
 import { CONTAINER_NAME } from "../constants";
 
@@ -31,17 +35,30 @@ export class ProgressTableClient implements IProgressTableClient {
     ).progress;
   }
   async setProgress(storage: CONTAINER_NAME): Promise<void> {
-    await this.tableClient.createEntity({
+    await this.tableClient.updateEntity<{ progress: boolean }>({
       partitionKey: "progress",
       rowKey: storage,
       progress: true,
     });
   }
   async unsetProgress(storage: CONTAINER_NAME): Promise<void> {
-    await this.tableClient.createEntity({
+    await this.tableClient.updateEntity<{ progress: boolean }>({
       partitionKey: "progress",
       rowKey: storage,
       progress: false,
     });
+  }
+  async isAnyInProgress(): Promise<boolean> {
+    const result = await this.tableClient.listEntities<{ progress: boolean }>({
+      queryOptions: { filter: odata`progress eq true` },
+    });
+
+    let arr = [];
+
+    for await (const item of result) {
+      arr.push(item);
+    }
+
+    return Boolean(arr.length);
   }
 }

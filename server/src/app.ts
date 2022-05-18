@@ -3,6 +3,7 @@ import cors from "cors";
 import { getRouter } from "./getRouter";
 import { getDIContainer } from "./di";
 import { CONTROLLER } from "./di/controller";
+import "express-async-errors";
 
 const app: Express = express()
   .set("port", process.env.PORT || 3001)

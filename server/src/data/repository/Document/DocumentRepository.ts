@@ -14,6 +14,8 @@ import { create } from "xmlbuilder2";
 import { ID } from "../../../interfaces";
 import { ItemsListSchema } from "../../validationSchemas/Document";
 import { CONTAINER_NAME } from "../../../constants";
+import { BadRequest } from "http-errors";
+import { ErrCodes } from "../../../errCodes";
 
 export abstract class DocumentRepository implements IDocumentRepository {
   protected abstract storage: CONTAINER_NAME;
@@ -33,27 +35,24 @@ export abstract class DocumentRepository implements IDocumentRepository {
 
     return ItemsListSchema.cast(result);
   }
+
   async getProgress(): Promise<boolean> {
     return await this.progressTableClient.getProgress(this.storage);
   }
+
   async getNewDocumentsCount(): Promise<number> {
     return await this.newDocumentsCountTableClient.getNewDocumentsCount(
       this.storage
     );
   }
+
   async updateNewDocumentsCount(): Promise<number> {
-    const lastDocumentNames = await this.documentsStorage.getItemsList();
-    const lastDocumentName = lastDocumentNames.length
-      ? lastDocumentNames.slice(-1)[0].name
-      : "";
-    const lastDocument = lastDocumentName
-      ? (await this.documentsStorage.getBuffer(lastDocumentName)).toString()
-      : "";
+    const lastDocument = await this.getLastDocument();
 
     await this.documentsBuilder.initBrowser();
     await this.documentsBuilder.setLastDocument(lastDocument);
 
-    const result = await this.documentsBuilder.getNewLinksList();
+    const result = this.documentsBuilder.getNewLinksList();
 
     await this.documentsBuilder.dispose();
 
@@ -66,17 +65,23 @@ export abstract class DocumentRepository implements IDocumentRepository {
   }
 
   async create(fields: Record<string, string>): Promise<IDocument> {
-    await this.progressTableClient.setProgress(this.storage);
+    if (await this.progressTableClient.isAnyInProgress()) {
+      throw new BadRequest(ErrCodes.PROCESS_IS_BUSY);
+    }
 
     try {
-      await this.documentsBuilder.initBrowser();
-      await this.documentsBuilder.setLastDocument("");
-      const docObj = await this.documentsBuilder.buildDocument(fields);
+      await this.progressTableClient.setProgress(this.storage);
 
-      if (docObj.offers.offer.length < 50) {
-        // ToDo: handle error!!!
-        throw Error();
+      const lastDocument = await this.getLastDocument();
+
+      await this.documentsBuilder.initBrowser();
+      await this.documentsBuilder.setLastDocument(lastDocument);
+
+      if (this.documentsBuilder.getNewLinksList().length < 50) {
+        throw new BadRequest(ErrCodes.LESS_THAN_50_ITEMS);
       }
+
+      const docObj = await this.documentsBuilder.buildDocument(fields);
 
       for (let i = 0; i < docObj.offers.offer.length; i++) {
         docObj.offers.offer[i].images.image = await Promise.all(
@@ -141,5 +146,16 @@ export abstract class DocumentRepository implements IDocumentRepository {
     await this.imagesStorage.deleteBlobs(blobClients);
     await this.documentsStorage.deleteBlob(id as string);
     await this.updateNewDocumentsCount();
+  }
+
+  private async getLastDocument(): Promise<string> {
+    const lastDocumentNames = await this.documentsStorage.getItemsList();
+    const lastDocumentName = lastDocumentNames.length
+      ? lastDocumentNames.slice(-1)[0].name
+      : "";
+
+    return lastDocumentName
+      ? (await this.documentsStorage.getBuffer(lastDocumentName)).toString()
+      : "";
   }
 }

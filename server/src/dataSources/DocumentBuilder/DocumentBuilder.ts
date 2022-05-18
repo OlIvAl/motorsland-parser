@@ -20,8 +20,10 @@ export class DocumentBuilder implements IDocumentBuilder {
     });
   }
 
-  setLastDocument(document: string): void {
+  async setLastDocument(document: string): Promise<void> {
     this.lastDocument = document;
+    this.setVendorCodesListFromLastDocument();
+    await this.setNewLinksList();
   }
 
   private setVendorCodesListFromLastDocument(): void {
@@ -123,10 +125,7 @@ export class DocumentBuilder implements IDocumentBuilder {
     this.document.offers.offer = result;
   }
 
-  async getNewLinksList(): Promise<string[]> {
-    this.setVendorCodesListFromLastDocument();
-    await this.setNewLinksList();
-
+  getNewLinksList(): string[] {
     return this.newLinksList;
   }
 
