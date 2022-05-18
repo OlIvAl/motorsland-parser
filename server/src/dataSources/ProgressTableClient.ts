@@ -7,20 +7,15 @@ import { IProgressTableClient } from "./interfases";
 import { CONTAINER_NAME } from "../constants";
 
 export class ProgressTableClient implements IProgressTableClient {
-  private static AZURE_ACCOUNT = "motorsland";
-  private static AZURE_ACCOUNT_KEY =
-    "hW0Z3QW5iJPyKFrJJR4h8sZZu5JsMC8td2ulQel9+Fv0RCzueNpsPCDbp+eDFgdDAMdi9VbC1g8z++mHsXYaDw==";
-
   private tableClient: TableClient;
-
   constructor() {
     const credential = new AzureNamedKeyCredential(
-      ProgressTableClient.AZURE_ACCOUNT,
-      ProgressTableClient.AZURE_ACCOUNT_KEY
+      process.env.AZURE_ACCOUNT as string,
+      process.env.AZURE_ACCOUNT_KEY as string
     );
 
     this.tableClient = new TableClient(
-      `https://${ProgressTableClient.AZURE_ACCOUNT}.table.core.windows.net`,
+      `https://${process.env.AZURE_ACCOUNT}.table.core.windows.net`,
       "progress",
       credential
     );

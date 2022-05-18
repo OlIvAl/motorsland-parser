@@ -13,12 +13,9 @@ export class AzureBlobStorage implements IAzureBlobStorage {
   private containerClient: ContainerClient;
   private containerBatchClient: BlobBatchClient;
 
-  static AZURE_STORAGE_CONNECTION_STRING =
-    "DefaultEndpointsProtocol=https;AccountName=motorsland;AccountKey=hW0Z3QW5iJPyKFrJJR4h8sZZu5JsMC8td2ulQel9+Fv0RCzueNpsPCDbp+eDFgdDAMdi9VbC1g8z++mHsXYaDw==;EndpointSuffix=core.windows.net";
-
   constructor(private containerName: string) {
     this.blobServiceClient = BlobServiceClient.fromConnectionString(
-      AzureBlobStorage.AZURE_STORAGE_CONNECTION_STRING
+      process.env.AZURE_STORAGE_CONNECTION_STRING as string
     );
     this.containerClient =
       this.blobServiceClient.getContainerClient(containerName);

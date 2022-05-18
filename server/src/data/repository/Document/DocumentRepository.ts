@@ -138,7 +138,7 @@ export abstract class DocumentRepository implements IDocumentRepository {
     const blobClients = blobNames.map(
       (name) =>
         new BlobClient(
-          AzureBlobStorage.AZURE_STORAGE_CONNECTION_STRING,
+          process.env.AZURE_STORAGE_CONNECTION_STRING as string,
           "images",
           name
         )

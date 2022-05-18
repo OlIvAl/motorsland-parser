@@ -5,20 +5,15 @@ import { CONTAINER_NAME } from "../constants";
 export class NewDocumentsCountTableClient
   implements INewDocumentsCountTableClient
 {
-  private static AZURE_ACCOUNT = "motorsland";
-  private static AZURE_ACCOUNT_KEY =
-    "hW0Z3QW5iJPyKFrJJR4h8sZZu5JsMC8td2ulQel9+Fv0RCzueNpsPCDbp+eDFgdDAMdi9VbC1g8z++mHsXYaDw==";
-
   private tableClient: TableClient;
-
   constructor() {
     const credential = new AzureNamedKeyCredential(
-      NewDocumentsCountTableClient.AZURE_ACCOUNT,
-      NewDocumentsCountTableClient.AZURE_ACCOUNT_KEY
+      process.env.AZURE_ACCOUNT as string,
+      process.env.AZURE_ACCOUNT_KEY as string
     );
 
     this.tableClient = new TableClient(
-      `https://${NewDocumentsCountTableClient.AZURE_ACCOUNT}.table.core.windows.net`,
+      `https://${process.env.AZURE_ACCOUNT}.table.core.windows.net`,
       "newItemsCount",
       credential
     );
