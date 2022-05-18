@@ -14,7 +14,7 @@ import { create } from "xmlbuilder2";
 import { ID } from "../../../interfaces";
 import { ItemsListSchema } from "../../validationSchemas/Document";
 import { CONTAINER_NAME } from "../../../constants";
-import { BadRequest } from "http-errors";
+import { BadRequest } from "http-json-errors";
 import { ErrCodes } from "../../../errCodes";
 
 export abstract class DocumentRepository implements IDocumentRepository {
@@ -78,6 +78,7 @@ export abstract class DocumentRepository implements IDocumentRepository {
       await this.documentsBuilder.setLastDocument(lastDocument);
 
       if (this.documentsBuilder.getNewLinksList().length < 50) {
+        // ToDo: update new links count!
         throw new BadRequest(ErrCodes.LESS_THAN_50_ITEMS);
       }
 

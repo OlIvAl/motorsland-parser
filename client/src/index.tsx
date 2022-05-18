@@ -12,6 +12,7 @@ export type RouterDependencies = Record<string, any>;
 initBootstrap(new Bootstrap())
   .then((bootstrap: IBootstrap) => {
     const router = bootstrap.getRouter();
+    const i18n = bootstrap.getI18n();
     const container = bootstrap.getDiContainer();
     const errorCollector = bootstrap.getErrorCollector();
 
@@ -20,7 +21,7 @@ initBootstrap(new Bootstrap())
     });
 
     router.start(() => {
-      renderApp(router, container, errorCollector);
+      renderApp(router, i18n, container, errorCollector);
     });
   })
   .catch((e: Error): void => {

@@ -1,7 +1,12 @@
 import { action, computed, observable, makeObservable } from "mobx";
-import { ICustomError, IServerError } from "./errors/interfaces";
+import {
+  ICustomError,
+  IIntegrationError,
+  IServerError,
+} from "./errors/interfaces";
 import { ServerError } from "./errors/ServerError";
 import EventEmitter from "eventemitter3";
+import { IntegrationError } from "./errors/IntegrationError";
 
 // ToDo: убрать mobx, make like lightbox
 
@@ -14,21 +19,21 @@ export enum GlobalErrorCollectorEvents {
 export class ErrorCollector {
   constructor() {
     makeObservable<ErrorCollector, "_errors">(this, {
-      // integrationErrors: computed,
+      integrationErrors: computed,
       serverErrors: computed,
       errors: computed,
       _errors: observable,
       setError: action.bound,
-      // findIntegrationError: action.bound,
+      findIntegrationError: action.bound,
       dispose: action.bound,
     });
   }
 
-  /*get integrationErrors(): IIntegrationError[] {
+  get integrationErrors(): IIntegrationError[] {
     return (this._errors as IIntegrationError[]).filter(
       (error) => error instanceof IntegrationError
     );
-  }*/
+  }
 
   get serverErrors(): IServerError[] {
     return (this._errors as IServerError[]).filter(
@@ -48,12 +53,12 @@ export class ErrorCollector {
     this._errors = [error, ...this._errors];
     this.eventEmitter.emit(GlobalErrorCollectorEvents.onSetError, error);
 
-    /* if (error instanceof IntegrationError) {
+    if (error instanceof IntegrationError) {
       this.eventEmitter.emit(
         GlobalErrorCollectorEvents.onSetIntegrationError,
         error
       );
-    } */
+    }
     if (error instanceof ServerError) {
       this.eventEmitter.emit(
         GlobalErrorCollectorEvents.onSetServerError,
@@ -62,14 +67,14 @@ export class ErrorCollector {
     }
   }
 
-  /* findIntegrationError(
-    code?: IIntegrationError['code']
+  findIntegrationError(
+    code?: IIntegrationError["code"]
   ): IntegrationError | undefined {
     if (!code) {
       return this.integrationErrors[0];
     }
     return this.integrationErrors.find((error) => error.code === code);
-  } */
+  }
 
   dispose(): void {
     this._errors = [];

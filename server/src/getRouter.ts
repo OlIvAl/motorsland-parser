@@ -7,28 +7,53 @@ export function getRouter(
 ): Router {
   const router = express.Router();
 
-  router.get(root, async (req: Request, res: Response) => {
-    const result = await controller.getList();
+  router.get(root, async (req: Request, res: Response, next) => {
+    // ToDo: fix bug!!!
+    // next(new BadGateway(""));
+    try {
+      const result = await controller.getList();
 
-    res.json(result);
+      res.json(result);
+    } catch (e) {
+      next(e);
+    }
   });
 
-  router.post(root + "/items/new", async (req: Request, res: Response) => {
-    const count = await controller.updateNewDocumentsCount();
+  router.post(
+    root + "/items/new",
+    async (req: Request, res: Response, next) => {
+      try {
+        const count = await controller.updateNewDocumentsCount();
 
-    res.json({ count });
+        res.json({ count });
+      } catch (e) {
+        next(e);
+      }
+    }
+  );
+
+  router.post(root, async (req: Request, res: Response, next) => {
+    try {
+      const result = await controller.create();
+
+      res.json({ document: result });
+    } catch (e) {
+      if ("isHttpError" in (e as any)) {
+        res.json(e);
+      } else {
+        next(e);
+      }
+    }
   });
 
-  router.post(root, async (req: Request, res: Response) => {
-    const result = await controller.create();
+  router.delete(root + "/:name", async (req: Request, res: Response, next) => {
+    try {
+      await controller.delete(req.params.name);
 
-    res.json({ document: result });
-  });
-
-  router.delete(root + "/:name", async (req: Request, res: Response) => {
-    await controller.delete(req.params.name);
-
-    res.json();
+      res.json();
+    } catch (e) {
+      next(e);
+    }
   });
 
   return router;

@@ -1,7 +1,9 @@
 // ToDo: test it!!!
 import ky from "ky";
+import { IntegrationError } from "../../../ErrorCollector/errors/IntegrationError";
 import { HttpMethod } from "./enums";
 import { IAPIClient } from "./interfaces";
+import { ServerError } from "../../../ErrorCollector/errors/ServerError";
 
 export class APIClient implements IAPIClient {
   private readonly api: typeof ky;
@@ -45,7 +47,17 @@ export class APIClient implements IAPIClient {
       searchParams,
     });
 
-    return await response.json();
+    if (response.status >= 500) {
+      throw new ServerError(response.status, response.statusText);
+    }
+
+    const result = await response.json();
+
+    if (result.isHttpError) {
+      throw new IntegrationError(result);
+    }
+
+    return result;
   }
 
   async getData<P, R>(url: string, requestObj: P | null = null): Promise<R> {

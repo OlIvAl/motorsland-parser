@@ -11,10 +11,13 @@ import {
   getContainerWithDataSource,
 } from "./config/di/dataSource";
 import { Container } from "brandi";
+import i18next, { i18n } from "i18next";
+import { getI18Next } from "../I18n/getI18Next";
 
 export class Bootstrap implements IBootstrap {
   private container = new Container();
   private router = createRouter5();
+  private i18n = i18next;
   private errorCollector = new ErrorCollector();
 
   constructor() {
@@ -37,6 +40,9 @@ export class Bootstrap implements IBootstrap {
   initRouter(routes: Route[]): void {
     this.router = createRouter(routes);
   }
+  async initI18n(): Promise<void> {
+    this.i18n = await getI18Next(this.i18n);
+  }
   routerPostInit(): void {
     this.router.setDependency("container", this.container);
   }
@@ -49,6 +55,10 @@ export class Bootstrap implements IBootstrap {
   getRouter(): Router {
     return this.router;
   }
+  getI18n(): i18n {
+    return this.i18n;
+  }
+
   dispose(): void {
     this.router.stop();
     this.container = new Container();
