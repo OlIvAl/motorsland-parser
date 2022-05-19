@@ -1,7 +1,7 @@
-import { EngineListViewModel } from "../../../DataFlow/presentation/EngineListViewModel";
+import { EngineListViewModel } from "../presentation/EngineListViewModel";
 import { Container, token } from "brandi";
-import { TransmissionListViewModel } from "../../../DataFlow/presentation/TransmissionListViewModel";
-import { IDocumentListViewModel } from "../../../DataFlow/presentation/DocumentListViewModel/interfaces";
+import { TransmissionListViewModel } from "../presentation/TransmissionListViewModel";
+import { IDocumentListViewModel } from "../presentation/DocumentListViewModel/interfaces";
 
 export const VIEW_MODEL = {
   EngineList: token<IDocumentListViewModel>("EngineListViewModel"),

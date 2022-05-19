@@ -2,14 +2,14 @@ import { IBootstrap } from "./interfaces";
 import createRouter5, { Route, Router } from "router5";
 import { ErrorCollector } from "../ErrorCollector/ErrorCollector";
 import { createRouter } from "../Router";
-import { getContainerWithReps } from "./config/di/repository";
-import { getContainerWithUseCases } from "./config/di/usecase";
-import { getContainerWithViewModels } from "./config/di/viewModel";
+import { getContainerWithReps } from "../DataFlow/config/repository";
+import { getContainerWithUseCases } from "../DataFlow/config/usecase";
+import { getContainerWithViewModels } from "../DataFlow/config/viewModel";
 import { APIClient } from "../DataFlow/dataSource/API/APIClient";
 import {
   DATA_SOURCE_REMOTE,
   getContainerWithDataSource,
-} from "./config/di/dataSource";
+} from "../DataFlow/config/dataSource";
 import { Container } from "brandi";
 import i18next, { i18n } from "i18next";
 import { getI18Next } from "../I18n/getI18Next";

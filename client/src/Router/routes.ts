@@ -1,7 +1,7 @@
 import { Route, Router } from "router5";
 import { RouterDependencies } from "../index";
 import { Params } from "router5/dist/types/base";
-import { VIEW_MODEL } from "../Bootstrap/config/di/viewModel";
+import { VIEW_MODEL } from "../DataFlow/config/viewModel";
 import { Container } from "brandi";
 
 export const routes: (

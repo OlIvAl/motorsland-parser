@@ -1,5 +1,5 @@
 import { injected } from "brandi";
-import { REPOSITORY } from "../../../../Bootstrap/config/di/repository";
+import { REPOSITORY } from "../../../config/repository";
 import { GetDocumentListUseCase } from "../Document/GetDocumentListUseCase";
 import { IGetListUseCase } from "../Document/interfaces";
 

@@ -1,6 +1,6 @@
 import React, { FC } from "react";
 import { useInjection } from "brandi-react";
-import { VIEW_MODEL } from "../../Bootstrap/config/di/viewModel";
+import { VIEW_MODEL } from "../../DataFlow/config/viewModel";
 import { observer } from "mobx-react-lite";
 import { DocumentListPage } from "./DocumentListPage";
 

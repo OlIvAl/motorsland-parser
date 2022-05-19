@@ -1,18 +1,18 @@
-import { GetEngineListUseCase } from "../../../DataFlow/domain/usecase/Engine/GetEngineListUseCase";
-import { CreateEngineUseCase } from "../../../DataFlow/domain/usecase/Engine/CreateEngineUseCase";
-import { DeleteEngineUseCase } from "../../../DataFlow/domain/usecase/Engine/DeleteEngineUseCase";
-import { CreateTransmissionUseCase } from "../../../DataFlow/domain/usecase/Transmission/CreateTransmissionUseCase";
-import { GetTransmissionListUseCase } from "../../../DataFlow/domain/usecase/Transmission/GetTransmissionListUseCase";
-import { DeleteTransmissionUseCase } from "../../../DataFlow/domain/usecase/Transmission/DeleteTransmissionUseCase";
+import { GetEngineListUseCase } from "../domain/usecase/Engine/GetEngineListUseCase";
+import { CreateEngineUseCase } from "../domain/usecase/Engine/CreateEngineUseCase";
+import { DeleteEngineUseCase } from "../domain/usecase/Engine/DeleteEngineUseCase";
+import { CreateTransmissionUseCase } from "../domain/usecase/Transmission/CreateTransmissionUseCase";
+import { GetTransmissionListUseCase } from "../domain/usecase/Transmission/GetTransmissionListUseCase";
+import { DeleteTransmissionUseCase } from "../domain/usecase/Transmission/DeleteTransmissionUseCase";
 import {
   ICreateItemUseCase,
   IDeleteItemUseCase,
   IGetListUseCase,
   IUpdateNewDocumentsCountUseCase,
-} from "../../../DataFlow/domain/usecase/Document/interfaces";
+} from "../domain/usecase/Document/interfaces";
 import { Container, token } from "brandi";
-import { UpdateNewEnginesCountUseCase } from "../../../DataFlow/domain/usecase/Engine/UpdateNewEnginesCountUseCase";
-import { UpdateNewTransmissionsCountUseCase } from "../../../DataFlow/domain/usecase/Transmission/UpdateNewTransmissionsCountUseCase";
+import { UpdateNewEnginesCountUseCase } from "../domain/usecase/Engine/UpdateNewEnginesCountUseCase";
+import { UpdateNewTransmissionsCountUseCase } from "../domain/usecase/Transmission/UpdateNewTransmissionsCountUseCase";
 
 export const USE_CASE = {
   GetEngineList: token<IGetListUseCase>("GetEngineListUseCase"),

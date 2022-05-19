@@ -1,6 +1,6 @@
 import { injected } from "brandi";
-import { BUSINESS_MODELS } from "../../../Bootstrap/config/di/dataSource";
-import { USE_CASE } from "../../../Bootstrap/config/di/usecase";
+import { BUSINESS_MODELS } from "../../config/dataSource";
+import { USE_CASE } from "../../config/usecase";
 import { DocumentListViewModel } from "../DocumentListViewModel";
 import { IDocumentListViewModel } from "../DocumentListViewModel/interfaces";
 
