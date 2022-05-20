@@ -7,10 +7,10 @@ export interface IDocumentListViewModel {
   loadingCount: boolean;
   createNewDocumentProcess: boolean;
 
-  getList(): Promise<void>;
-  createItem(): Promise<void>;
-  deleteItem(id: ID): Promise<void>;
-  updateNewDocumentsCount(): Promise<void>;
+  getList(category: string): Promise<void>;
+  createItem(category: string): Promise<void>;
+  deleteItem(id: ID, category: string): Promise<void>;
+  updateNewDocumentsCount(category: string): Promise<void>;
 }
 
 export interface IDocumentPresentationData extends IDocumentDTO {

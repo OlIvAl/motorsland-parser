@@ -1,17 +1,18 @@
 import { FC } from "react";
 import { useRouteNode } from "react-router5";
-import { EnginesPage } from "./pages/EnginesPage";
-import { TransmissionsPage } from "./pages/TransmissionsPage";
+import { DocumentListPageContainer } from "./pages/DocumentListPageContainer";
+import { useTranslation } from "react-i18next";
 
 export const PageSelector: FC = () => {
   const { route } = useRouteNode("");
+  const { t } = useTranslation();
 
-  switch (route.name) {
-    case "engines":
-      return <EnginesPage />;
-    case "transmissions":
-      return <TransmissionsPage />;
-    default:
-      return null;
-  }
+  // ToDo: handle 404 error;
+
+  return (
+    <DocumentListPageContainer
+      category={route.name}
+      title={t(`titles:${route.name}`)}
+    />
+  );
 };

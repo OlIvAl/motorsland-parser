@@ -2,14 +2,15 @@ import { Container, token } from "brandi";
 import { DocumentListModel } from "../domain/entity/List/models/DocumentListModel";
 import { IDocumentListModel } from "../domain/entity/List/models/interfaces";
 import { IAPIClient } from "../dataSource/API/interfaces";
+import { IDocumentAPIClient } from "../dataSource/DocumentAPIClient/interfaces";
 
 export const BUSINESS_MODELS = {
-  EngineList: token<IDocumentListModel>("EngineList"),
-  TransmissionList: token<IDocumentListModel>("TransmissionList"),
+  DocumentList: token<IDocumentListModel>("DocumentList"),
 };
 
 export const DATA_SOURCE_REMOTE = {
   APIClient: token<IAPIClient>("APIClient"),
+  DocumentAPIClient: token<IDocumentAPIClient>("DocumentAPIClient"),
 };
 
 /**
@@ -17,11 +18,7 @@ export const DATA_SOURCE_REMOTE = {
  */
 export function getContainerWithDataSource(container: Container): Container {
   container
-    .bind(BUSINESS_MODELS.EngineList)
-    .toInstance(DocumentListModel)
-    .inSingletonScope();
-  container
-    .bind(BUSINESS_MODELS.TransmissionList)
+    .bind(BUSINESS_MODELS.DocumentList)
     .toInstance(DocumentListModel)
     .inSingletonScope();
 

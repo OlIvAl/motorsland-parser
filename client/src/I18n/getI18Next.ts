@@ -1,11 +1,12 @@
 import i18next from "i18next";
-import { ru } from "./resources/integrationErrors";
+import { ru as integrationErrors } from "./resources/integrationErrors";
+import { ru as titles } from "./resources/titles";
 
 export async function getI18Next(
   i18nInstance: typeof i18next
 ): Promise<typeof i18next> {
   await i18nInstance.init({
-    resources: { ru },
+    resources: { ru: { ...integrationErrors, ...titles } },
     lng: "ru",
     keySeparator: ".",
     interpolation: {

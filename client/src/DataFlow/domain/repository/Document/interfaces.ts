@@ -2,10 +2,10 @@ import { IDocumentList } from "../../entity/List/stuctures/interfaces";
 import { IDocument } from "../../entity/Document/structures/interfaces";
 
 export interface IDocumentRepository {
-  getList(): Promise<IDocumentList>;
-  create(): Promise<IDocument>;
-  delete(id: ID): Promise<void>;
-  updateNewDocumentsCount(): Promise<number>;
+  getList(category: string): Promise<IDocumentList>;
+  create(category: string): Promise<IDocument>;
+  delete(category: string, id: ID): Promise<void>;
+  updateNewDocumentsCount(category: string): Promise<number>;
 }
 
 export interface IDocumentDTO {

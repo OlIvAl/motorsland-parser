@@ -1,24 +1,15 @@
-import { EngineListViewModel } from "../presentation/EngineListViewModel";
+import { DocumentListViewModel } from "../presentation/DocumentListViewModel";
 import { Container, token } from "brandi";
-import { TransmissionListViewModel } from "../presentation/TransmissionListViewModel";
 import { IDocumentListViewModel } from "../presentation/DocumentListViewModel/interfaces";
 
 export const VIEW_MODEL = {
-  EngineList: token<IDocumentListViewModel>("EngineListViewModel"),
-  TransmissionList: token<IDocumentListViewModel>("TransmissionListViewModel"),
+  DocumentList: token<IDocumentListViewModel>("DocumentListViewModel"),
 };
 
-/**
- * Return container with view model child container
- */
 export function getContainerWithViewModels(container: Container): Container {
   container
-    .bind(VIEW_MODEL.EngineList)
-    .toInstance(EngineListViewModel)
-    .inSingletonScope();
-  container
-    .bind(VIEW_MODEL.TransmissionList)
-    .toInstance(TransmissionListViewModel)
+    .bind(VIEW_MODEL.DocumentList)
+    .toInstance(DocumentListViewModel)
     .inSingletonScope();
 
   return container;

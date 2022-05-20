@@ -13,6 +13,7 @@ import {
 import { Container } from "brandi";
 import i18next, { i18n } from "i18next";
 import { getI18Next } from "../I18n/getI18Next";
+import { DocumentAPIClient } from "../DataFlow/dataSource/DocumentAPIClient";
 
 export class Bootstrap implements IBootstrap {
   private container = new Container();
@@ -27,9 +28,13 @@ export class Bootstrap implements IBootstrap {
     this.dispose = this.dispose.bind(this);
   }
   initAPIClient(apiPrefix: string = ""): void {
+    const apiClient = new APIClient(apiPrefix);
+    const documentApiClient = new DocumentAPIClient(apiClient);
+
+    this.container.bind(DATA_SOURCE_REMOTE.APIClient).toConstant(apiClient);
     this.container
-      .bind(DATA_SOURCE_REMOTE.APIClient)
-      .toConstant(new APIClient(apiPrefix));
+      .bind(DATA_SOURCE_REMOTE.DocumentAPIClient)
+      .toConstant(documentApiClient);
   }
   initDI(): void {
     this.container = getContainerWithDataSource(this.container);

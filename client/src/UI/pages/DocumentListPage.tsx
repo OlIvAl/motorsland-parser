@@ -7,10 +7,27 @@ import { IDocumentListViewModel } from "../../DataFlow/presentation/DocumentList
 import { NewDocumentsInfo } from "../components/NewDocumentsInfo";
 
 interface IProps extends Omit<IDocumentListViewModel, "getList"> {
+  category: string;
   title: string;
 }
 
+const createItemHandler =
+  (createItem: IDocumentListViewModel["createItem"], category: string) => () =>
+    createItem(category);
+const updateNewDocumentsCountHandler =
+  (
+    updateNewDocumentsCount: IDocumentListViewModel["updateNewDocumentsCount"],
+    category: string
+  ) =>
+  () =>
+    updateNewDocumentsCount(category);
+const deleteItemHandler =
+  (deleteItem: IDocumentListViewModel["deleteItem"], category: string) =>
+  (id: ID) =>
+    deleteItem(id, category);
+
 export const DocumentListPage: FC<IProps> = ({
+  category,
   title,
   list,
   loadingList,
@@ -56,7 +73,7 @@ export const DocumentListPage: FC<IProps> = ({
           variant="contained"
           color="primary"
           style={{ marginTop: 16 }}
-          onClick={createItem}
+          onClick={createItemHandler(createItem, category)}
         >
           Создать выгрузку
         </LoadingButton>
@@ -66,13 +83,16 @@ export const DocumentListPage: FC<IProps> = ({
           createNewItemProcess={createNewDocumentProcess}
           loadingCount={loadingCount}
           newDocumentsCount={newDocumentsCount}
-          updateNewDocumentsCount={updateNewDocumentsCount}
+          updateNewDocumentsCount={updateNewDocumentsCountHandler(
+            updateNewDocumentsCount,
+            category
+          )}
         />
       </div>
       <ConfirmDialog
         id={deletedId}
         close={() => setDeletedId("")}
-        handler={deleteItem}
+        handler={deleteItemHandler(deleteItem, category)}
       />
     </Box>
   );

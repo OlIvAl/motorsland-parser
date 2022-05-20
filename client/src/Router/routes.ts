@@ -26,9 +26,9 @@ export const routes: (
     path: "/engines",
     onEnter: (router: Router<RouterDependencies>): void => {
       const container: Container = router.getDependencies().container;
-      const vm = container.get(VIEW_MODEL.EngineList);
+      const vm = container.get(VIEW_MODEL.DocumentList);
 
-      vm.getList();
+      vm.getList("engines");
     },
   },
   {
@@ -37,9 +37,9 @@ export const routes: (
     path: "/transmissions",
     onEnter: (router: Router<RouterDependencies>): void => {
       const container: Container = router.getDependencies().container;
-      const vm = container.get(VIEW_MODEL.TransmissionList);
+      const vm = container.get(VIEW_MODEL.DocumentList);
 
-      vm.getList();
+      vm.getList("transmissions");
     },
   },
 ];
