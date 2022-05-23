@@ -50,15 +50,16 @@ export class DocumentBuilder implements IDocumentBuilder {
   }
 
   private async setData(fields: Record<string, string>): Promise<void> {
-    function getNameFromPage(): Pick<IItemData, "name"> {
-      const tag = document.querySelector(".cont .navigation .mb-20");
-      if (!tag) {
-        console.log(`Страница не содержит наименования`);
+    async function getNameFromPage(page: Page): Promise<string> {
+      const elements = await page.$x(
+        "//*[contains(@class,'cont')]//*[contains(@class,'navigation')]//*[contains(@class,'mb-20')]"
+      );
 
-        return { name: "" };
+      if (!elements.length) {
+        throw Error("Не найдено наименование!");
       }
 
-      return { name: tag.textContent || "" };
+      return await page.evaluate((h1) => h1.textContent || "", elements[0]);
     }
     const getDataFromPage = async (
       fields: Record<string, string>,
@@ -94,12 +95,18 @@ export class DocumentBuilder implements IDocumentBuilder {
         { name: "", vendor_code: "", images: { image: [] } }
       );
     };
-    function getImgLinksFromPage(): Pick<IItemData, "images"> {
-      const image = Array.from(
-        document.querySelectorAll(
-          ".viki-gallery.gallery-big.part-carousel img[loading=lazy]"
+    async function getImgLinksFromPage(
+      page: Page
+    ): Promise<Pick<IItemData, "images">> {
+      const imageHandlers = await page.$x(
+        "//*[contains(@class,'viki-gallery gallery-big part-carousel')]//img[@loading='lazy']"
+      );
+
+      const image = await Promise.all(
+        imageHandlers.map((handler) =>
+          page.evaluate((img) => img.src || "", handler)
         )
-      ).map((tag) => tag.getAttribute("src") as string);
+      );
 
       return { images: { image } };
     }
@@ -116,10 +123,10 @@ export class DocumentBuilder implements IDocumentBuilder {
       await itemPage.goto(link, { waitUntil: "networkidle2", timeout: 0 });
 
       const data = await getDataFromPage(fields, itemPage);
-      const name = await itemPage.evaluate(getNameFromPage);
-      const images = await itemPage.evaluate(getImgLinksFromPage);
+      const name = await getNameFromPage(itemPage);
+      const images = await getImgLinksFromPage(itemPage);
 
-      result = [...result, { ...data, ...name, ...images }];
+      result = [...result, { ...data, ...images, name }];
     }
 
     this.document.offers.offer = result;

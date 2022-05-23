@@ -53,7 +53,7 @@ export class PageWithList implements IPageWithList {
               vendorCodesListFromLastDocument.includes(
                 vendorCode.toString()
               )) ||
-            result.length >= 50
+            result.length >= 60
           ) {
             flag = true;
             break;
@@ -82,17 +82,24 @@ export class PageWithList implements IPageWithList {
 
     await this.page.goto(this.url, { waitUntil: "networkidle2" });
 
-    return await this.page.evaluate(() => {
-      const lastPageTag = document.querySelector(
-        ".pgng .viki-pg-last"
-      ) as Element;
+    const lastPageTagHandles = await this.page.$x(
+      "//div[@class='pgng']/a[@class='viki-pg-last']"
+    );
 
-      if (!(lastPageTag && lastPageTag.textContent)) {
-        throw Error("Не найден элемент последней страницы!");
-      }
+    if (!lastPageTagHandles.length) {
+      throw Error("Не найдена панель пагинации");
+    }
 
-      return parseInt(lastPageTag.textContent as string);
-    });
+    const lastPage = await this.page.evaluate(
+      (a) => a.textContent || "",
+      lastPageTagHandles[0]
+    );
+
+    if (!lastPage) {
+      throw Error("Не найден элемент последней страницы!");
+    }
+
+    return parseInt(lastPage as string);
   }
 
   private async getLinksFromList(pageNumber: number): Promise<string[]> {
@@ -104,10 +111,19 @@ export class PageWithList implements IPageWithList {
       waitUntil: "networkidle2",
     });
 
-    return await this.page.evaluate(async () => {
-      return Array.from(
-        document.querySelectorAll(".main-content .grid-new>li>.item-title>a")
-      ).map((tag) => tag.getAttribute("href") as string);
-    });
+    const linksFromListHandles = await this.page.$x(
+      "//*[@class='main-content']//ul[contains(@class, 'grid-new')]/li/*[@class='item-title']/a"
+    );
+
+    if (!linksFromListHandles.length) {
+      throw Error("Ссылки на товары не найдены!");
+    }
+
+    return await Promise.all(
+      linksFromListHandles.map((handler) =>
+        // @ts-ignore
+        this.page.evaluate((a) => a.href || "", handler)
+      )
+    );
   }
 }

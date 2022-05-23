@@ -9,7 +9,6 @@ import { IDocumentBuilder } from "../../../dataSources/DocumentBuilder/interface
 import { ImageBuilder } from "../../../dataSources/ImageBuilder";
 import { Document } from "../../../domain/entity/Document/structures/Document";
 import { BlobClient } from "@azure/storage-blob";
-import { AzureBlobStorage } from "../../../dataSources/AzureBlobStorage";
 import { create } from "xmlbuilder2";
 import { ID } from "../../../interfaces";
 import { ItemsListSchema } from "../../validationSchemas/Document";
