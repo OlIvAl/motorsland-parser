@@ -1,12 +1,17 @@
 import { IUpdateNewDocumentsCountUseCase } from "./interfaces";
-import { IDocumentRepository } from "../../repository/Document/interfaces";
+import { injected } from "brandi";
+import { REPOSITORY } from "../../../di/repository";
+import { UPLOADING_NAME } from "../../../constants";
+import { IDocumentRepository } from "../../repository/Document";
 
 export class UpdateNewDocumentsCountUseCase
   implements IUpdateNewDocumentsCountUseCase
 {
-  constructor(protected repository: IDocumentRepository) {}
+  constructor(private repository: IDocumentRepository) {}
 
-  async execute(): Promise<number> {
-    return await this.repository.updateNewDocumentsCount();
+  async execute(uploading: UPLOADING_NAME): Promise<number> {
+    return await this.repository.updateNewDocumentsCount(uploading);
   }
 }
+
+injected(UpdateNewDocumentsCountUseCase, REPOSITORY.Document);

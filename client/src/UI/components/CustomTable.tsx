@@ -42,7 +42,6 @@ export const CustomTable: FC<IProps> = ({
                   id={document.id}
                   name={document.name}
                   createdOn={document.createdOn}
-                  publicURL={document.publicURL}
                   deletedLoading={document.id === deletedId}
                   setDeletedId={setDeletedId}
                   createNewItemProcess={createNewItemProcess}

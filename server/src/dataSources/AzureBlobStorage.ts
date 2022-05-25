@@ -73,26 +73,15 @@ export class AzureBlobStorage implements IAzureBlobStorage {
       await this.containerBatchClient.deleteBlobs(chunkedArr[i]);
     }
   }
+  getURL(name: string): string {
+    return this.containerClient.getBlockBlobClient(name).url;
+  }
   async getPublicURL(name: string): Promise<string> {
     return await this.containerClient.getBlockBlobClient(name).generateSasUrl({
       permissions: BlobSASPermissions.parse("r"),
       startsOn: new Date(Date.now() - 300 * 1000),
       expiresOn: new Date(Date.now() + 3600 * 24 * 7 * 30 * 1000),
     });
-  }
-  async getItemsList(): Promise<IDocumentInfo[]> {
-    let result: IDocumentInfo[] = [];
-
-    for await (const blob of this.containerClient.listBlobsFlat()) {
-      const publicURL = await this.getPublicURL(blob.name);
-      result.push({
-        name: blob.name,
-        createdOn: blob.properties.createdOn as Date,
-        publicURL,
-      });
-    }
-
-    return result;
   }
   async getBuffer(name: string): Promise<Buffer> {
     return await this.containerClient

@@ -1,17 +1,18 @@
 import puppeteer, { Browser, Page } from "puppeteer";
-import { IDocumentData, IItemData } from "../interfases";
+import { IItemData } from "../interfases";
 import { PageWithList } from "./PageWithList";
 import { IDocumentBuilder } from "./interfaces";
 import { PuppeteerHelpers } from "./PuppeteerHelpers";
 
 export class DocumentBuilder implements IDocumentBuilder {
-  private lastDocument: string = "";
-  private document: IDocumentData = { offers: { offer: [] } };
+  private url: string = "";
+  private lastDocument: IItemData[] = [];
+  private document: IItemData[] = [];
   private browser?: Browser;
   private vendorCodesListFromLastDocument: string[] = [];
   private newLinksList: string[] = [];
 
-  constructor(private url: string) {}
+  constructor() {}
 
   async initBrowser(): Promise<void> {
     this.browser = await puppeteer.launch({
@@ -20,7 +21,11 @@ export class DocumentBuilder implements IDocumentBuilder {
     });
   }
 
-  async setLastDocument(document: string): Promise<void> {
+  setUrl(site: string, root: string): void {
+    this.url = site + root;
+  }
+
+  async setLastDocument(document: IItemData[]): Promise<void> {
     this.lastDocument = document;
     this.setVendorCodesListFromLastDocument();
     await this.setNewLinksList();
@@ -28,9 +33,9 @@ export class DocumentBuilder implements IDocumentBuilder {
 
   private setVendorCodesListFromLastDocument(): void {
     if (this.lastDocument) {
-      this.vendorCodesListFromLastDocument = (
-        this.lastDocument.match(/<vendor_code>\d+<\/vendor_code>/g) as string[]
-      ).map((str) => str.replace(/\D+/g, ""));
+      this.vendorCodesListFromLastDocument = this.lastDocument.map(
+        (item) => item.vendor_code
+      );
     }
   }
 
@@ -92,29 +97,25 @@ export class DocumentBuilder implements IDocumentBuilder {
 
           return result;
         },
-        { name: "", vendor_code: "", images: { image: [] } }
+        { name: "", vendor_code: "", images: [] }
       );
     };
-    async function getImgLinksFromPage(
-      page: Page
-    ): Promise<Pick<IItemData, "images">> {
+    async function getImgLinksFromPage(page: Page): Promise<string[]> {
       const imageHandlers = await page.$x(
         "//*[contains(@class,'viki-gallery gallery-big part-carousel')]//img[@loading='lazy']"
       );
 
-      const image = await Promise.all(
+      return await Promise.all(
         imageHandlers.map((handler) =>
           page.evaluate((img) => img.src || "", handler)
         )
       );
-
-      return { images: { image } };
     }
 
     if (!this.browser) {
       throw Error("Браузер не проинициализирован!");
     }
-    let result: IDocumentData["offers"]["offer"] = [];
+    let result: IItemData[] = [];
 
     for (let i = 0; i < this.newLinksList.length; i++) {
       const link = this.newLinksList[i];
@@ -129,14 +130,14 @@ export class DocumentBuilder implements IDocumentBuilder {
       result = [...result, { ...data, ...images, name }];
     }
 
-    this.document.offers.offer = result;
+    this.document = result;
   }
 
   getNewLinksList(): string[] {
     return this.newLinksList;
   }
 
-  async buildDocument(fields: Record<string, string>): Promise<IDocumentData> {
+  async buildDocument(fields: Record<string, string>): Promise<IItemData[]> {
     this.setVendorCodesListFromLastDocument();
     await this.setNewLinksList();
     await this.setData(fields);
@@ -145,10 +146,13 @@ export class DocumentBuilder implements IDocumentBuilder {
   }
 
   async dispose(): Promise<void> {
-    if (!this.browser) {
-      throw Error("Браузер не проинициализирован!");
+    this.url = "";
+    this.lastDocument = [];
+    this.document = [];
+    this.vendorCodesListFromLastDocument = [];
+    this.newLinksList = [];
+    if (this.browser) {
+      await this.browser.close();
     }
-
-    await this.browser.close();
   }
 }

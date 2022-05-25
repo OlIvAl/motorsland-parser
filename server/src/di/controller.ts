@@ -1,21 +1,15 @@
 import { Container, token } from "brandi";
 import { IDocumentController } from "../presentation/interfaces";
-import { TransmissionController } from "../presentation/TransmissionController";
-import { EngineController } from "../presentation/EngineController";
+import { DocumentController } from "../presentation/DocumentController";
 
 export const CONTROLLER = {
-  Engine: token<IDocumentController>("EngineController"),
-  Transmission: token<IDocumentController>("TransmissionController"),
+  Document: token<IDocumentController>("DocumentController"),
 };
 
 export function getContainerWithControllers(container: Container): Container {
   container
-    .bind(CONTROLLER.Engine)
-    .toInstance(EngineController)
-    .inTransientScope();
-  container
-    .bind(CONTROLLER.Transmission)
-    .toInstance(TransmissionController)
+    .bind(CONTROLLER.Document)
+    .toInstance(DocumentController)
     .inTransientScope();
 
   return container;

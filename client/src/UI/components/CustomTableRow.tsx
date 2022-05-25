@@ -16,7 +16,6 @@ export const CustomTableRow: FC<IProps> = ({
   id,
   name,
   createdOn,
-  publicURL,
   deletedLoading,
   setDeletedId,
   createNewItemProcess,
@@ -35,8 +34,8 @@ export const CustomTableRow: FC<IProps> = ({
       <TableCell width={625} height={70}>
         {!deletedLoading ? (
           <Stack spacing={2} direction="row">
-            <CopyToClipboard publicURL={publicURL} />
-            <DownloadBtn name={name} url={publicURL} />
+            <CopyToClipboard link={`/download/${name}.xml`} />
+            <DownloadBtn name={name} link={`/download/${name}.xml`} />
             <Button
               variant="contained"
               color="error"

@@ -17,8 +17,5 @@ export class DocumentPresentationData implements IDocumentPresentationData {
       day: "numeric",
     });
   }
-  get publicURL(): string {
-    return this.item.publicURL;
-  }
   constructor(private item: IDocument) {}
 }

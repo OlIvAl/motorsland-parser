@@ -11,7 +11,6 @@ export interface IDocumentRepository {
 export interface IDocumentDTO {
   name: string;
   createdOn: string;
-  publicURL: string;
 }
 export interface IDocumentListDTO {
   items: IDocumentDTO[];

@@ -1,17 +1,18 @@
 import React, { FC, useState } from "react";
 import { Button, Tooltip } from "@mui/material";
+import { API_ROOT } from "../../Bootstrap/constants";
 
 interface IProps {
-  publicURL: string;
+  link: string;
 }
 
-export const CopyToClipboard: FC<IProps> = ({ publicURL = "" }) => {
+export const CopyToClipboard: FC<IProps> = ({ link = "" }) => {
   const [open, setOpen] = useState<boolean>(false);
   const [copySuccess, setCopySuccess] = useState<string>("");
 
   const copyToClipBoard = async (url: string): Promise<void> => {
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(API_ROOT + url);
 
       setOpen(true);
       setCopySuccess("Ссылка скопирована!");
@@ -21,8 +22,7 @@ export const CopyToClipboard: FC<IProps> = ({ publicURL = "" }) => {
     }
   };
 
-  const copyToClipBoardHandler = (): Promise<void> =>
-    copyToClipBoard(publicURL);
+  const copyToClipBoardHandler = (): Promise<void> => copyToClipBoard(link);
 
   return (
     <Tooltip

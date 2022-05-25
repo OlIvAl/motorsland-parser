@@ -1,10 +1,11 @@
-import { IDocumentData } from "../interfases";
+import { IItemData } from "../interfases";
 
 export interface IDocumentBuilder {
   initBrowser(): Promise<void>;
-  setLastDocument(document: string): Promise<void>;
+  setUrl(site: string, root: string): void;
+  setLastDocument(document: IItemData[]): Promise<void>;
   getNewLinksList(): string[];
-  buildDocument(fields: Record<string, string>): Promise<IDocumentData>;
+  buildDocument(fields: Record<string, string>): Promise<IItemData[]>;
   dispose(): Promise<void>;
 }
 

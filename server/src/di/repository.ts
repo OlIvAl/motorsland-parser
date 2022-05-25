@@ -1,21 +1,22 @@
 import { Container, token } from "brandi";
-import { IDocumentRepository } from "../domain/repository/Document/interfaces";
-import { TransmissionRepository } from "../data/repository/Document/TransmissionRepository";
-import { EngineRepository } from "../data/repository/Document/EngineRepository";
+import { IDocumentRepository } from "../domain/repository/Document";
+import { UploadingRepository } from "../data/repository/Document/UploadingRepository";
+import { IUploadingRepository } from "../domain/repository/Uploading";
+import { DocumentRepository } from "../data/repository/Document/DocumentRepository";
 
 export const REPOSITORY = {
-  Engine: token<IDocumentRepository>("EngineRepository"),
-  Transmission: token<IDocumentRepository>("TransmissionRepository"),
+  Uploading: token<IUploadingRepository>("UploadingRepository"),
+  Document: token<IDocumentRepository>("DocumentRepository"),
 };
 
 export function getContainerWithReps(container: Container): Container {
   container
-    .bind(REPOSITORY.Engine)
-    .toInstance(EngineRepository)
+    .bind(REPOSITORY.Uploading)
+    .toInstance(UploadingRepository)
     .inTransientScope();
   container
-    .bind(REPOSITORY.Transmission)
-    .toInstance(TransmissionRepository)
+    .bind(REPOSITORY.Document)
+    .toInstance(DocumentRepository)
     .inTransientScope();
 
   return container;

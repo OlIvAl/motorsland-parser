@@ -1,61 +1,51 @@
 import { Container, token } from "brandi";
 import {
   IAzureBlobStorage,
-  INewDocumentsCountTableClient,
-  IProgressTableClient,
+  IDocumentTableClient,
+  IUploadingTableClient,
 } from "../dataSources/interfases";
 import { IDocumentBuilder } from "../dataSources/DocumentBuilder/interfaces";
 import { AzureBlobStorage } from "../dataSources/AzureBlobStorage";
 import { CONTAINER_NAME } from "../constants";
 import { DocumentBuilder } from "../dataSources/DocumentBuilder/DocumentBuilder";
-import { ProgressTableClient } from "../dataSources/ProgressTableClient";
-import { NewDocumentsCountTableClient } from "../dataSources/NewDocumentsCountTableClient";
+import { UploadingTableClient } from "../dataSources/UploadingTableClient";
+import { DocumentTableClient } from "../dataSources/DocumentTableClient";
 
 export const DATA_SOURCE_REMOTE = {
-  EngineStorage: token<IAzureBlobStorage>("EngineStorage"),
-  TransmissionStorage: token<IAzureBlobStorage>("TransmissionStorage"),
+  DocumentsStorage: token<IAzureBlobStorage>("DocumentsStorage"),
   ImageStorage: token<IAzureBlobStorage>("ImageStorage"),
-  EngineListDocumentBuilder: token<IDocumentBuilder>(
-    "EngineListDocumentBuilder"
-  ),
-  TransmissionListDocumentBuilder: token<IDocumentBuilder>(
-    "TransmissionListDocumentBuilder"
-  ),
-  ProgressTableClient: token<IProgressTableClient>("ProgressTableClient"),
-  NewDocumentsCountTableClient: token<INewDocumentsCountTableClient>(
-    "NewDocumentsCountTableClient"
-  ),
+  DocumentBuilder: token<IDocumentBuilder>("DocumentBuilder"),
+  UploadingTableClient: token<IUploadingTableClient>("UploadingTableClient"),
+  DocumentTableClient: token<IDocumentTableClient>("DocumentTableClient"),
 };
 
 /**
  * Return container with data source child container
  */
 export function getContainerWithDataSource(container: Container): Container {
-  container
-    .bind(DATA_SOURCE_REMOTE.EngineStorage)
-    .toConstant(new AzureBlobStorage(CONTAINER_NAME.ENGINES_CONTAINER_NAME));
-  container
-    .bind(DATA_SOURCE_REMOTE.TransmissionStorage)
-    .toConstant(
-      new AzureBlobStorage(CONTAINER_NAME.TRANSMISSIONS_CONTAINER_NAME)
-    );
-  container
-    .bind(DATA_SOURCE_REMOTE.ImageStorage)
-    .toConstant(new AzureBlobStorage(CONTAINER_NAME.IMAGES_CONTAINER_NAME));
+  const documentsStorage = new AzureBlobStorage(
+    CONTAINER_NAME.DOCUMENTS_CONTAINER_NAME
+  );
+  const imagesStorage = new AzureBlobStorage(
+    CONTAINER_NAME.IMAGES_CONTAINER_NAME
+  );
 
   container
-    .bind(DATA_SOURCE_REMOTE.EngineListDocumentBuilder)
-    .toConstant(new DocumentBuilder("https://motorlandby.ru/engines/"));
-  container
-    .bind(DATA_SOURCE_REMOTE.TransmissionListDocumentBuilder)
-    .toConstant(new DocumentBuilder("https://motorlandby.ru/transmission/"));
+    .bind(DATA_SOURCE_REMOTE.DocumentsStorage)
+    .toConstant(documentsStorage);
+  container.bind(DATA_SOURCE_REMOTE.ImageStorage).toConstant(imagesStorage);
 
   container
-    .bind(DATA_SOURCE_REMOTE.ProgressTableClient)
-    .toConstant(new ProgressTableClient());
+    .bind(DATA_SOURCE_REMOTE.DocumentBuilder)
+    .toConstant(new DocumentBuilder());
+
   container
-    .bind(DATA_SOURCE_REMOTE.NewDocumentsCountTableClient)
-    .toConstant(new NewDocumentsCountTableClient());
+    .bind(DATA_SOURCE_REMOTE.UploadingTableClient)
+    .toConstant(new UploadingTableClient());
+
+  container
+    .bind(DATA_SOURCE_REMOTE.DocumentTableClient)
+    .toConstant(new DocumentTableClient(documentsStorage, imagesStorage));
 
   return container;
 }

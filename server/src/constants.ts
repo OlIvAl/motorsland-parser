@@ -7,6 +7,10 @@ export const WATERMARK_FILE = path.resolve(
 
 export enum CONTAINER_NAME {
   IMAGES_CONTAINER_NAME = "images",
-  ENGINES_CONTAINER_NAME = "engines",
-  TRANSMISSIONS_CONTAINER_NAME = "transmissions",
+  DOCUMENTS_CONTAINER_NAME = "documents",
+}
+
+export enum UPLOADING_NAME {
+  ENGINES = "engines",
+  TRANSMISSIONS = "transmissions",
 }

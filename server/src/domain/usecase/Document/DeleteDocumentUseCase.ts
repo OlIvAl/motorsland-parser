@@ -1,11 +1,15 @@
 import { IDeleteDocumentUseCase } from "./interfaces";
-import { IDocumentRepository } from "../../repository/Document/interfaces";
-import { ID } from "../../../interfaces";
+import { IDocumentRepository } from "../../repository/Document";
+import { UPLOADING_NAME } from "../../../constants";
+import { injected } from "brandi";
+import { REPOSITORY } from "../../../di/repository";
 
-export abstract class DeleteDocumentUseCase implements IDeleteDocumentUseCase {
-  constructor(protected repository: IDocumentRepository) {}
-  async execute(id: ID): Promise<void> {
+export class DeleteDocumentUseCase implements IDeleteDocumentUseCase {
+  constructor(private repository: IDocumentRepository) {}
+  async execute(uploading: UPLOADING_NAME, name: string): Promise<void> {
     // Если progress=true - выкидывать ошибку
-    await this.repository.delete(id);
+    await this.repository.delete(uploading, name);
   }
 }
+
+injected(DeleteDocumentUseCase, REPOSITORY.Document);

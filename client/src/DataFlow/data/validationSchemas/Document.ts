@@ -6,7 +6,6 @@ export const DocumentSchema: Schema<IDocument> = object({
   id: string().defined(),
   name: string().defined(),
   createdOn: date().defined(),
-  publicURL: string().url().defined(),
 })
   .noUnknown()
   .transform((value) => ({

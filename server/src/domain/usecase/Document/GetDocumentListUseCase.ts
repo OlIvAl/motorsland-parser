@@ -1,19 +1,24 @@
 import { IGetDocumentListUseCase } from "./interfaces";
 import { DocumentListModel } from "../../entity/List/models/DocumentListModel";
-import { IDocumentRepository } from "../../repository/Document/interfaces";
+import { IDocumentRepository } from "../../repository/Document";
 import { IDocumentList } from "../../entity/List/stuctures/interfaces";
+import { UPLOADING_NAME } from "../../../constants";
+import { IUploadingRepository } from "../../repository/Uploading";
+import { injected } from "brandi";
+import { REPOSITORY } from "../../../di/repository";
 
-export abstract class GetDocumentListUseCase
-  implements IGetDocumentListUseCase
-{
-  constructor(protected repository: IDocumentRepository) {}
-  async execute(): Promise<IDocumentList> {
+export class GetDocumentListUseCase implements IGetDocumentListUseCase {
+  constructor(
+    private documentRepository: IDocumentRepository,
+    private uploadingRepository: IUploadingRepository
+  ) {}
+  async execute(uploading: UPLOADING_NAME): Promise<IDocumentList> {
     const model = new DocumentListModel();
 
     const [list, newDocumentsCount, progress] = await Promise.all([
-      this.repository.getDocuments(),
-      this.repository.getNewDocumentsCount(),
-      this.repository.getProgress(),
+      this.documentRepository.getDocuments(uploading),
+      this.uploadingRepository.getNewDocumentsCount(uploading),
+      this.uploadingRepository.getUploadingProgress(uploading),
     ]);
 
     model.setItems(list);
@@ -23,3 +28,5 @@ export abstract class GetDocumentListUseCase
     return model.list;
   }
 }
+
+injected(GetDocumentListUseCase, REPOSITORY.Document, REPOSITORY.Uploading);

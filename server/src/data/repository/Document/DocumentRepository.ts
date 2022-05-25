@@ -1,161 +1,152 @@
 import { IDocument } from "../../../domain/entity/Document/structures/interfaces";
-import { IDocumentRepository } from "../../../domain/repository/Document/interfaces";
+import { IDocumentRepository } from "../../../domain/repository/Document";
 import {
   IAzureBlobStorage,
-  INewDocumentsCountTableClient,
-  IProgressTableClient,
+  IDocumentTableClient,
+  IItemData,
+  IUploadingTableClient,
 } from "../../../dataSources/interfases";
 import { IDocumentBuilder } from "../../../dataSources/DocumentBuilder/interfaces";
 import { ImageBuilder } from "../../../dataSources/ImageBuilder";
 import { Document } from "../../../domain/entity/Document/structures/Document";
-import { BlobClient } from "@azure/storage-blob";
-import { create } from "xmlbuilder2";
-import { ID } from "../../../interfaces";
 import { ItemsListSchema } from "../../validationSchemas/Document";
-import { CONTAINER_NAME } from "../../../constants";
 import { BadRequest } from "http-json-errors";
 import { ErrCodes } from "../../../errCodes";
+import { UPLOADING_NAME } from "../../../constants";
+import { injected } from "brandi";
+import { DATA_SOURCE_REMOTE } from "../../../di/dataSource";
 
-export abstract class DocumentRepository implements IDocumentRepository {
-  protected abstract storage: CONTAINER_NAME;
-
+export class DocumentRepository implements IDocumentRepository {
   constructor(
     protected documentsStorage: IAzureBlobStorage,
     protected imagesStorage: IAzureBlobStorage,
-    protected documentsBuilder: IDocumentBuilder,
-    protected progressTableClient: IProgressTableClient,
-    protected newDocumentsCountTableClient: INewDocumentsCountTableClient
+    protected documentBuilder: IDocumentBuilder,
+    private documentTableClient: IDocumentTableClient,
+    private uploadingTableClient: IUploadingTableClient
   ) {}
 
-  async getDocuments(): Promise<IDocument[]> {
+  async getDocuments(uploading: UPLOADING_NAME): Promise<IDocument[]> {
     await this.documentsStorage.init();
 
-    const result = await this.documentsStorage.getItemsList();
+    const result = await this.documentTableClient.getAll(uploading);
 
     return ItemsListSchema.cast(result);
   }
 
-  async getProgress(): Promise<boolean> {
-    return await this.progressTableClient.getProgress(this.storage);
+  async getDocumentWithPublicLink(name: string): Promise<IItemData[]> {
+    const buffer = await this.documentsStorage.getBuffer(name);
+    const json: IItemData[] = JSON.parse(buffer.toString());
+
+    for (let i = 0; i < json.length; i++) {
+      json[i].images = await Promise.all(
+        json[i].images.map((link) => this.imagesStorage.getPublicURL(link))
+      );
+    }
+
+    return json;
   }
 
-  async getNewDocumentsCount(): Promise<number> {
-    return await this.newDocumentsCountTableClient.getNewDocumentsCount(
-      this.storage
-    );
+  async updateNewDocumentsCount(uploading: UPLOADING_NAME): Promise<number> {
+    const lastDocument = await this.getLastDocument(uploading);
+    const sources = await this.uploadingTableClient.getSources(uploading);
+
+    let length: number = 0;
+
+    for (let i = 0; i < sources.length; i++) {
+      await this.documentBuilder.dispose();
+      await this.documentBuilder.initBrowser();
+      this.documentBuilder.setUrl(sources[i].site, sources[i].categoryListUrl);
+      await this.documentBuilder.setLastDocument(lastDocument);
+
+      const result = this.documentBuilder.getNewLinksList();
+
+      await this.documentBuilder.dispose();
+
+      await this.uploadingTableClient.setNewDocumentsCount(
+        uploading,
+        result.length
+      );
+
+      length = length + result.length;
+    }
+
+    return length;
   }
 
-  async updateNewDocumentsCount(): Promise<number> {
-    const lastDocument = await this.getLastDocument();
-
-    await this.documentsBuilder.initBrowser();
-    await this.documentsBuilder.setLastDocument(lastDocument);
-
-    const result = this.documentsBuilder.getNewLinksList();
-
-    await this.documentsBuilder.dispose();
-
-    await this.newDocumentsCountTableClient.setNewDocumentsCount(
-      this.storage,
-      result.length
-    );
-
-    return result.length;
-  }
-
-  async create(fields: Record<string, string>): Promise<IDocument> {
-    if (await this.progressTableClient.isAnyInProgress()) {
+  async create(uploading: UPLOADING_NAME): Promise<IDocument> {
+    if (await this.uploadingTableClient.isAnyInProgress()) {
       throw new BadRequest(ErrCodes.PROCESS_IS_BUSY);
     }
 
     try {
-      await this.progressTableClient.setProgress(this.storage);
+      await this.uploadingTableClient.setProgress(uploading);
 
-      const lastDocument = await this.getLastDocument();
+      const lastDocument = await this.getLastDocument(uploading);
+      const fields = await this.uploadingTableClient.getFields(uploading);
 
-      await this.documentsBuilder.initBrowser();
-      await this.documentsBuilder.setLastDocument(lastDocument);
+      await this.documentBuilder.initBrowser();
+      await this.documentBuilder.setLastDocument(lastDocument);
 
-      if (this.documentsBuilder.getNewLinksList().length < 50) {
+      if (this.documentBuilder.getNewLinksList().length < 50) {
         // ToDo: update new links count!
         throw new BadRequest(ErrCodes.LESS_THAN_50_ITEMS);
       }
 
-      const docObj = await this.documentsBuilder.buildDocument(fields);
+      const docObj = await this.documentBuilder.buildDocument(fields);
 
-      for (let i = 0; i < docObj.offers.offer.length; i++) {
-        docObj.offers.offer[i].images.image = await Promise.all(
-          docObj.offers.offer[i].images.image.map(async (imgSrc: string) => {
+      for (let i = 0; i < docObj.length; i++) {
+        docObj[i].images = await Promise.all(
+          docObj[i].images.map(async (imgSrc: string) => {
             const imageBuilder = new ImageBuilder(imgSrc);
             const [fileName, buffer] = await imageBuilder.getBuffer();
 
             await this.imagesStorage.upload(buffer, fileName, "image/jpeg");
 
-            return await this.imagesStorage.getPublicURL(fileName);
+            return this.imagesStorage.getURL(fileName);
           })
         );
       }
 
-      const docXML = create(docObj)
-        .dec({ encoding: "UTF-8" })
-        .end({ prettyPrint: true });
+      const date = new Date();
 
-      const fileName = `uploading-${new Date().toISOString()}.xml`;
+      const resp = await this.documentTableClient.add(uploading, docObj);
 
-      const resp = await this.documentsStorage.upload(
-        Buffer.from(docXML),
-        fileName,
-        "application/xml"
-      );
-
-      await this.documentsBuilder.dispose();
-
-      const publicURL = await this.documentsStorage.getPublicURL(fileName);
+      await this.documentBuilder.dispose();
 
       return {
         ...new Document(),
         ...{
-          id: fileName,
-          name: fileName,
-          createdOn: resp.date as Date,
-          publicURL,
+          id: resp.name,
+          name: resp.name,
+          createdOn: date,
         },
       };
     } finally {
-      await this.progressTableClient.unsetProgress(this.storage);
+      await this.uploadingTableClient.unsetProgress(uploading);
     }
   }
-  async delete(id: ID): Promise<void> {
-    const document = (
-      await this.documentsStorage.getBuffer(id as string)
-    ).toString();
-
-    const blobNames = (document.match(/(\/images\/[\w\d%_]+.jpg)+/g) || []).map(
-      (str) => str.replace("/images/", "").replace("%2F", "/")
-    );
-
-    const blobClients = blobNames.map(
-      (name) =>
-        new BlobClient(
-          process.env.AZURE_STORAGE_CONNECTION_STRING as string,
-          "images",
-          name
-        )
-    );
-
-    await this.imagesStorage.deleteBlobs(blobClients);
-    await this.documentsStorage.deleteBlob(id as string);
-    await this.updateNewDocumentsCount();
+  async delete(uploading: UPLOADING_NAME, name: string): Promise<void> {
+    await this.documentTableClient.delete(uploading, name);
+    await this.updateNewDocumentsCount(uploading);
   }
 
-  private async getLastDocument(): Promise<string> {
-    const lastDocumentNames = await this.documentsStorage.getItemsList();
-    const lastDocumentName = lastDocumentNames.length
-      ? lastDocumentNames.slice(-1)[0].name
-      : "";
+  private async getLastDocument(
+    uploading: UPLOADING_NAME
+  ): Promise<IItemData[]> {
+    const lastDocumentName = (await this.documentTableClient.getLast(uploading))
+      .name;
 
-    return lastDocumentName
-      ? (await this.documentsStorage.getBuffer(lastDocumentName)).toString()
-      : "";
+    return JSON.parse(
+      (await this.documentsStorage.getBuffer(lastDocumentName)).toString()
+    ) as IItemData[];
   }
 }
+
+injected(
+  DocumentRepository,
+  DATA_SOURCE_REMOTE.DocumentsStorage,
+  DATA_SOURCE_REMOTE.ImageStorage,
+  DATA_SOURCE_REMOTE.DocumentBuilder,
+  DATA_SOURCE_REMOTE.DocumentTableClient,
+  DATA_SOURCE_REMOTE.UploadingTableClient
+);

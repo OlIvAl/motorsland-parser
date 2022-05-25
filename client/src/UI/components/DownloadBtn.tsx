@@ -1,21 +1,22 @@
 import { FC } from "react";
 import { Button } from "@mui/material";
+import { API_ROOT } from "../../Bootstrap/constants";
 
 interface IProps {
-  url: string;
+  link: string;
   name: string;
 }
 
-export const DownloadBtn: FC<IProps> = ({ url, name }) => {
+export const DownloadBtn: FC<IProps> = ({ link, name }) => {
   return (
     <Button
       variant="contained"
       color="secondary"
       component="a"
-      href={url}
+      href={API_ROOT + link}
       download={name}
     >
-      Скачать документ
+      Скачать XML
     </Button>
   );
 };
