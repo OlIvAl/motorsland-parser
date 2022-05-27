@@ -5,6 +5,7 @@ export interface IDocumentListViewModel {
   newDocumentsCount: number;
   loadingList: boolean;
   loadingCount: boolean;
+  deletedItemId?: ID;
   createNewDocumentProcess: boolean;
 
   getList(category: string): Promise<void>;

@@ -41,7 +41,7 @@ export function getRouter(
     try {
       const result = await controller.create(uploading);
 
-      res.json({ document: result });
+      res.json(result);
     } catch (e) {
       if ("isHttpError" in (e as any)) {
         res.json(e);
@@ -55,7 +55,7 @@ export function getRouter(
     try {
       await controller.delete(uploading, req.params.name);
 
-      res.json();
+      res.json({});
     } catch (e) {
       next(e);
     }

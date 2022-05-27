@@ -13,9 +13,8 @@ export class DeleteDocumentUseCase implements IDeleteItemUseCase {
     category: string
   ): Promise<IDocumentListModel> {
     await this.repository.delete(category, id);
-    const result = await this.repository.getList(category);
 
-    model.setList(result);
+    model.removeItem(id);
 
     return model;
   }

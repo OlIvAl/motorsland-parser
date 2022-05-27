@@ -1,13 +1,10 @@
 import TableCell from "@mui/material/TableCell";
 import { Button, Stack, TableRow } from "@mui/material";
-import { CopyToClipboard } from "./CopyToClipboard";
 import React, { FC } from "react";
 import { DownloadBtn } from "./DownloadBtn";
-import { Skeleton } from "@mui/lab";
 import { IDocumentPresentationData } from "../../DataFlow/presentation/DocumentListViewModel/interfaces";
 
 export interface IProps extends IDocumentPresentationData {
-  deletedLoading: boolean;
   setDeletedId(name: ID): void;
   createNewItemProcess: boolean;
 }
@@ -16,7 +13,6 @@ export const CustomTableRow: FC<IProps> = ({
   id,
   name,
   createdOn,
-  deletedLoading,
   setDeletedId,
   createNewItemProcess,
 }) => {
@@ -32,22 +28,17 @@ export const CustomTableRow: FC<IProps> = ({
       </TableCell>
       <TableCell>{createdOn}</TableCell>
       <TableCell width={625} height={70}>
-        {!deletedLoading ? (
-          <Stack spacing={2} direction="row">
-            <CopyToClipboard link={`/download/${name}.xml`} />
-            <DownloadBtn name={name} link={`/download/${name}.xml`} />
-            <Button
-              variant="contained"
-              color="error"
-              onClick={deleteHandler}
-              disabled={createNewItemProcess}
-            >
-              Удалить
-            </Button>
-          </Stack>
-        ) : (
-          <Skeleton />
-        )}
+        <Stack spacing={2} direction="row">
+          <DownloadBtn name={name} link={`/download/${name}.xml`} />
+          <Button
+            variant="contained"
+            color="error"
+            onClick={deleteHandler}
+            disabled={createNewItemProcess}
+          >
+            Удалить
+          </Button>
+        </Stack>
       </TableCell>
     </TableRow>
   );

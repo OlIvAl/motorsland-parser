@@ -78,11 +78,23 @@ export class DocumentListViewModel implements IDocumentListViewModel {
   }
 
   async deleteItem(id: ID, category: string): Promise<void> {
-    this.model = await this.deleteDocumentUseCase.execute(
-      this.model,
-      id,
-      category
-    );
+    this.loadingList = true;
+
+    try {
+      const result = await this.deleteDocumentUseCase.execute(
+        this.model,
+        id,
+        category
+      );
+
+      runInAction(() => {
+        this.model = result;
+      });
+    } finally {
+      runInAction(() => {
+        this.loadingList = false;
+      });
+    }
   }
 
   async updateNewDocumentsCount(category: string): Promise<void> {

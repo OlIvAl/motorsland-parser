@@ -22,7 +22,6 @@ export const CustomTable: FC<IProps> = ({
   loading = false,
   createNewItemProcess = false,
   documents = [],
-  deletedId,
   setDeletedId,
 }) => {
   return (
@@ -42,7 +41,6 @@ export const CustomTable: FC<IProps> = ({
                   id={document.id}
                   name={document.name}
                   createdOn={document.createdOn}
-                  deletedLoading={document.id === deletedId}
                   setDeletedId={setDeletedId}
                   createNewItemProcess={createNewItemProcess}
                   key={document.id}
