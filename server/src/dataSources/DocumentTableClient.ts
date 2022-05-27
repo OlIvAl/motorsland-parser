@@ -48,10 +48,11 @@ export class DocumentTableClient implements IDocumentTableClient {
 
     return arr;
   }
-  async getLast(uploading: UPLOADING_NAME): Promise<IDocumentInfo> {
+  async getLast(uploading: UPLOADING_NAME): Promise<IDocumentInfo | null> {
     const result = await this.tableClient.listEntities<{}>({
       queryOptions: { filter: odata`PartitionKey eq ${uploading}` },
     });
+    console.log("qwertyu", result);
 
     let item: TableEntityResult<{}> = {
       partitionKey: "",
@@ -59,12 +60,23 @@ export class DocumentTableClient implements IDocumentTableClient {
       etag: "",
     };
 
-    for await (item of result) {
+    // for await (item of result) {}
+
+    let arr = [];
+
+    for await (const item of result) {
+      arr.push(item);
     }
 
+    if (!arr.length) {
+      return null;
+    }
+
+    const lastItem = arr[arr.length - 1];
+
     return {
-      name: item.rowKey as string,
-      createdOn: new Date(item.timestamp as string),
+      name: lastItem.rowKey as string,
+      createdOn: new Date(lastItem.timestamp as string),
     };
   }
   async add(

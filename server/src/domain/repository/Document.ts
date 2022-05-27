@@ -8,13 +8,11 @@ export interface IDocumentRepository {
   create(uploading: UPLOADING_NAME): Promise<IDocument>;
   delete(uploading: UPLOADING_NAME, name: string): Promise<void>;
   updateNewDocumentsCount(uploading: UPLOADING_NAME): Promise<number>;
-  // upload(name: string): Promise<Buffer>;
 }
 
 export interface IDocumentDTO {
   name: string;
   createdOn: string;
-  publicURL: string;
 }
 export interface IDocumentListDTO {
   items: IDocumentDTO[];

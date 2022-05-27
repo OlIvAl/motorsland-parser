@@ -1,16 +1,37 @@
 import { Browser, Page } from "puppeteer";
 import { PuppeteerHelpers } from "./PuppeteerHelpers";
-import { IPageWithList } from "./interfaces";
+import { IPageWithListBuilder } from "./interfaces";
 
-export class PageWithList implements IPageWithList {
+export class PageWithListBuilder implements IPageWithListBuilder {
   private page?: Page;
+  private url?: string;
+  private lastPageXpath?: string;
+  private linkXpath?: string;
+  private listPageExpression?: string;
 
-  constructor(private url: string, private browser: Browser) {
+  constructor(private browser: Browser) {
+    this.setUrl = this.setUrl.bind(this);
+    this.setLastPageXpath = this.setLastPageXpath.bind(this);
+    this.setLinkXpath = this.setLinkXpath.bind(this);
+    this.setListPageExpression = this.setListPageExpression.bind(this);
     this.init = this.init.bind(this);
     this.dispose = this.dispose.bind(this);
     this.getNewLinksList = this.getNewLinksList.bind(this);
     this.getLastPageNumber = this.getLastPageNumber.bind(this);
     this.getLinksFromList = this.getLinksFromList.bind(this);
+  }
+
+  setUrl(url: string): void {
+    this.url = url;
+  }
+  setLastPageXpath(lastPageXpath: string): void {
+    this.lastPageXpath = lastPageXpath;
+  }
+  setLinkXpath(linkXpath: string): void {
+    this.linkXpath = linkXpath;
+  }
+  setListPageExpression(listPageExpression: string): void {
+    this.listPageExpression = listPageExpression;
   }
 
   async init(): Promise<void> {
@@ -79,12 +100,16 @@ export class PageWithList implements IPageWithList {
     if (!this.page) {
       throw Error("Страница не проинициализирован!");
     }
+    if (!this.url) {
+      throw Error("url не проинициализировано!");
+    }
+    if (!this.lastPageXpath) {
+      throw Error("lastPageXpath не проинициализировано!");
+    }
 
     await this.page.goto(this.url, { waitUntil: "networkidle2" });
 
-    const lastPageTagHandles = await this.page.$x(
-      "//div[@class='pgng']/a[@class='viki-pg-last']"
-    );
+    const lastPageTagHandles = await this.page.$x(this.lastPageXpath);
 
     if (!lastPageTagHandles.length) {
       throw Error("Не найдена панель пагинации");
@@ -106,14 +131,23 @@ export class PageWithList implements IPageWithList {
     if (!this.page) {
       throw Error("Страница не проинициализирован!");
     }
+    if (!this.linkXpath) {
+      throw Error("linkXpath не проинициализировано!");
+    }
+    if (!this.listPageExpression) {
+      throw Error("listPageExpression не проинициализировано!");
+    }
 
-    await this.page.goto(this.url + "?pg=" + pageNumber, {
+    const listPageSubStr = this.listPageExpression.replace(
+      "${number}",
+      pageNumber.toString()
+    );
+
+    await this.page.goto(this.url + listPageSubStr, {
       waitUntil: "networkidle2",
     });
 
-    const linksFromListHandles = await this.page.$x(
-      "//*[@class='main-content']//ul[contains(@class, 'grid-new')]/li/*[@class='item-title']/a"
-    );
+    const linksFromListHandles = await this.page.$x(this.linkXpath);
 
     if (!linksFromListHandles.length) {
       throw Error("Ссылки на товары не найдены!");

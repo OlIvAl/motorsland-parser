@@ -33,7 +33,7 @@ export interface IUploadingTableClient {
 
 export interface IDocumentTableClient {
   getAll(uploading: UPLOADING_NAME): Promise<IDocumentInfo[]>;
-  getLast(uploading: UPLOADING_NAME): Promise<IDocumentInfo>;
+  getLast(uploading: UPLOADING_NAME): Promise<IDocumentInfo | null>;
   add(uploading: UPLOADING_NAME, json: object): Promise<IDocumentInfo>;
   delete(uploading: UPLOADING_NAME, name: string): Promise<void>;
 }
@@ -63,16 +63,22 @@ export interface IItemData {
 
 export interface IUploadingSource {
   site: string;
+  lastPageXpath: string;
+  linkXpath: string;
+  listPageExpression: string;
+  preVendorCode: string;
+}
+
+export interface IFieldSelector {
+  field: string;
+  xpath: string;
+  cleanRegexp?: string;
 }
 
 export interface ITableSource {
   uploadingId: string;
   categoryListUrl: string;
-  fieldXPaths: {
-    field: string;
-    xpath: string;
-  }[];
+  fieldSelectors: IFieldSelector[];
+  imagesXPath: string;
 }
-export interface ISource extends ITableSource {
-  site: string;
-}
+export interface ISource extends ITableSource, IUploadingSource {}

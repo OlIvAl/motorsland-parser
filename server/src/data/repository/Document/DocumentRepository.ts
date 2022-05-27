@@ -50,27 +50,13 @@ export class DocumentRepository implements IDocumentRepository {
     const lastDocument = await this.getLastDocument(uploading);
     const sources = await this.uploadingTableClient.getSources(uploading);
 
-    let length: number = 0;
+    await this.documentBuilder.dispose();
+    await this.documentBuilder.initBrowser();
+    this.documentBuilder.setSources(sources);
+    await this.documentBuilder.setLastDocument(lastDocument);
+    await this.documentBuilder.countNewLinksList();
 
-    for (let i = 0; i < sources.length; i++) {
-      await this.documentBuilder.dispose();
-      await this.documentBuilder.initBrowser();
-      this.documentBuilder.setUrl(sources[i].site, sources[i].categoryListUrl);
-      await this.documentBuilder.setLastDocument(lastDocument);
-
-      const result = this.documentBuilder.getNewLinksList();
-
-      await this.documentBuilder.dispose();
-
-      await this.uploadingTableClient.setNewDocumentsCount(
-        uploading,
-        result.length
-      );
-
-      length = length + result.length;
-    }
-
-    return length;
+    return this.documentBuilder.getNewLinksList().length;
   }
 
   async create(uploading: UPLOADING_NAME): Promise<IDocument> {
@@ -82,17 +68,23 @@ export class DocumentRepository implements IDocumentRepository {
       await this.uploadingTableClient.setProgress(uploading);
 
       const lastDocument = await this.getLastDocument(uploading);
-      const fields = await this.uploadingTableClient.getFields(uploading);
+      const sources = await this.uploadingTableClient.getSources(uploading);
 
+      await this.documentBuilder.dispose();
       await this.documentBuilder.initBrowser();
+      await this.documentBuilder.setSources(sources);
       await this.documentBuilder.setLastDocument(lastDocument);
+
+      await this.documentBuilder.countNewLinksList();
 
       if (this.documentBuilder.getNewLinksList().length < 50) {
         // ToDo: update new links count!
         throw new BadRequest(ErrCodes.LESS_THAN_50_ITEMS);
       }
 
-      const docObj = await this.documentBuilder.buildDocument(fields);
+      await this.documentBuilder.buildDocument();
+
+      const docObj = this.documentBuilder.getDocument();
 
       for (let i = 0; i < docObj.length; i++) {
         docObj[i].images = await Promise.all(
@@ -110,8 +102,6 @@ export class DocumentRepository implements IDocumentRepository {
       const date = new Date();
 
       const resp = await this.documentTableClient.add(uploading, docObj);
-
-      await this.documentBuilder.dispose();
 
       return {
         ...new Document(),
@@ -133,8 +123,12 @@ export class DocumentRepository implements IDocumentRepository {
   private async getLastDocument(
     uploading: UPLOADING_NAME
   ): Promise<IItemData[]> {
-    const lastDocumentName = (await this.documentTableClient.getLast(uploading))
-      .name;
+    const lastDocument = await this.documentTableClient.getLast(uploading);
+    const lastDocumentName = lastDocument ? lastDocument.name : "";
+
+    if (!lastDocumentName) {
+      return [];
+    }
 
     return JSON.parse(
       (await this.documentsStorage.getBuffer(lastDocumentName)).toString()

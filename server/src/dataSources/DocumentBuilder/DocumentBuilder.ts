@@ -1,18 +1,16 @@
-import puppeteer, { Browser, Page } from "puppeteer";
-import { IItemData } from "../interfases";
-import { PageWithList } from "./PageWithList";
+import puppeteer, { Browser } from "puppeteer";
+import { IItemData, ISource } from "../interfases";
+import { PageWithListBuilder } from "./PageWithListBuilder";
 import { IDocumentBuilder } from "./interfaces";
-import { PuppeteerHelpers } from "./PuppeteerHelpers";
+import { PageWithInfo } from "./PageWithInfo";
 
 export class DocumentBuilder implements IDocumentBuilder {
-  private url: string = "";
+  private browser?: Browser;
+  private sources?: ISource[];
+  private vendorCodesListFromLastDocument?: string[];
+  private newLinksList?: string[];
   private lastDocument: IItemData[] = [];
   private document: IItemData[] = [];
-  private browser?: Browser;
-  private vendorCodesListFromLastDocument: string[] = [];
-  private newLinksList: string[] = [];
-
-  constructor() {}
 
   async initBrowser(): Promise<void> {
     this.browser = await puppeteer.launch({
@@ -21,136 +19,129 @@ export class DocumentBuilder implements IDocumentBuilder {
     });
   }
 
-  setUrl(site: string, root: string): void {
-    this.url = site + root;
+  setSources(sources: ISource[]): void {
+    this.sources = sources;
   }
 
   async setLastDocument(document: IItemData[]): Promise<void> {
     this.lastDocument = document;
-    this.setVendorCodesListFromLastDocument();
-    await this.setNewLinksList();
+    this.vendorCodesListFromLastDocument = this.lastDocument.map(
+      (item) => item.vendor_code
+    );
   }
 
-  private setVendorCodesListFromLastDocument(): void {
-    if (this.lastDocument) {
-      this.vendorCodesListFromLastDocument = this.lastDocument.map(
-        (item) => item.vendor_code
-      );
-    }
-  }
-
-  private async setNewLinksList(): Promise<void> {
+  private async setNewLinksList(source: ISource): Promise<string[]> {
     if (!this.browser) {
       throw Error("Браузер не проинициализирован!");
     }
+    if (!this.vendorCodesListFromLastDocument) {
+      throw Error("VendorCodesListFromLastDocument не проинициализирован!");
+    }
 
-    const listPage = new PageWithList(this.url, this.browser);
-    await listPage.init();
+    const listPageBuilder = new PageWithListBuilder(this.browser);
 
-    this.newLinksList = await listPage.getNewLinksList(
+    listPageBuilder.setUrl(source.site + source.categoryListUrl);
+
+    listPageBuilder.setLastPageXpath(source.lastPageXpath);
+    listPageBuilder.setLinkXpath(source.linkXpath);
+    listPageBuilder.setListPageExpression(source.listPageExpression);
+
+    await listPageBuilder.init();
+
+    const result = await listPageBuilder.getNewLinksList(
       this.vendorCodesListFromLastDocument
     );
 
-    await listPage.dispose();
+    await listPageBuilder.dispose();
+
+    return result;
   }
 
-  private async setData(fields: Record<string, string>): Promise<void> {
-    async function getNameFromPage(page: Page): Promise<string> {
-      const elements = await page.$x(
-        "//*[contains(@class,'cont')]//*[contains(@class,'navigation')]//*[contains(@class,'mb-20')]"
-      );
-
-      if (!elements.length) {
-        throw Error("Не найдено наименование!");
-      }
-
-      return await page.evaluate((h1) => h1.textContent || "", elements[0]);
-    }
-    const getDataFromPage = async (
-      fields: Record<string, string>,
-      page: Page
-    ): Promise<IItemData> => {
-      async function getData(text: string): Promise<string | undefined> {
-        const elements = await page.$x(
-          `//th[contains(., '${text}')]/following-sibling::td`
-        );
-
-        if (!elements.length) {
-          return undefined;
-        }
-
-        return await page.evaluate((td) => td.textContent || "", elements[0]);
-      }
-
-      const fieldValues = await Promise.all(
-        Object.values(fields).map(async (text) => await getData(text))
-      );
-
-      return Object.keys(fields).reduce<any>(
-        (result, key, i) => {
-          if (fieldValues[i]) {
-            return {
-              ...result,
-              [key]: fieldValues[i],
-            };
-          }
-
-          return result;
-        },
-        { name: "", vendor_code: "", images: [] }
-      );
-    };
-    async function getImgLinksFromPage(page: Page): Promise<string[]> {
-      const imageHandlers = await page.$x(
-        "//*[contains(@class,'viki-gallery gallery-big part-carousel')]//img[@loading='lazy']"
-      );
-
-      return await Promise.all(
-        imageHandlers.map((handler) =>
-          page.evaluate((img) => img.src || "", handler)
-        )
-      );
-    }
-
+  private async setData(source: ISource): Promise<IItemData[]> {
     if (!this.browser) {
       throw Error("Браузер не проинициализирован!");
     }
+    if (!this.newLinksList) {
+      throw Error("NewLinksList не проинициализирован!");
+    }
+
     let result: IItemData[] = [];
 
+    const pageWithInfo = new PageWithInfo(this.browser);
+    await pageWithInfo.init();
+
     for (let i = 0; i < this.newLinksList.length; i++) {
-      const link = this.newLinksList[i];
+      const data = await pageWithInfo.getItemData(
+        this.newLinksList[i],
+        source.fieldSelectors,
+        source.imagesXPath
+      );
 
-      const itemPage = await PuppeteerHelpers.getNewPage(this.browser);
-      await itemPage.goto(link, { waitUntil: "networkidle2", timeout: 0 });
+      // set prevendorcode
+      data.vendor_code = source.preVendorCode + data.vendor_code;
 
-      const data = await getDataFromPage(fields, itemPage);
-      const name = await getNameFromPage(itemPage);
-      const images = await getImgLinksFromPage(itemPage);
+      result = [...result, data];
+    }
 
-      result = [...result, { ...data, ...images, name }];
+    await pageWithInfo.dispose();
+
+    return result;
+  }
+
+  private setPreVendorCode(preVendorCode: string): void {
+    for (let i = 0; i < this.document.length; i++) {
+      this.document[i].vendor_code =
+        preVendorCode + this.document[i].vendor_code;
+    }
+  }
+
+  async countNewLinksList(): Promise<void> {
+    if (!this.sources) {
+      throw Error("Sources не проинициализирован!");
+    }
+
+    let result: string[] = [];
+    for (let i = 0; i < this.sources.length; i++) {
+      const sourceResult = await this.setNewLinksList(this.sources[i]);
+      result = [...result, ...sourceResult];
+    }
+
+    this.newLinksList = result;
+  }
+
+  getNewLinksList(): string[] {
+    if (!this.newLinksList) {
+      throw Error("NewLinksList не проинициализирован!");
+    }
+
+    return this.newLinksList;
+  }
+
+  async buildDocument(): Promise<void> {
+    if (!this.sources) {
+      throw Error("Sources не проинициализирован!");
+    }
+
+    let result: IItemData[] = [];
+    for (let i = 0; i < this.sources.length; i++) {
+      await this.setNewLinksList(this.sources[i]);
+      const sourceResult = await this.setData(this.sources[i]);
+
+      result = [...result, ...sourceResult];
     }
 
     this.document = result;
   }
 
-  getNewLinksList(): string[] {
-    return this.newLinksList;
-  }
-
-  async buildDocument(fields: Record<string, string>): Promise<IItemData[]> {
-    this.setVendorCodesListFromLastDocument();
-    await this.setNewLinksList();
-    await this.setData(fields);
-
+  getDocument(): IItemData[] {
     return this.document;
   }
 
   async dispose(): Promise<void> {
-    this.url = "";
-    this.lastDocument = [];
-    this.document = [];
-    this.vendorCodesListFromLastDocument = [];
-    this.newLinksList = [];
+    this.sources = undefined;
+    this.vendorCodesListFromLastDocument = undefined;
+    this.newLinksList = undefined;
+
     if (this.browser) {
       await this.browser.close();
     }

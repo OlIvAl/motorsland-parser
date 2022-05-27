@@ -127,7 +127,16 @@ export class UploadingTableClient implements IUploadingTableClient {
           "uploadingSource",
           tableSource[i].uploadingId
         );
-      sources.push({ ...tableSource[i], ...{ site: uploadingSource.site } });
+      sources.push({
+        ...tableSource[i],
+        ...{
+          site: uploadingSource.site,
+          lastPageXpath: uploadingSource.lastPageXpath,
+          linkXpath: uploadingSource.linkXpath,
+          listPageExpression: uploadingSource.listPageExpression,
+          preVendorCode: uploadingSource.preVendorCode,
+        },
+      });
     }
 
     return sources;
