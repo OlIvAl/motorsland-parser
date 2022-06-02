@@ -23,7 +23,7 @@ export interface IUploadingTableClient {
   isAnyInProgress(): Promise<boolean>;
   getNewDocumentsCount(uploading: UPLOADING_NAME): Promise<number>;
   setNewDocumentsCount(uploading: UPLOADING_NAME, count: number): Promise<void>;
-  getFields(uploading: UPLOADING_NAME): Promise<Record<string, string>>;
+  getFields(uploading: UPLOADING_NAME): Promise<ITableField[]>;
   setFields(
     uploading: UPLOADING_NAME,
     fields: Record<string, string>
@@ -32,9 +32,14 @@ export interface IUploadingTableClient {
 }
 
 export interface IDocumentTableClient {
+  get(name: string): Promise<ITableDocumentField[][]>;
+  getPagePublicImages(vcId: string): Promise<string[]>;
   getAll(uploading: UPLOADING_NAME): Promise<IDocumentInfo[]>;
   getLast(uploading: UPLOADING_NAME): Promise<IDocumentInfo | null>;
-  add(uploading: UPLOADING_NAME, json: object): Promise<IDocumentInfo>;
+  addDocument(
+    uploading: UPLOADING_NAME,
+    document: IItemData[]
+  ): Promise<IDocumentInfo>;
   delete(uploading: UPLOADING_NAME, name: string): Promise<void>;
 }
 
@@ -60,13 +65,31 @@ export interface IItemData {
   images: string[];
   [field: string]: any;
 }
+export interface IFieldData {
+  name: string;
+  value?: string;
+}
+export interface ITableDocumentField extends IFieldData {
+  document: string;
+}
 
-export interface IUploadingSource {
-  site: string;
-  lastPageXpath: string;
-  linkXpath: string;
-  listPageExpression: string;
-  preVendorCode: string;
+export interface ITableUploadingSource {
+  linkListUrl: string;
+  imagesXPath: string;
+}
+
+export interface ITableUploadingFieldRelation {
+  field: string;
+}
+export interface ITableField {
+  field: string;
+  title: string;
+}
+export interface ITableUploadingFieldSource {
+  field: string;
+  xpath: string;
+  cleanRegexp?: string;
+  source: string;
 }
 
 export interface IFieldSelector {
@@ -76,9 +99,17 @@ export interface IFieldSelector {
 }
 
 export interface ITableSource {
-  uploadingId: string;
-  categoryListUrl: string;
-  fieldSelectors: IFieldSelector[];
-  imagesXPath: string;
+  lastPageXpath: string;
+  linkXpath: string;
+  listPageExpression: string;
+  preVendorCode: string;
+  site: string;
 }
-export interface ISource extends ITableSource, IUploadingSource {}
+export interface ITableImage {
+  url: string;
+  name: string;
+  document: string;
+}
+export interface ISource extends ITableSource, ITableUploadingSource {
+  fields: IFieldSelector[];
+}

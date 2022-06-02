@@ -1,4 +1,4 @@
-import { IAzureBlobStorage, IDocumentInfo } from "./interfases";
+import { IAzureBlobStorage } from "./interfases";
 import {
   BlobBatchClient,
   BlobClient,

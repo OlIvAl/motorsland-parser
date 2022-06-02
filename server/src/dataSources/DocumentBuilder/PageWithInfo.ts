@@ -6,9 +6,7 @@ export class PageWithInfo {
   private page?: Page;
 
   constructor(private browser: Browser) {
-    this.selectItemData = this.selectItemData.bind(this);
     this.init = this.init.bind(this);
-    this.getItemData = this.getItemData.bind(this);
     this.dispose = this.dispose.bind(this);
   }
 
@@ -39,25 +37,34 @@ export class PageWithInfo {
     return { [field]: value };
   }
 
-  private async getImageLinks(page: Page, xpath: string): Promise<string[]> {
-    const imageHandlers = await page.$x(xpath);
+  async getImageLinks(xpath: string): Promise<string[]> {
+    if (!this.page) {
+      throw Error("Страница не проинициализирован!");
+    }
+
+    const imageHandlers = await this.page.$x(xpath);
 
     return await Promise.all(
       imageHandlers.map((handler) =>
-        page.evaluate((img) => img.src || "", handler)
+        this.page!.evaluate((img) => img.src || "", handler)
       )
     );
   }
 
-  private async selectItemData(
-    page: Page,
-    fieldSelectors: IFieldSelector[],
-    imagesXPath: string
-  ): Promise<IItemData> {
-    const result = (
+  async init(link: string): Promise<void> {
+    this.page = await PuppeteerHelpers.getNewPage(this.browser);
+    await this.page.goto(link, { waitUntil: "networkidle2", timeout: 0 });
+  }
+
+  async getPageData(fieldSelectors: IFieldSelector[]): Promise<IItemData> {
+    if (!this.page) {
+      throw Error("Страница не проинициализирован!");
+    }
+
+    return (
       await Promise.all(
         fieldSelectors.map((fieldSelector) =>
-          this.getFieldBySelector(page, fieldSelector)
+          this.getFieldBySelector(this.page as Page, fieldSelector)
         )
       )
     ).reduce<Record<string, string | undefined>>(
@@ -67,28 +74,6 @@ export class PageWithInfo {
       }),
       {}
     ) as IItemData;
-
-    const images = await this.getImageLinks(page, imagesXPath);
-
-    return { ...result, images };
-  }
-
-  async init(): Promise<void> {
-    this.page = await PuppeteerHelpers.getNewPage(this.browser);
-  }
-
-  async getItemData(
-    link: string,
-    fieldSelectors: IFieldSelector[],
-    imagesXPath: string
-  ): Promise<IItemData> {
-    if (!this.page) {
-      throw Error("Страница не проинициализирован!");
-    }
-
-    await this.page.goto(link, { waitUntil: "networkidle2", timeout: 0 });
-
-    return await this.selectItemData(this.page, fieldSelectors, imagesXPath);
   }
 
   async dispose(): Promise<void> {

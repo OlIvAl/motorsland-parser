@@ -3,7 +3,7 @@ import { IItemData, ISource } from "../interfases";
 export interface IDocumentBuilder {
   initBrowser(): Promise<void>;
   setSources(sources: ISource[]): void;
-  setLastDocument(document: IItemData[]): Promise<void>;
+  setVendorCodesListFromLastDocument(codes: string[]): void;
   countNewLinksList(): Promise<void>;
   getNewLinksList(): string[];
   buildDocument(): Promise<void>;

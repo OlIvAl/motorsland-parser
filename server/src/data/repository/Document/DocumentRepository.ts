@@ -18,42 +18,54 @@ import { DATA_SOURCE_REMOTE } from "../../../di/dataSource";
 
 export class DocumentRepository implements IDocumentRepository {
   constructor(
-    protected documentsStorage: IAzureBlobStorage,
-    protected imagesStorage: IAzureBlobStorage,
-    protected documentBuilder: IDocumentBuilder,
     private documentTableClient: IDocumentTableClient,
-    private uploadingTableClient: IUploadingTableClient
+    private uploadingTableClient: IUploadingTableClient,
+    protected imagesStorage: IAzureBlobStorage,
+    protected documentBuilder: IDocumentBuilder
   ) {}
 
   async getDocuments(uploading: UPLOADING_NAME): Promise<IDocument[]> {
-    await this.documentsStorage.init();
-
     const result = await this.documentTableClient.getAll(uploading);
 
     return ItemsListSchema.cast(result);
   }
 
   async getDocumentWithPublicLink(name: string): Promise<IItemData[]> {
-    const buffer = await this.documentsStorage.getBuffer(name);
-    const json: IItemData[] = JSON.parse(buffer.toString());
+    const pageDataArr: IItemData[] = (
+      await this.documentTableClient.get(name)
+    ).map((fields) =>
+      fields.reduce<IItemData>(
+        (acc, field) => ({
+          ...acc,
+          [field.name]: field.value,
+        }),
+        { name: "", price: "", vendor_code: "", images: [] }
+      )
+    );
 
-    for (let i = 0; i < json.length; i++) {
-      json[i].images = await Promise.all(
-        json[i].images.map((link) => this.imagesStorage.getPublicURL(link))
-      );
-    }
+    return (
+      await Promise.all(
+        pageDataArr.map((item) =>
+          this.documentTableClient.getPagePublicImages(item.vendor_code)
+        )
+      )
+    ).map((images, i) => {
+      pageDataArr[i].images = images;
 
-    return json;
+      return pageDataArr[i];
+    });
   }
 
   async updateNewDocumentsCount(uploading: UPLOADING_NAME): Promise<number> {
-    const lastDocument = await this.getLastDocument(uploading);
+    const lastDocumentVC = await this.getLastDocumentVC(uploading);
     const sources = await this.uploadingTableClient.getSources(uploading);
 
     await this.documentBuilder.dispose();
     await this.documentBuilder.initBrowser();
     this.documentBuilder.setSources(sources);
-    await this.documentBuilder.setLastDocument(lastDocument);
+    await this.documentBuilder.setVendorCodesListFromLastDocument(
+      lastDocumentVC
+    );
     await this.documentBuilder.countNewLinksList();
 
     return this.documentBuilder.getNewLinksList().length;
@@ -67,13 +79,15 @@ export class DocumentRepository implements IDocumentRepository {
     try {
       await this.uploadingTableClient.setProgress(uploading);
 
-      const lastDocument = await this.getLastDocument(uploading);
+      const lastDocumentVC = await this.getLastDocumentVC(uploading);
       const sources = await this.uploadingTableClient.getSources(uploading);
 
       await this.documentBuilder.dispose();
       await this.documentBuilder.initBrowser();
       await this.documentBuilder.setSources(sources);
-      await this.documentBuilder.setLastDocument(lastDocument);
+      await this.documentBuilder.setVendorCodesListFromLastDocument(
+        lastDocumentVC
+      );
 
       await this.documentBuilder.countNewLinksList();
 
@@ -94,14 +108,17 @@ export class DocumentRepository implements IDocumentRepository {
 
             await this.imagesStorage.upload(buffer, fileName, "image/jpeg");
 
-            return this.imagesStorage.getURL(fileName);
+            return decodeURIComponent(this.imagesStorage.getURL(fileName));
           })
         );
       }
 
       const date = new Date();
 
-      const resp = await this.documentTableClient.add(uploading, docObj);
+      const resp = await this.documentTableClient.addDocument(
+        uploading,
+        docObj
+      );
 
       return {
         ...new Document(),
@@ -111,18 +128,25 @@ export class DocumentRepository implements IDocumentRepository {
           createdOn: date,
         },
       };
+
+      /*return {
+        id: `engines-${new Date().toISOString()}`,
+        name: `engines-${new Date().toISOString()}`,
+        createdOn: new Date(),
+      };*/
     } finally {
       await this.uploadingTableClient.unsetProgress(uploading);
     }
   }
+
   async delete(uploading: UPLOADING_NAME, name: string): Promise<void> {
     await this.documentTableClient.delete(uploading, name);
     await this.updateNewDocumentsCount(uploading);
   }
 
-  private async getLastDocument(
+  private async getLastDocumentVC(
     uploading: UPLOADING_NAME
-  ): Promise<IItemData[]> {
+  ): Promise<string[]> {
     const lastDocument = await this.documentTableClient.getLast(uploading);
     const lastDocumentName = lastDocument ? lastDocument.name : "";
 
@@ -130,17 +154,25 @@ export class DocumentRepository implements IDocumentRepository {
       return [];
     }
 
-    return JSON.parse(
-      (await this.documentsStorage.getBuffer(lastDocumentName)).toString()
-    ) as IItemData[];
+    let vcSet = new Set<string>();
+
+    const documentInfo = await this.documentTableClient.get(lastDocumentName);
+    documentInfo.forEach((fieldInfo) => {
+      fieldInfo.forEach((field) => {
+        if (field.name === "vendor_code") {
+          vcSet.add(field.value as string);
+        }
+      });
+    });
+
+    return Array.from(vcSet);
   }
 }
 
 injected(
   DocumentRepository,
-  DATA_SOURCE_REMOTE.DocumentsStorage,
-  DATA_SOURCE_REMOTE.ImageStorage,
-  DATA_SOURCE_REMOTE.DocumentBuilder,
   DATA_SOURCE_REMOTE.DocumentTableClient,
-  DATA_SOURCE_REMOTE.UploadingTableClient
+  DATA_SOURCE_REMOTE.UploadingTableClient,
+  DATA_SOURCE_REMOTE.ImageStorage,
+  DATA_SOURCE_REMOTE.DocumentBuilder
 );

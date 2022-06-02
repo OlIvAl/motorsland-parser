@@ -9,7 +9,6 @@ export class DocumentBuilder implements IDocumentBuilder {
   private sources?: ISource[];
   private vendorCodesListFromLastDocument?: string[];
   private newLinksList?: string[];
-  private lastDocument: IItemData[] = [];
   private document: IItemData[] = [];
 
   async initBrowser(): Promise<void> {
@@ -23,11 +22,8 @@ export class DocumentBuilder implements IDocumentBuilder {
     this.sources = sources;
   }
 
-  async setLastDocument(document: IItemData[]): Promise<void> {
-    this.lastDocument = document;
-    this.vendorCodesListFromLastDocument = this.lastDocument.map(
-      (item) => item.vendor_code
-    );
+  setVendorCodesListFromLastDocument(codes: string[]): void {
+    this.vendorCodesListFromLastDocument = codes;
   }
 
   private async setNewLinksList(source: ISource): Promise<string[]> {
@@ -40,7 +36,7 @@ export class DocumentBuilder implements IDocumentBuilder {
 
     const listPageBuilder = new PageWithListBuilder(this.browser);
 
-    listPageBuilder.setUrl(source.site + source.categoryListUrl);
+    listPageBuilder.setUrl(source.site + source.linkListUrl);
 
     listPageBuilder.setLastPageXpath(source.lastPageXpath);
     listPageBuilder.setLinkXpath(source.linkXpath);
@@ -68,31 +64,23 @@ export class DocumentBuilder implements IDocumentBuilder {
     let result: IItemData[] = [];
 
     const pageWithInfo = new PageWithInfo(this.browser);
-    await pageWithInfo.init();
 
     for (let i = 0; i < this.newLinksList.length; i++) {
-      const data = await pageWithInfo.getItemData(
-        this.newLinksList[i],
-        source.fieldSelectors,
-        source.imagesXPath
-      );
+      await pageWithInfo.init(this.newLinksList[i]);
 
-      // set prevendorcode
-      data.vendor_code = source.preVendorCode + data.vendor_code;
+      const data = await pageWithInfo.getPageData(source.fields);
+      const images = await pageWithInfo.getImageLinks(source.imagesXPath);
 
-      result = [...result, data];
+      if (data.vendor_code) {
+        // Set preVendorCode
+        data.vendor_code = source.preVendorCode + data.vendor_code;
+        result.push({ ...data, images });
+      }
     }
 
     await pageWithInfo.dispose();
 
     return result;
-  }
-
-  private setPreVendorCode(preVendorCode: string): void {
-    for (let i = 0; i < this.document.length; i++) {
-      this.document[i].vendor_code =
-        preVendorCode + this.document[i].vendor_code;
-    }
   }
 
   async countNewLinksList(): Promise<void> {

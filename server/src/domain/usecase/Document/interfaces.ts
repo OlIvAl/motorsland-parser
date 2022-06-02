@@ -1,6 +1,5 @@
 import { IDocumentList } from "../../entity/List/stuctures/interfaces";
 import { IDocument } from "../../entity/Document/structures/interfaces";
-import { ID } from "../../../interfaces";
 import { UPLOADING_NAME } from "../../../constants";
 import { IItemData } from "../../../dataSources/interfases";
 
