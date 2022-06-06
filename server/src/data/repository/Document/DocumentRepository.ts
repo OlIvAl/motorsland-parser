@@ -68,7 +68,11 @@ export class DocumentRepository implements IDocumentRepository {
     );
     await this.documentBuilder.countNewLinksList();
 
-    return this.documentBuilder.getNewLinksList().length;
+    const result = this.documentBuilder.getNewLinksList().length;
+
+    await this.uploadingTableClient.setNewDocumentsCount(uploading, result);
+
+    return result;
   }
 
   async create(uploading: UPLOADING_NAME): Promise<IDocument> {
@@ -119,6 +123,8 @@ export class DocumentRepository implements IDocumentRepository {
         uploading,
         docObj
       );
+
+      await this.uploadingTableClient.setNewDocumentsCount(uploading, 0);
 
       return {
         ...new Document(),
