@@ -12,7 +12,7 @@ export class DocumentBuilder implements IDocumentBuilder {
   private document: IItemData[] = [];
 
   async initBrowser(): Promise<void> {
-    if (process.env.NODE_ENV === "production") {
+    /*if (process.env.NODE_ENV === "production") {
       this.browser = await Puppeteer.connect({
         browserWSEndpoint: `wss://chrome.browserless.io?token=${process.env.BROWSERLESS_API_TOKEN}`,
         defaultViewport: null,
@@ -22,7 +22,11 @@ export class DocumentBuilder implements IDocumentBuilder {
         headless: true,
         defaultViewport: null,
       });
-    }
+    }*/
+    this.browser = await Puppeteer.launch({
+      headless: true,
+      defaultViewport: null,
+    });
   }
 
   setSources(sources: ISource[]): void {
