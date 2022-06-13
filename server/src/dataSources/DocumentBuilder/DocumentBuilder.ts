@@ -26,10 +26,7 @@ export class DocumentBuilder implements IDocumentBuilder {
     this.browser = await Puppeteer.launch({
       headless: true,
       defaultViewport: null,
-      args:
-        process.env.NODE_ENV === "production"
-          ? ["--use-gl=egl", "--no-sandbox", "--disable-setuid-sandbox"]
-          : [],
+      args: process.env.NODE_ENV === "production" ? ["--use-gl=egl"] : [],
     });
   }
 
