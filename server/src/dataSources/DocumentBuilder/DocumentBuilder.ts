@@ -1,4 +1,4 @@
-import { Browser, connect, launch } from "puppeteer";
+import Puppeteer, { Browser } from "puppeteer";
 import { IItemData, ISource } from "../interfases";
 import { PageWithListBuilder } from "./PageWithListBuilder";
 import { IDocumentBuilder } from "./interfaces";
@@ -12,13 +12,14 @@ export class DocumentBuilder implements IDocumentBuilder {
   private document: IItemData[] = [];
 
   async initBrowser(): Promise<void> {
+    console.log(process.env.NODE_ENV);
     if (process.env.NODE_ENV === "production") {
-      this.browser = await connect({
+      this.browser = await Puppeteer.connect({
         browserWSEndpoint: `wss://chrome.browserless.io?token=${process.env.BROWSERLESS_API_TOKEN}`,
         defaultViewport: null,
       });
     } else {
-      this.browser = await launch({
+      this.browser = await Puppeteer.launch({
         headless: true,
         defaultViewport: null,
       });
