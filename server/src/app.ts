@@ -1,10 +1,13 @@
-import "dotenv/config";
 import express, { Express, Request, Response } from "express";
 import cors from "cors";
 import { getRouter } from "./getRouter";
 import { getDIContainer } from "./di";
 import { UPLOADING_NAME } from "./constants";
 import { CONTROLLER } from "./di/controller";
+
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config();
+}
 
 const app: Express = express()
   .set("port", process.env.PORT || 3001)

@@ -12,7 +12,6 @@ export class DocumentBuilder implements IDocumentBuilder {
   private document: IItemData[] = [];
 
   async initBrowser(): Promise<void> {
-    console.log(process.env.NODE_ENV);
     if (process.env.NODE_ENV === "production") {
       this.browser = await Puppeteer.connect({
         browserWSEndpoint: `wss://chrome.browserless.io?token=${process.env.BROWSERLESS_API_TOKEN}`,
