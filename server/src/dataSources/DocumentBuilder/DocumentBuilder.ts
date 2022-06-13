@@ -12,7 +12,7 @@ export class DocumentBuilder implements IDocumentBuilder {
   private document: IItemData[] = [];
 
   async initBrowser(): Promise<void> {
-    if (process.env.NODE_ENV === "production") {
+    if (process.env.NODE_ENV !== "production") {
       this.browser = await connect({
         browserWSEndpoint: `wss://chrome.browserless.io?token=${process.env.BROWSERLESS_API_TOKEN}`,
         defaultViewport: null,
