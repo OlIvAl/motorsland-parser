@@ -1,4 +1,4 @@
-import { Browser, Page } from "puppeteer-core";
+import { Browser, Page } from "puppeteer";
 import { PuppeteerHelpers } from "./PuppeteerHelpers";
 import { IPageWithListBuilder } from "./interfaces";
 

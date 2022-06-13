@@ -1,4 +1,4 @@
-import { Browser, Page } from "puppeteer-core";
+import { Browser, Page } from "puppeteer";
 import UserAgent from "user-agents";
 
 export class PuppeteerHelpers {

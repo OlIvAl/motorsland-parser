@@ -1,5 +1,5 @@
 import { IFieldSelector, IItemData } from "../interfases";
-import { Browser, Page } from "puppeteer-core";
+import { Browser, Page } from "puppeteer";
 import { PuppeteerHelpers } from "./PuppeteerHelpers";
 
 export class PageWithInfo {
