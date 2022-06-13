@@ -1,4 +1,4 @@
-import puppeteer, { Browser } from "puppeteer";
+import puppeteer, { Browser } from "puppeteer-core";
 import { IItemData, ISource } from "../interfases";
 import { PageWithListBuilder } from "./PageWithListBuilder";
 import { IDocumentBuilder } from "./interfaces";
