@@ -91,7 +91,7 @@ export class DocumentBuilder implements IDocumentBuilder {
         result.push({ ...data, images });
 
         console.log(
-          `(${i + 1} из ${newLinksList.length})Страница ${
+          `(${i + 1} из ${newLinksList.length}) Страница ${
             newLinksList[i]
           } обработана!`
         );

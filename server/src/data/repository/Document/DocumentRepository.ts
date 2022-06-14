@@ -141,7 +141,7 @@ export class DocumentRepository implements IDocumentRepository {
         );
       }
 
-      console.log("Начата обработка окончена!");
+      console.log("Обработка картинок окончена!");
 
       const date = new Date();
 
