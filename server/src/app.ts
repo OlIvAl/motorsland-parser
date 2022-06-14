@@ -1,6 +1,5 @@
 import express, { Express, Request, Response } from "express";
 import cors from "cors";
-import { getRouter } from "./getRouter";
 import { getDIContainer } from "./di";
 import { UPLOADING_NAME } from "./constants";
 import { CONTROLLER } from "./di/controller";
@@ -20,19 +19,66 @@ app.get("/", (req: Request, res: Response) => {
 
 const di = getDIContainer();
 
-// ToDo: генерация роутинга по выгрузкам
-// Например: /documents/:uploading
-// И свести все в один роут
-// Параметр uploading необходимо валидировать. Иначе, возвращать 404
-const enginesRouter = getRouter("/engines", UPLOADING_NAME.ENGINES, di);
+app.get("/:uploading", async (req: Request, res: Response, next) => {
+  const controller = di.get(CONTROLLER.Document);
 
-const transmissionsRouter = getRouter(
-  "/transmissions",
-  UPLOADING_NAME.TRANSMISSIONS,
-  di
-);
+  try {
+    const result = await controller.getList(
+      req.params.uploading as UPLOADING_NAME
+    );
 
-app.use(enginesRouter).use(transmissionsRouter);
+    res.json(result);
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.post("/:uploading/items/new", async (req: Request, res: Response, next) => {
+  const controller = di.get(CONTROLLER.Document);
+
+  try {
+    const count = await controller.updateNewDocumentsCount(
+      req.params.uploading as UPLOADING_NAME
+    );
+
+    res.json({ count });
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.post("/:uploading", async (req: Request, res: Response, next) => {
+  const controller = di.get(CONTROLLER.Document);
+
+  try {
+    const result = await controller.create(
+      req.params.uploading as UPLOADING_NAME
+    );
+
+    res.json(result);
+  } catch (e) {
+    if ("isHttpError" in (e as any)) {
+      res.json(e);
+    } else {
+      next(e);
+    }
+  }
+});
+
+app.delete("/:uploading/:name", async (req: Request, res: Response, next) => {
+  const controller = di.get(CONTROLLER.Document);
+
+  try {
+    await controller.delete(
+      req.params.uploading as UPLOADING_NAME,
+      req.params.name
+    );
+
+    res.json({});
+  } catch (e) {
+    next(e);
+  }
+});
 
 app.get("/download/:filename", async (req: Request, res: Response, next) => {
   const controller = di.get(CONTROLLER.Document);
