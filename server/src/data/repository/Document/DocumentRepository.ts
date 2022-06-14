@@ -123,9 +123,10 @@ export class DocumentRepository implements IDocumentRepository {
       await this.documentBuilder.dispose();
       console.log("Браузер заткрыт!");
 
-      console.log("Начата обработка картинок!");
-
       for (let i = 0; i < docObj.length; i++) {
+        console.log(
+          `Начата обработка картинок товара с артикулом ${docObj[i].vendor_code}`
+        );
         docObj[i].images = await Promise.all(
           docObj[i].images.map(async (imgSrc: string) => {
             const imageBuilder = new ImageBuilder(imgSrc);
@@ -136,9 +137,10 @@ export class DocumentRepository implements IDocumentRepository {
             return decodeURIComponent(this.imagesStorage.getURL(fileName));
           })
         );
+        console.log(
+          `Закончена обработка картинок товара с артикулом ${docObj[i].vendor_code}`
+        );
       }
-
-      console.log("Обработка картинок окончена!");
 
       const date = new Date();
 
@@ -147,7 +149,7 @@ export class DocumentRepository implements IDocumentRepository {
         docObj
       );
 
-      console.log("Новая выгрузка добавлена в БД!");
+      console.log(`Новая выгрузка ${resp.name} добавлена в БД!`);
 
       await this.uploadingTableClient.setNewDocumentsCount(uploading, 0);
 
