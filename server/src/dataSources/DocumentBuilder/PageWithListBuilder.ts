@@ -71,8 +71,8 @@ export class PageWithListBuilder implements IPageWithListBuilder {
             break;
           } else if (
             (vendorCodesListFromLastDocument.length &&
-              vendorCodesListFromLastDocument.includes(
-                vendorCode.toString()
+              !vendorCodesListFromLastDocument.find((str) =>
+                str.includes(vendorCode.toString())
               )) ||
             result.length >= 60
           ) {

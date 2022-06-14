@@ -8,11 +8,10 @@ export class DocumentBuilder implements IDocumentBuilder {
   private browser?: Browser;
   private sources?: ISource[];
   private vendorCodesListFromLastDocument?: string[];
-  private newLinksList?: string[];
   private document: IItemData[] = [];
 
   async initBrowser(): Promise<void> {
-    /*if (process.env.NODE_ENV === "production") {
+    if (process.env.NODE_ENV === "production") {
       this.browser = await Puppeteer.connect({
         browserWSEndpoint: `wss://chrome.browserless.io?token=${process.env.BROWSERLESS_API_TOKEN}`,
         defaultViewport: null,
@@ -22,15 +21,15 @@ export class DocumentBuilder implements IDocumentBuilder {
         headless: true,
         defaultViewport: null,
       });
-    }*/
-    this.browser = await Puppeteer.launch({
+    }
+    /*this.browser = await Puppeteer.launch({
       headless: true,
       defaultViewport: null,
       args:
         process.env.NODE_ENV === "production"
           ? ["--use-gl=egl", "--no-sandbox", "--disable-setuid-sandbox"]
           : undefined,
-    });
+    });*/
   }
 
   setSources(sources: ISource[]): void {
@@ -41,7 +40,7 @@ export class DocumentBuilder implements IDocumentBuilder {
     this.vendorCodesListFromLastDocument = codes;
   }
 
-  private async setNewLinksList(source: ISource): Promise<string[]> {
+  private async getNewLinksListBySource(source: ISource): Promise<string[]> {
     if (!this.browser) {
       throw Error("Браузер не проинициализирован!");
     }
@@ -68,20 +67,20 @@ export class DocumentBuilder implements IDocumentBuilder {
     return result;
   }
 
-  private async setData(source: ISource): Promise<IItemData[]> {
+  private async getDataBySource(
+    source: ISource,
+    newLinksList: string[]
+  ): Promise<IItemData[]> {
     if (!this.browser) {
       throw Error("Браузер не проинициализирован!");
-    }
-    if (!this.newLinksList) {
-      throw Error("NewLinksList не проинициализирован!");
     }
 
     let result: IItemData[] = [];
 
     const pageWithInfo = new PageWithInfo(this.browser);
 
-    for (let i = 0; i < this.newLinksList.length; i++) {
-      await pageWithInfo.init(this.newLinksList[i]);
+    for (let i = 0; i < newLinksList.length; i++) {
+      await pageWithInfo.init(newLinksList[i]);
 
       const data = await pageWithInfo.getPageData(source.fields);
       const images = await pageWithInfo.getImageLinks(source.imagesXPath);
@@ -90,6 +89,12 @@ export class DocumentBuilder implements IDocumentBuilder {
         // Set preVendorCode
         data.vendor_code = source.preVendorCode + data.vendor_code;
         result.push({ ...data, images });
+
+        console.log(`Страница ${newLinksList[i]} обработана!`);
+      } else {
+        console.error(
+          `Страница ${newLinksList[i]} не обработана! Отсутствует информация`
+        );
       }
     }
 
@@ -98,26 +103,18 @@ export class DocumentBuilder implements IDocumentBuilder {
     return result;
   }
 
-  async countNewLinksList(): Promise<void> {
+  async getNewLinksCount(): Promise<number> {
     if (!this.sources) {
       throw Error("Sources не проинициализирован!");
     }
 
     let result: string[] = [];
     for (let i = 0; i < this.sources.length; i++) {
-      const sourceResult = await this.setNewLinksList(this.sources[i]);
+      const sourceResult = await this.getNewLinksListBySource(this.sources[i]);
       result = [...result, ...sourceResult];
     }
 
-    this.newLinksList = result;
-  }
-
-  getNewLinksList(): string[] {
-    if (!this.newLinksList) {
-      throw Error("NewLinksList не проинициализирован!");
-    }
-
-    return this.newLinksList;
+    return result.length;
   }
 
   async buildDocument(): Promise<void> {
@@ -127,8 +124,11 @@ export class DocumentBuilder implements IDocumentBuilder {
 
     let result: IItemData[] = [];
     for (let i = 0; i < this.sources.length; i++) {
-      await this.setNewLinksList(this.sources[i]);
-      const sourceResult = await this.setData(this.sources[i]);
+      const newLinksList = await this.getNewLinksListBySource(this.sources[i]);
+      const sourceResult = await this.getDataBySource(
+        this.sources[i],
+        newLinksList
+      );
 
       result = [...result, ...sourceResult];
     }
@@ -143,7 +143,6 @@ export class DocumentBuilder implements IDocumentBuilder {
   async dispose(): Promise<void> {
     this.sources = undefined;
     this.vendorCodesListFromLastDocument = undefined;
-    this.newLinksList = undefined;
 
     if (this.browser) {
       await this.browser.close();

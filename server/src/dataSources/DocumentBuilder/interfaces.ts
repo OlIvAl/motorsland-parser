@@ -4,8 +4,7 @@ export interface IDocumentBuilder {
   initBrowser(): Promise<void>;
   setSources(sources: ISource[]): void;
   setVendorCodesListFromLastDocument(codes: string[]): void;
-  countNewLinksList(): Promise<void>;
-  getNewLinksList(): string[];
+  getNewLinksCount(): Promise<number>;
   buildDocument(): Promise<void>;
   getDocument(): IItemData[];
   dispose(): Promise<void>;

@@ -10,13 +10,17 @@ export class PageWithInfo {
     this.dispose = this.dispose.bind(this);
   }
 
-  private async getFieldBySelector(
+  private static async getFieldBySelector(
     page: Page,
     fieldSelector: IFieldSelector
   ): Promise<Record<string, string | undefined>> {
     const { field, xpath, cleanRegexp } = fieldSelector;
 
     const elementHandlers = await page.$x(xpath);
+
+    if (!elementHandlers.length && field === "price") {
+      console.warn(`На странице ${page.url()} отсутствует цена!`);
+    }
 
     if (!elementHandlers.length) {
       return { [field]: undefined };
@@ -64,7 +68,7 @@ export class PageWithInfo {
     return (
       await Promise.all(
         fieldSelectors.map((fieldSelector) =>
-          this.getFieldBySelector(this.page as Page, fieldSelector)
+          PageWithInfo.getFieldBySelector(this.page as Page, fieldSelector)
         )
       )
     ).reduce<Record<string, string | undefined>>(

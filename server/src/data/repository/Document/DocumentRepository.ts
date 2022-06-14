@@ -63,14 +63,16 @@ export class DocumentRepository implements IDocumentRepository {
     await this.documentBuilder.dispose();
     await this.documentBuilder.initBrowser();
     this.documentBuilder.setSources(sources);
+
     await this.documentBuilder.setVendorCodesListFromLastDocument(
       lastDocumentVC
     );
-    await this.documentBuilder.countNewLinksList();
 
-    const result = this.documentBuilder.getNewLinksList().length;
+    const result = await this.documentBuilder.getNewLinksCount();
 
     await this.uploadingTableClient.setNewDocumentsCount(uploading, result);
+
+    await this.documentBuilder.dispose();
 
     return result;
   }
@@ -93,9 +95,7 @@ export class DocumentRepository implements IDocumentRepository {
         lastDocumentVC
       );
 
-      await this.documentBuilder.countNewLinksList();
-
-      if (this.documentBuilder.getNewLinksList().length < 50) {
+      if ((await this.documentBuilder.getNewLinksCount()) < 50) {
         // ToDo: update new links count!
         throw new BadRequest(ErrCodes.LESS_THAN_50_ITEMS);
       }
@@ -103,6 +103,8 @@ export class DocumentRepository implements IDocumentRepository {
       await this.documentBuilder.buildDocument();
 
       const docObj = this.documentBuilder.getDocument();
+
+      await this.documentBuilder.dispose();
 
       for (let i = 0; i < docObj.length; i++) {
         docObj[i].images = await Promise.all(
