@@ -57,6 +57,8 @@ export class DocumentRepository implements IDocumentRepository {
   }
 
   async updateNewDocumentsCount(uploading: UPLOADING_NAME): Promise<number> {
+    let result: number = 0;
+
     const lastDocumentVC = await this.getLastDocumentVC(uploading);
     const sources = await this.uploadingTableClient.getSources(uploading);
 
@@ -64,15 +66,19 @@ export class DocumentRepository implements IDocumentRepository {
     await this.documentBuilder.initBrowser();
     this.documentBuilder.setSources(sources);
 
-    await this.documentBuilder.setVendorCodesListFromLastDocument(
-      lastDocumentVC
-    );
+    try {
+      await this.documentBuilder.setVendorCodesListFromLastDocument(
+        lastDocumentVC
+      );
 
-    const result = await this.documentBuilder.getNewLinksCount();
+      result = await this.documentBuilder.getNewLinksCount();
 
-    await this.uploadingTableClient.setNewDocumentsCount(uploading, result);
-
-    await this.documentBuilder.dispose();
+      await this.uploadingTableClient.setNewDocumentsCount(uploading, result);
+    } catch (e) {
+      throw e;
+    } finally {
+      await this.documentBuilder.dispose();
+    }
 
     return result;
   }
@@ -82,6 +88,8 @@ export class DocumentRepository implements IDocumentRepository {
       throw new BadRequest(ErrCodes.PROCESS_IS_BUSY);
     }
 
+    let docObj: IItemData[] = [];
+
     try {
       await this.uploadingTableClient.setProgress(uploading);
 
@@ -90,21 +98,26 @@ export class DocumentRepository implements IDocumentRepository {
 
       await this.documentBuilder.dispose();
       await this.documentBuilder.initBrowser();
-      await this.documentBuilder.setSources(sources);
-      await this.documentBuilder.setVendorCodesListFromLastDocument(
-        lastDocumentVC
-      );
 
-      if ((await this.documentBuilder.getNewLinksCount()) < 50) {
-        // ToDo: update new links count!
-        throw new BadRequest(ErrCodes.LESS_THAN_50_ITEMS);
+      try {
+        await this.documentBuilder.setSources(sources);
+        await this.documentBuilder.setVendorCodesListFromLastDocument(
+          lastDocumentVC
+        );
+
+        if ((await this.documentBuilder.getNewLinksCount()) < 50) {
+          // ToDo: update new links count!
+          throw new BadRequest(ErrCodes.LESS_THAN_50_ITEMS);
+        }
+
+        await this.documentBuilder.buildDocument();
+
+        const docObj = this.documentBuilder.getDocument();
+      } catch (e) {
+        throw e;
+      } finally {
+        await this.documentBuilder.dispose();
       }
-
-      await this.documentBuilder.buildDocument();
-
-      const docObj = this.documentBuilder.getDocument();
-
-      await this.documentBuilder.dispose();
 
       for (let i = 0; i < docObj.length; i++) {
         docObj[i].images = await Promise.all(
