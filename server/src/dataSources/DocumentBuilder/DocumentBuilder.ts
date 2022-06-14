@@ -90,7 +90,11 @@ export class DocumentBuilder implements IDocumentBuilder {
         data.vendor_code = source.preVendorCode + data.vendor_code;
         result.push({ ...data, images });
 
-        console.log(`Страница ${newLinksList[i]} обработана!`);
+        console.log(
+          `(${i + 1} из ${newLinksList.length})Страница ${
+            newLinksList[i]
+          } обработана!`
+        );
       } else {
         console.error(
           `Страница ${newLinksList[i]} не обработана! Отсутствует информация`

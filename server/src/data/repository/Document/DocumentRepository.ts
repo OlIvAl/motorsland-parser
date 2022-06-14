@@ -64,6 +64,9 @@ export class DocumentRepository implements IDocumentRepository {
 
     await this.documentBuilder.dispose();
     await this.documentBuilder.initBrowser();
+
+    console.log("Браузер открыт!");
+
     this.documentBuilder.setSources(sources);
 
     try {
@@ -78,6 +81,7 @@ export class DocumentRepository implements IDocumentRepository {
       throw e;
     } finally {
       await this.documentBuilder.dispose();
+      console.log("Браузер заткрыт!");
     }
 
     return result;
@@ -99,6 +103,8 @@ export class DocumentRepository implements IDocumentRepository {
       await this.documentBuilder.dispose();
       await this.documentBuilder.initBrowser();
 
+      console.log("Браузер открыт!");
+
       try {
         await this.documentBuilder.setSources(sources);
         await this.documentBuilder.setVendorCodesListFromLastDocument(
@@ -112,12 +118,15 @@ export class DocumentRepository implements IDocumentRepository {
 
         await this.documentBuilder.buildDocument();
 
-        const docObj = this.documentBuilder.getDocument();
+        docObj = this.documentBuilder.getDocument();
       } catch (e) {
         throw e;
       } finally {
         await this.documentBuilder.dispose();
+        console.log("Браузер заткрыт!");
       }
+
+      console.log("Начата обработка картинок!");
 
       for (let i = 0; i < docObj.length; i++) {
         docObj[i].images = await Promise.all(
@@ -132,12 +141,16 @@ export class DocumentRepository implements IDocumentRepository {
         );
       }
 
+      console.log("Начата обработка окончена!");
+
       const date = new Date();
 
       const resp = await this.documentTableClient.addDocument(
         uploading,
         docObj
       );
+
+      console.log("Новая выгрузка добавлена в БД!");
 
       await this.uploadingTableClient.setNewDocumentsCount(uploading, 0);
 
