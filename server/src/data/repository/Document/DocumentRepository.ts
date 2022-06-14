@@ -96,6 +96,7 @@ export class DocumentRepository implements IDocumentRepository {
 
     try {
       await this.uploadingTableClient.setProgress(uploading);
+      console.log("Начался процесс создания документа!");
 
       const lastDocumentVC = await this.getLastDocumentVC(uploading);
       const sources = await this.uploadingTableClient.getSources(uploading);
@@ -105,26 +106,22 @@ export class DocumentRepository implements IDocumentRepository {
 
       console.log("Браузер открыт!");
 
-      try {
-        await this.documentBuilder.setSources(sources);
-        await this.documentBuilder.setVendorCodesListFromLastDocument(
-          lastDocumentVC
-        );
+      await this.documentBuilder.setSources(sources);
+      await this.documentBuilder.setVendorCodesListFromLastDocument(
+        lastDocumentVC
+      );
 
-        if ((await this.documentBuilder.getNewLinksCount()) < 50) {
-          // ToDo: update new links count!
-          throw new BadRequest(ErrCodes.LESS_THAN_50_ITEMS);
-        }
-
-        await this.documentBuilder.buildDocument();
-
-        docObj = this.documentBuilder.getDocument();
-      } catch (e) {
-        throw e;
-      } finally {
-        await this.documentBuilder.dispose();
-        console.log("Браузер заткрыт!");
+      if ((await this.documentBuilder.getNewLinksCount()) < 50) {
+        // ToDo: update new links count!
+        throw new BadRequest(ErrCodes.LESS_THAN_50_ITEMS);
       }
+
+      await this.documentBuilder.buildDocument();
+
+      docObj = this.documentBuilder.getDocument();
+
+      await this.documentBuilder.dispose();
+      console.log("Браузер заткрыт!");
 
       console.log("Начата обработка картинок!");
 
@@ -162,14 +159,14 @@ export class DocumentRepository implements IDocumentRepository {
           createdOn: date,
         },
       };
+    } catch (e) {
+      await this.documentBuilder.dispose();
+      console.log("Произошла ошибка! Браузер заткрыт, если был открыт!");
 
-      /*return {
-        id: `engines-${new Date().toISOString()}`,
-        name: `engines-${new Date().toISOString()}`,
-        createdOn: new Date(),
-      };*/
+      throw e;
     } finally {
       await this.uploadingTableClient.unsetProgress(uploading);
+      console.log("Процесс создания документа окончен!");
     }
   }
 
