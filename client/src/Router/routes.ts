@@ -18,28 +18,16 @@ export const routes: (
   {
     name: "home",
     path: "/",
-    forwardTo: "engines",
   },
   {
-    title: "Двигатели",
-    name: "engines",
-    path: "/engines",
-    onEnter: (router: Router<RouterDependencies>): void => {
+    title: "",
+    name: "uploading",
+    path: "/:uploading",
+    onEnter: (router: Router<RouterDependencies>, params: Params): void => {
       const container: Container = router.getDependencies().container;
       const vm = container.get(VIEW_MODEL.DocumentList);
 
-      vm.getList("engines");
-    },
-  },
-  {
-    title: "АКПП / МКПП",
-    name: "transmissions",
-    path: "/transmissions",
-    onEnter: (router: Router<RouterDependencies>): void => {
-      const container: Container = router.getDependencies().container;
-      const vm = container.get(VIEW_MODEL.DocumentList);
-
-      vm.getList("transmissions");
+      vm.getList(params.uploading);
     },
   },
 ];

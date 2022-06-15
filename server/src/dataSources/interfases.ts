@@ -1,5 +1,6 @@
 import { BlobClient, BlobUploadCommonResponse } from "@azure/storage-blob";
 import { UPLOADING_NAME } from "../constants";
+import { IUploading } from "../domain/entity/Uploading/structures/interfaces";
 
 // свой инстанс для каждого контейнера
 export interface IAzureBlobStorage {
@@ -17,6 +18,7 @@ export interface IAzureBlobStorage {
 }
 
 export interface IUploadingTableClient {
+  getList(): Promise<IUploading[]>;
   getProgress(uploading: UPLOADING_NAME): Promise<boolean>;
   setProgress(uploading: UPLOADING_NAME): Promise<void>;
   unsetProgress(uploading: UPLOADING_NAME): Promise<void>;

@@ -1,11 +1,16 @@
-import { IDocumentList } from "../../entity/List/stuctures/interfaces";
+import { IDocumentList, IList } from "../../entity/List/stuctures/interfaces";
 import { IDocument } from "../../entity/Document/structures/interfaces";
+import { IUploading } from "../../entity/Uploading/structures/interfaces";
+
+export interface IUploadingRepository {
+  getList(): Promise<IUploading[]>;
+}
 
 export interface IDocumentRepository {
-  getList(category: string): Promise<IDocumentList>;
-  create(category: string): Promise<IDocument>;
-  delete(category: string, id: ID): Promise<void>;
-  updateNewDocumentsCount(category: string): Promise<number>;
+  getList(uploading: string): Promise<IDocumentList>;
+  create(uploading: string): Promise<IDocument>;
+  delete(uploading: string, id: ID): Promise<void>;
+  updateNewDocumentsCount(uploading: string): Promise<number>;
 }
 
 export interface IDocumentDTO {

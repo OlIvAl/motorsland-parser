@@ -9,10 +9,15 @@ export const PageSelector: FC = () => {
 
   // ToDo: handle 404 error;
 
-  return (
-    <DocumentListPageContainer
-      category={route.name}
-      title={t(`titles:${route.name}`)}
-    />
-  );
+  switch (route.name) {
+    case "uploading":
+      return (
+        <DocumentListPageContainer
+          category={route.name}
+          title={t(`titles:${route.params.uploading}`)}
+        />
+      );
+    default:
+      return null;
+  }
 };

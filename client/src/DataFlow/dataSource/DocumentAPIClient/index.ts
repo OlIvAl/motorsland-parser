@@ -9,7 +9,9 @@ export class DocumentAPIClient implements IDocumentAPIClient {
   constructor(protected apiClient: IAPIClient) {}
 
   async getList(category: string): Promise<IDocumentListDTO> {
-    return await this.apiClient.getData<void, IDocumentListDTO>(category);
+    return await this.apiClient.getData<void, IDocumentListDTO>(
+      `documents/${category}`
+    );
   }
   async create(category: string): Promise<IDocumentDTO> {
     return await this.apiClient.postData<void, IDocumentDTO>(category);

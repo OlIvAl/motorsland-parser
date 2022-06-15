@@ -1,27 +1,22 @@
-import { FC, forwardRef } from "react";
-import { AppBar, Box, Button, Container, Toolbar } from "@mui/material";
-import { Link, useRouter } from "react-router5";
-import { BaseLinkProps } from "react-router5/dist/BaseLink";
-import { ExtendButtonBase } from "@mui/material/ButtonBase";
-import { ButtonTypeMap } from "@mui/material/Button/Button";
+import { FC } from "react";
+import { AppBar, Container, Toolbar } from "@mui/material";
 
-const RefLink = forwardRef<
+/*const RefLink = forwardRef<
   HTMLAnchorElement,
   ExtendButtonBase<ButtonTypeMap> & BaseLinkProps
->((props, _) => <Link {...props} />);
+>((props, _) => <Link {...props} />);*/
 
 export const NavBar: FC = () => {
-  const router = useRouter();
-
   return (
-    <AppBar position="static">
+    <AppBar position="sticky">
       <Container maxWidth="xl">
         <Toolbar disableGutters>
-          <Box sx={{ flexGrow: 1, display: "flex" }}>
+          {/*<Box sx={{ flexGrow: 1, display: "flex" }}>
             <Button
               component={RefLink}
               router={router}
-              routeName="engines"
+              routeName="uploading"
+              routeParams={{ uploading: "engines" }}
               sx={{ color: "white" }}
             >
               Двигатели
@@ -29,12 +24,13 @@ export const NavBar: FC = () => {
             <Button
               component={RefLink}
               router={router}
-              routeName="transmissions"
+              routeName="uploading"
+              routeParams={{ uploading: "transmissions" }}
               sx={{ color: "white" }}
             >
               АКПП / МКПП
             </Button>
-          </Box>
+          </Box>*/}
         </Toolbar>
       </Container>
     </AppBar>

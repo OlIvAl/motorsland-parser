@@ -11,6 +11,8 @@ import { CreateDocumentUseCase } from "../domain/usecase/Document/CreateDocument
 import { DeleteDocumentUseCase } from "../domain/usecase/Document/DeleteDocumentUseCase";
 import { UpdateNewDocumentsCountUseCase } from "../domain/usecase/Document/UpdateNewDocumentsCountUseCase";
 import { GetDocumentUseCase } from "../domain/usecase/Document/GetDocumentUseCase";
+import { GetUploadingListUseCase } from "../domain/usecase/Uploading/GetUploadingListUseCase";
+import { IGetUploadingListUseCase } from "../domain/usecase/Uploading/interfaces";
 
 export const USE_CASE = {
   GetDocumentList: token<IGetDocumentListUseCase>("GetDocumentListUseCase"),
@@ -20,6 +22,7 @@ export const USE_CASE = {
   UpdateNewDocumentsCount: token<IUpdateNewDocumentsCountUseCase>(
     "UpdateNewDocumentsCountUseCase"
   ),
+  GetUploadingList: token<IGetUploadingListUseCase>("GetUploadingListUseCase"),
 };
 
 export function getContainerWithUseCases(container: Container): Container {
@@ -42,6 +45,10 @@ export function getContainerWithUseCases(container: Container): Container {
   container
     .bind(USE_CASE.UpdateNewDocumentsCount)
     .toInstance(UpdateNewDocumentsCountUseCase)
+    .inTransientScope();
+  container
+    .bind(USE_CASE.GetUploadingList)
+    .toInstance(GetUploadingListUseCase)
     .inTransientScope();
 
   return container;

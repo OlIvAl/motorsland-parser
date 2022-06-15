@@ -11,27 +11,27 @@ import { injected } from "brandi";
 import { DATA_SOURCE_REMOTE } from "../../../config/dataSource";
 
 export class DocumentRepository implements IDocumentRepository {
-  constructor(protected apiClient: IDocumentAPIClient) {}
+  constructor(private apiClient: IDocumentAPIClient) {}
 
-  async getList(category: string): Promise<IDocumentList> {
-    const resp = await this.apiClient.getList(category);
+  async getList(uploading: string): Promise<IDocumentList> {
+    const resp = await this.apiClient.getList(uploading);
 
     const result = DocumentListSchema.cast(resp);
 
     return { ...new DocumentList(), ...result };
   }
-  async create(category: string): Promise<IDocument> {
-    const resp = await this.apiClient.create(category);
+  async create(uploading: string): Promise<IDocument> {
+    const resp = await this.apiClient.create(uploading);
 
     const result = DocumentSchema.cast(resp);
 
     return { ...new Document(), ...result };
   }
-  async delete(category: string, id: ID): Promise<void> {
-    await this.apiClient.delete(category, id);
+  async delete(uploading: string, id: ID): Promise<void> {
+    await this.apiClient.delete(uploading, id);
   }
-  async updateNewDocumentsCount(category: string): Promise<number> {
-    return await this.apiClient.updateNewDocumentsCount(category);
+  async updateNewDocumentsCount(uploading: string): Promise<number> {
+    return await this.apiClient.updateNewDocumentsCount(uploading);
   }
 }
 

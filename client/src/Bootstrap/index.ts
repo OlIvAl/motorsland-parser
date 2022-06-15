@@ -4,7 +4,10 @@ import { ErrorCollector } from "../ErrorCollector/ErrorCollector";
 import { createRouter } from "../Router";
 import { getContainerWithReps } from "../DataFlow/config/repository";
 import { getContainerWithUseCases } from "../DataFlow/config/usecase";
-import { getContainerWithViewModels } from "../DataFlow/config/viewModel";
+import {
+  getContainerWithViewModels,
+  VIEW_MODEL,
+} from "../DataFlow/config/viewModel";
 import { APIClient } from "../DataFlow/dataSource/API/APIClient";
 import {
   DATA_SOURCE_REMOTE,
@@ -41,6 +44,10 @@ export class Bootstrap implements IBootstrap {
     this.container = getContainerWithReps(this.container);
     this.container = getContainerWithUseCases(this.container);
     this.container = getContainerWithViewModels(this.container);
+  }
+  async getInitialData(): Promise<void> {
+    const vm = this.container.get(VIEW_MODEL.UploadingList);
+    await vm.init();
   }
   initRouter(routes: Route[]): void {
     this.router = createRouter(routes);

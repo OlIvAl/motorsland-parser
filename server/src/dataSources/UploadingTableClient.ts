@@ -14,6 +14,7 @@ import {
   IUploadingItem,
   IUploadingTableClient,
 } from "./interfases";
+import { IUploading } from "../domain/entity/Uploading/structures/interfaces";
 
 export class UploadingTableClient implements IUploadingTableClient {
   private uploadingTableClient: TableClient;
@@ -59,6 +60,24 @@ export class UploadingTableClient implements IUploadingTableClient {
       "field",
       credential
     );
+  }
+
+  async getList(): Promise<IUploading[]> {
+    const uploadings =
+      await this.uploadingTableClient.listEntities<IUploading>();
+
+    let result: IUploading[] = [];
+
+    for await (const uploading of uploadings) {
+      result.push({
+        id: uploading.name,
+        name: uploading.name,
+        newDocumentsCount: uploading.newDocumentsCount,
+        progress: uploading.progress,
+      });
+    }
+
+    return result;
   }
 
   async getProgress(uploading: UPLOADING_NAME): Promise<boolean> {

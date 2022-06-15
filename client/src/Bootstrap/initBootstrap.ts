@@ -7,6 +7,7 @@ export async function initBootstrap(
 ): Promise<IBootstrap> {
   bootstrap.initDI();
   bootstrap.initAPIClient(API_ROOT);
+  await bootstrap.getInitialData();
   bootstrap.initRouter(routes as any[]);
   await bootstrap.initI18n();
   bootstrap.routerPostInit();

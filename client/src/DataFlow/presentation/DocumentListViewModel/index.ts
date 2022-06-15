@@ -64,7 +64,7 @@ export class DocumentListViewModel implements IDocumentListViewModel {
     try {
       const result = await this.getDocumentListUseCase.execute(category);
       runInAction(() => {
-        this.model = result;
+        this.model.setList(result.list);
       });
     } finally {
       runInAction(() => {
