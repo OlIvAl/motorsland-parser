@@ -4,7 +4,7 @@ import { UPLOADING_NAME } from "../constants";
 import { getDIContainer } from "../di";
 
 export const DeleteDocumentRouter = Router().delete(
-  "/:uploading/:name",
+  "/documents/:uploading/:name",
   async (req: Request, res: Response, next) => {
     const di = getDIContainer();
     const controller = di.get(CONTROLLER.Document);

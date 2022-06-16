@@ -4,7 +4,7 @@ import { UPLOADING_NAME } from "../constants";
 import { getDIContainer } from "../di";
 
 export const CreateNewDocumentRouter = Router().post(
-  "/:uploading",
+  "/documents/:uploading",
   async (req: Request, res: Response, next) => {
     const di = getDIContainer();
     const controller = di.get(CONTROLLER.Document);

@@ -74,7 +74,7 @@ export class PageWithListBuilder implements IPageWithListBuilder {
               !vendorCodesListFromLastDocument.find((str) =>
                 str.includes(vendorCode.toString())
               )) ||
-            result.length >= 60
+            result.length >= 150
           ) {
             flag = true;
             break;

@@ -4,7 +4,7 @@ import { UPLOADING_NAME } from "../constants";
 import { getDIContainer } from "../di";
 
 export const UpdateNewDocumentsCountRouter = Router().post(
-  "/:uploading/items/new",
+  "/documents/:uploading/items/new",
   async (req: Request, res: Response, next) => {
     const di = getDIContainer();
     const controller = di.get(CONTROLLER.Document);

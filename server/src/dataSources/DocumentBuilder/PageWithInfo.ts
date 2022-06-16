@@ -65,13 +65,13 @@ export class PageWithInfo {
       throw Error("Страница не проинициализирован!");
     }
 
-    return (
-      await Promise.all(
-        fieldSelectors.map((fieldSelector) =>
-          PageWithInfo.getFieldBySelector(this.page as Page, fieldSelector)
-        )
+    const parsedData = await Promise.all(
+      fieldSelectors.map((fieldSelector) =>
+        PageWithInfo.getFieldBySelector(this.page as Page, fieldSelector)
       )
-    ).reduce<Record<string, string | undefined>>(
+    );
+
+    return parsedData.reduce<Record<string, string | undefined>>(
       (acc, item) => ({
         ...acc,
         ...item,

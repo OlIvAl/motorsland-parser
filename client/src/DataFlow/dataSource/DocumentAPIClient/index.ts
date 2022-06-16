@@ -14,15 +14,19 @@ export class DocumentAPIClient implements IDocumentAPIClient {
     );
   }
   async create(category: string): Promise<IDocumentDTO> {
-    return await this.apiClient.postData<void, IDocumentDTO>(category);
+    return await this.apiClient.postData<void, IDocumentDTO>(
+      `documents/${category}`
+    );
   }
   async delete(category: string, id: ID): Promise<void> {
-    await this.apiClient.deleteData<void, IDocumentDTO>(`${category}/${id}`);
+    await this.apiClient.deleteData<void, IDocumentDTO>(
+      `documents/${category}/${id}`
+    );
   }
   async updateNewDocumentsCount(category: string): Promise<number> {
     return (
       await this.apiClient.postData<void, { count: number }>(
-        `${category}/items/new`
+        `documents/${category}/items/new`
       )
     ).count;
   }
