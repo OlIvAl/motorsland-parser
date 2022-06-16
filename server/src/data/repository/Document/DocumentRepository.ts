@@ -111,6 +111,7 @@ export class DocumentRepository implements IDocumentRepository {
         lastDocumentVC
       );
 
+      // ToDo: повторяющиеся 2 раза действие
       if ((await this.documentBuilder.getNewLinksCount()) < 50) {
         // ToDo: update new links count!
         throw new BadRequest(ErrCodes.LESS_THAN_50_ITEMS);
@@ -124,9 +125,6 @@ export class DocumentRepository implements IDocumentRepository {
       console.log("Браузер заткрыт!");
 
       for (let i = 0; i < docObj.length; i++) {
-        console.log(
-          `Начата обработка картинок товара с артикулом ${docObj[i].vendor_code}`
-        );
         docObj[i].images = await Promise.all(
           docObj[i].images.map(async (imgSrc: string) => {
             const imageBuilder = new ImageBuilder(imgSrc);
@@ -138,7 +136,11 @@ export class DocumentRepository implements IDocumentRepository {
           })
         );
         console.log(
-          `Закончена обработка картинок товара с артикулом ${docObj[i].vendor_code}`
+          `(${i + 1} из ${
+            docObj.length
+          }) Закончена обработка картинок товара с артикулом ${
+            docObj[i].vendor_code
+          }`
         );
       }
 

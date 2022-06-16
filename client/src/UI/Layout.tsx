@@ -10,7 +10,7 @@ interface IProps extends Pick<IUploadingListViewModel, "uploadings"> {
 
 export const Layout: FC<IProps> = ({ children, uploadings }) => {
   return (
-    <Box style={{ display: "flex" }} maxWidth="lg" className="App">
+    <Box style={{ display: "flex" }} className="App">
       <SideDrawer categories={uploadings} />
       <NavBar />
       <Box style={{ marginTop: "70px", paddingLeft: "32px" }}>{children}</Box>

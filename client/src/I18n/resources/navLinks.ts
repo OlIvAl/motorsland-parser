@@ -7,5 +7,6 @@ export const ru = {
     fenders: "Крылья",
     headlamps: "Передние фары",
     hoods: "Капоты",
+    trunk_lids: "Крышка богажника",
   },
 };

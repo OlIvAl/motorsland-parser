@@ -22,14 +22,6 @@ export class DocumentBuilder implements IDocumentBuilder {
         defaultViewport: null,
       });
     }
-    /*this.browser = await Puppeteer.launch({
-      headless: true,
-      defaultViewport: null,
-      args:
-        process.env.NODE_ENV === "production"
-          ? ["--use-gl=egl", "--no-sandbox", "--disable-setuid-sandbox"]
-          : undefined,
-    });*/
   }
 
   setSources(sources: ISource[]): void {
@@ -48,6 +40,8 @@ export class DocumentBuilder implements IDocumentBuilder {
       throw Error("VendorCodesListFromLastDocument не проинициализирован!");
     }
 
+    console.log("Начат процесс сбора новых ссылок");
+
     const listPageBuilder = new PageWithListBuilder(this.browser);
 
     listPageBuilder.setUrl(source.site + source.linkListUrl);
@@ -63,6 +57,10 @@ export class DocumentBuilder implements IDocumentBuilder {
     );
 
     await listPageBuilder.dispose();
+
+    console.log(
+      `Закончен процесс сбора новых ссылок. Результат: ${result.length} ссылок`
+    );
 
     return result;
   }
@@ -97,7 +95,9 @@ export class DocumentBuilder implements IDocumentBuilder {
         );
       } else {
         console.error(
-          `Страница ${newLinksList[i]} не обработана! Отсутствует информация`
+          `(${i + 1} из ${newLinksList.length}) Страница ${
+            newLinksList[i]
+          } не обработана! Отсутствует информация`
         );
       }
     }

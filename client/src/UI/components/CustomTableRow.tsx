@@ -23,11 +23,9 @@ export const CustomTableRow: FC<IProps> = ({
       sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
       aria-disabled={true}
     >
-      <TableCell component="th" scope="row">
-        {name}
-      </TableCell>
+      <TableCell>{name}</TableCell>
       <TableCell>{createdOn}</TableCell>
-      <TableCell width={625} height={70}>
+      <TableCell height={70}>
         <Stack spacing={2} direction="row">
           <DownloadBtn name={name} link={`/download/${name}.xml`} />
           <Button

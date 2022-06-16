@@ -57,6 +57,8 @@ export class PageWithListBuilder implements IPageWithListBuilder {
       result: string[] = []
     ): Promise<string[]> {
       for (let i = 1; i < lastPage; i++) {
+        console.log(`Сбор ссылок с ${i} страницы`);
+
         if (flag) {
           break;
         }
