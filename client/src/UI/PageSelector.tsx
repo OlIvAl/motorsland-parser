@@ -13,7 +13,7 @@ export const PageSelector: FC = () => {
     case "uploading":
       return (
         <DocumentListPageContainer
-          category={route.name}
+          category={route.params.uploading}
           title={t(`titles:${route.params.uploading}`)}
         />
       );
