@@ -28,6 +28,9 @@ app
   .use(DownloadDocumentRouter)
   .use(GetUploadingListRouter);
 
-app.listen(app.get("port"), () => {
+const server = app.listen(app.get("port"), () => {
   console.log(`Find the server at: http://localhost:${app.get("port")}/`);
 });
+
+server.keepAliveTimeout = 60 * 1000;
+server.headersTimeout = 65 * 1000;
