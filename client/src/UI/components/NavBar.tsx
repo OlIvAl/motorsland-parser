@@ -1,14 +1,14 @@
 import { FC } from "react";
 import { AppBar, Container, Toolbar } from "@mui/material";
 
-/*const RefLink = forwardRef<
-  HTMLAnchorElement,
-  ExtendButtonBase<ButtonTypeMap> & BaseLinkProps
->((props, _) => <Link {...props} />);*/
-
 export const NavBar: FC = () => {
   return (
-    <AppBar position="sticky">
+    <AppBar
+      position="fixed"
+      sx={{
+        width: `calc(100% - 240px)`,
+      }}
+    >
       <Container maxWidth="xl">
         <Toolbar disableGutters>
           {/*<Box sx={{ flexGrow: 1, display: "flex" }}>

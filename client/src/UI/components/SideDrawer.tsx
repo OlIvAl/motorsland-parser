@@ -2,15 +2,17 @@ import { FC, forwardRef } from "react";
 import {
   Box,
   ButtonTypeMap,
+  Divider,
   Drawer,
   ExtendButtonBase,
   List,
   ListItem,
   ListItemButton,
   ListItemText,
+  Toolbar,
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
-import { BaseLink, Link, useRouter } from "react-router5";
+import { Link, useRouter } from "react-router5";
 import { BaseLinkProps } from "react-router5/dist/BaseLink";
 
 interface IProps {
@@ -39,6 +41,8 @@ export const SideDrawer: FC<IProps> = ({ categories }) => {
         }}
         open={true}
       >
+        <Toolbar />
+        <Divider />
         <List>
           {categories.map((category) => (
             <ListItem key={category} disablePadding>

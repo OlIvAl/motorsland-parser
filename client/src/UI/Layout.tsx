@@ -1,6 +1,6 @@
 import React, { FC } from "react";
 import { NavBar } from "./components/NavBar";
-import { Container } from "@mui/material";
+import { Box } from "@mui/material";
 import { IUploadingListViewModel } from "../DataFlow/presentation/UploadingListViewModel/interfaces";
 import { SideDrawer } from "./components/SideDrawer";
 
@@ -10,10 +10,10 @@ interface IProps extends Pick<IUploadingListViewModel, "uploadings"> {
 
 export const Layout: FC<IProps> = ({ children, uploadings }) => {
   return (
-    <Container maxWidth="lg" className="App">
+    <Box style={{ display: "flex" }} maxWidth="lg" className="App">
       <SideDrawer categories={uploadings} />
       <NavBar />
-      <Container>{children}</Container>
-    </Container>
+      <Box style={{ marginTop: "70px", paddingLeft: "32px" }}>{children}</Box>
+    </Box>
   );
 };
