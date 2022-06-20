@@ -72,11 +72,12 @@ export class PageWithListBuilder implements IPageWithListBuilder {
           if (flag) {
             break;
           } else if (
-            (vendorCodesListFromLastDocument.length &&
+            // ToDo: RETURN!!!!
+            /*(vendorCodesListFromLastDocument.length &&
               !vendorCodesListFromLastDocument.find((str) =>
                 str.includes(vendorCode.toString())
-              )) ||
-            result.length >= 150
+              )) ||*/
+            result.length >= 2000
           ) {
             flag = true;
             break;

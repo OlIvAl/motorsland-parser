@@ -41,6 +41,7 @@ export class ImageBuilder implements IImageBuilder {
           image.bitmap.height - watermark.bitmap.height
         )
         .quality(50)
+        .resize(960, Jimp.AUTO)
         .getBufferAsync("image/jpeg");
     } catch (error) {
       throw error;

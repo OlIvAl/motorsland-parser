@@ -110,12 +110,12 @@ export class DocumentRepository implements IDocumentRepository {
       await this.documentBuilder.setVendorCodesListFromLastDocument(
         lastDocumentVC
       );
-
+      // ToDo: RETURN!!!!
       // ToDo: повторяющиеся 2 раза действие
-      if ((await this.documentBuilder.getNewLinksCount()) < 50) {
+      /*if ((await this.documentBuilder.getNewLinksCount()) < 50) {
         // ToDo: update new links count!
         throw new BadRequest(ErrCodes.LESS_THAN_50_ITEMS);
-      }
+      }*/
 
       await this.documentBuilder.buildDocument();
 
