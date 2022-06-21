@@ -20,6 +20,7 @@ export class DocumentBuilder implements IDocumentBuilder {
       this.browser = await Puppeteer.launch({
         headless: true,
         defaultViewport: null,
+        args: [ '--js-flags=--expose-gc', '--single-process', '--no-zygote', '--no-sandbox' ]
       });
     }
   }
@@ -50,13 +51,9 @@ export class DocumentBuilder implements IDocumentBuilder {
     listPageBuilder.setLinkXpath(source.linkXpath);
     listPageBuilder.setListPageExpression(source.listPageExpression);
 
-    await listPageBuilder.init();
-
     const result = await listPageBuilder.getNewLinksList(
       this.vendorCodesListFromLastDocument
     );
-
-    await listPageBuilder.dispose();
 
     console.log(
       `Закончен процесс сбора новых ссылок. Результат: ${result.length} ссылок`
@@ -100,9 +97,9 @@ export class DocumentBuilder implements IDocumentBuilder {
           } не обработана! Отсутствует информация`
         );
       }
-    }
 
-    await pageWithInfo.dispose();
+      await pageWithInfo.dispose();
+    }
 
     return result;
   }

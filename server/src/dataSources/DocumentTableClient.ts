@@ -124,6 +124,8 @@ export class DocumentTableClient implements IDocumentTableClient {
     uploading: UPLOADING_NAME,
     document: IItemData[]
   ): Promise<IDocumentInfo> {
+    console.log("Начато сохранение документа!");
+
     const fileName = `${uploading}-${new Date().toISOString()}`;
 
     const dataFromPages: IFieldData[][] = document.map((itemData) => {
@@ -149,6 +151,7 @@ export class DocumentTableClient implements IDocumentTableClient {
         })
       );
     }
+    console.log("Сохранение картинок завершилось успешно!");
     for (const data of dataFromPages) {
       await Promise.all(
         data.map((field) => {
@@ -169,12 +172,13 @@ export class DocumentTableClient implements IDocumentTableClient {
         })
       );
     }
-
+    console.log("Сохранение данных полей товаров завершилось успешно!");
     const createDocumentResponse =
       await this.documentTableClient.createEntity<{}>({
         partitionKey: uploading,
         rowKey: fileName,
       });
+    console.log("Сохранение информации о документе завершилось успешно!");
 
     return {
       name: fileName,
@@ -210,6 +214,8 @@ export class DocumentTableClient implements IDocumentTableClient {
       });
     }
 
+    console.log("Сбор данных о полях документа и картинках завершен!");
+
     const blobClients = names.map(
       (name) =>
         new BlobClient(
@@ -220,6 +226,8 @@ export class DocumentTableClient implements IDocumentTableClient {
     );
 
     await this.imagesStorage.deleteBlobs(blobClients);
+
+    console.log("Картинки удалены успешно!");
 
     await Promise.all([
       this.documentTableClient.deleteEntity(uploading, name),
@@ -237,5 +245,6 @@ export class DocumentTableClient implements IDocumentTableClient {
         )
       ),
     ]);
+    console.log("Остальные данные о документе удалены успешно!");
   }
 }

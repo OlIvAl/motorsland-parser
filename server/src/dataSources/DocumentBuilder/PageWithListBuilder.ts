@@ -37,13 +37,6 @@ export class PageWithListBuilder implements IPageWithListBuilder {
   async init(): Promise<void> {
     this.page = await PuppeteerHelpers.getNewPage(this.browser);
   }
-  async dispose(): Promise<void> {
-    if (!this.page) {
-      throw Error("Страница не проинициализирован!");
-    }
-
-    await this.page.close();
-  }
 
   async getNewLinksList(
     vendorCodesListFromLastDocument: string[]
@@ -56,9 +49,8 @@ export class PageWithListBuilder implements IPageWithListBuilder {
       lastPage: number,
       result: string[] = []
     ): Promise<string[]> {
+      console.log(`Начат сбор ссылок!`);
       for (let i = 1; i < lastPage; i++) {
-        console.log(`Сбор ссылок с ${i} страницы`);
-
         if (flag) {
           break;
         }
@@ -70,6 +62,7 @@ export class PageWithListBuilder implements IPageWithListBuilder {
           const vendorCode = (link.match(/(\d+)\/$/) as string[])[1];
 
           if (flag) {
+            console.log(`Завершился сбор ссылок!`);
             break;
           } else if (
             // ToDo: RETURN!!!!
@@ -77,7 +70,7 @@ export class PageWithListBuilder implements IPageWithListBuilder {
               !vendorCodesListFromLastDocument.find((str) =>
                 str.includes(vendorCode.toString())
               )) ||*/
-            result.length >= 2000
+            result.length >= 4000
           ) {
             flag = true;
             break;
@@ -85,6 +78,7 @@ export class PageWithListBuilder implements IPageWithListBuilder {
             result = [...result, link];
           }
         }
+        console.log(`Завершился сбор ссылок с ${i} страницы!`);
       }
 
       return result;
@@ -100,6 +94,8 @@ export class PageWithListBuilder implements IPageWithListBuilder {
   }
 
   private async getLastPageNumber(): Promise<number> {
+    await this.init();
+
     if (!this.page) {
       throw Error("Страница не проинициализирован!");
     }
@@ -127,6 +123,10 @@ export class PageWithListBuilder implements IPageWithListBuilder {
       throw Error("Не найден элемент последней страницы!");
     }
 
+    await this.dispose();
+
+    console.log(`Номер последней страницы - ${lastPage}`);
+
     return parseInt(lastPage as string);
   }
 
@@ -146,6 +146,8 @@ export class PageWithListBuilder implements IPageWithListBuilder {
       pageNumber.toString()
     );
 
+    await this.init();
+
     await this.page.goto(this.url + listPageSubStr, {
       waitUntil: "networkidle2",
     });
@@ -156,11 +158,35 @@ export class PageWithListBuilder implements IPageWithListBuilder {
       throw Error("Ссылки на товары не найдены!");
     }
 
-    return await Promise.all(
+    const result = await Promise.all(
       linksFromListHandles.map((handler) =>
         // @ts-ignore
         this.page.evaluate((a) => a.href || "", handler)
       )
     );
+
+    await this.dispose();
+
+    return result;
+  }
+  async dispose(): Promise<void> {
+    if (!this.page) {
+      throw Error("Страница не проинициализирован!");
+    }
+
+    await this.page.evaluate(() => {
+      if (window && typeof window.gc === 'function') {
+        window.gc();
+        window.gc();
+        window.gc();
+        window.gc();
+        window.gc();
+      } else {
+        console.log("window => ", window);
+        console.log("window.gc => ", window.gc);
+      }
+    });
+
+    await this.page.close();
   }
 }
