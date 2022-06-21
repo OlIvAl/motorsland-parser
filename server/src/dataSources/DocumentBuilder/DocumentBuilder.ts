@@ -4,6 +4,16 @@ import { PageWithListBuilder } from "./PageWithListBuilder";
 import { IDocumentBuilder } from "./interfaces";
 import { PageWithInfo } from "./PageWithInfo";
 
+function chunk<T>(arr: T[], size: number): T[][] {
+  const result = [];
+
+  for (let i = 0; i < Math.ceil(arr.length / size); i++) {
+    result.push(arr.slice(i * size, i * size + size));
+  }
+
+  return result;
+}
+
 export class DocumentBuilder implements IDocumentBuilder {
   private browser?: Browser;
   private sources?: ISource[];
@@ -20,7 +30,14 @@ export class DocumentBuilder implements IDocumentBuilder {
       this.browser = await Puppeteer.launch({
         headless: true,
         defaultViewport: null,
-        args: [ '--js-flags=--expose-gc', '--single-process', '--no-zygote', '--no-sandbox' ]
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--js-flags=--expose-gc",
+          "--single-process", 
+          "--no-zygote", 
+          "--no-sandbox"
+        ],
       });
     }
   }
@@ -74,30 +91,38 @@ export class DocumentBuilder implements IDocumentBuilder {
 
     const pageWithInfo = new PageWithInfo(this.browser);
 
-    for (let i = 0; i < newLinksList.length; i++) {
-      await pageWithInfo.init(newLinksList[i]);
+    const chunkList = chunk<string>(newLinksList, 5);
 
-      const data = await pageWithInfo.getPageData(source.fields);
-      const images = await pageWithInfo.getImageLinks(source.imagesXPath);
+    for (let i = 0; i < chunkList.length; i++) {
+      await Promise.all(
+        chunkList[i].map(async (newLink) => {
+          await pageWithInfo.init(newLink);
 
-      if (data.vendor_code) {
-        // Set preVendorCode
-        data.vendor_code = source.preVendorCode + data.vendor_code;
-        result.push({ ...data, images });
+          const [data, images] = await Promise.all([
+            pageWithInfo.getPageData(source.fields),
+            pageWithInfo.getImageLinks(source.imagesXPath),
+          ]);
 
-        console.log(
-          `(${i + 1} из ${newLinksList.length}) Страница ${
-            newLinksList[i]
-          } обработана!`
-        );
-      } else {
-        console.error(
-          `(${i + 1} из ${newLinksList.length}) Страница ${
-            newLinksList[i]
-          } не обработана! Отсутствует информация`
-        );
-      }
+          if (data.vendor_code) {
+            // Set preVendorCode
+            data.vendor_code = source.preVendorCode + data.vendor_code;
+            result.push({ ...data, images });
 
+            console.log(
+              `(${i + 1} из ${
+                newLinksList.length
+              }) Страница ${newLink} обработана!`
+            );
+          } else {
+            console.error(
+              `(${i + 1} из ${
+                newLinksList.length
+              }) Страница ${newLink} не обработана! Отсутствует информация`
+            );
+          }
+        })
+      );
+      
       await pageWithInfo.dispose();
     }
 
