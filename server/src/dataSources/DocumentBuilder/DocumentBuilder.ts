@@ -1,4 +1,4 @@
-import Puppeteer, { Browser } from "puppeteer";
+import Puppeteer, { Browser, Page } from "puppeteer";
 import { IItemData, ISource } from "../interfases";
 import { PageWithListBuilder } from "./PageWithListBuilder";
 import { IDocumentBuilder } from "./interfaces";
@@ -12,6 +12,10 @@ function chunk<T>(arr: T[], size: number): T[][] {
   }
 
   return result;
+}
+function alterChunk<T>(arr: T[], size: number): T[][] {
+  const realSize = Math.floor(arr.length / size);
+  return chunk<T>(arr, realSize);
 }
 
 export class DocumentBuilder implements IDocumentBuilder {
@@ -34,9 +38,8 @@ export class DocumentBuilder implements IDocumentBuilder {
           "--no-sandbox",
           "--disable-setuid-sandbox",
           "--js-flags=--expose-gc",
-          "--single-process", 
-          "--no-zygote", 
-          "--no-sandbox"
+          "--single-process",
+          "--no-zygote",
         ],
       });
     }
@@ -83,50 +86,75 @@ export class DocumentBuilder implements IDocumentBuilder {
     source: ISource,
     newLinksList: string[]
   ): Promise<IItemData[]> {
+    let result: IItemData[] = [];
+
+    const chunkSize = 20;
+    const chunkList = chunk<string>(newLinksList, chunkSize);
+
+    console.log(
+      `Время начала: ${new Date().toLocaleDateString('ru', {
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric",
+      })}`
+    );
+
+    for (let i = 0; i < chunkList.length; i++) {
+      const itemDataArr = (
+        await Promise.all(
+          chunkList[i].map(async (url, index) =>
+            this.getDataByPage(
+              url,
+              source
+            )
+          )
+        )
+      ).filter((obj) => Boolean(obj)) as IItemData[];
+
+      result.concat(...itemDataArr);
+
+      console.log(
+        `Завершен парсинг ${
+          (i + 1) * chunkSize
+        } из ${newLinksList.length} элементов: ${new Date().toLocaleDateString('ru', {
+          hour: "numeric",
+          minute: "numeric",
+          second: "numeric",
+        })}`
+      );
+    }
+
+    return result;
+  }
+
+  private async getDataByPage(
+    url: string,
+    source: ISource
+  ): Promise<IItemData | undefined> {
     if (!this.browser) {
       throw Error("Браузер не проинициализирован!");
     }
 
-    let result: IItemData[] = [];
+    const page = new PageWithInfo(this.browser);
+    await page.init(url);
 
-    const pageWithInfo = new PageWithInfo(this.browser);
+    const [data, images] = await Promise.all([
+      page.getPageData(source.fields),
+      page.getImageLinks(source.imagesXPath),
+    ]);
 
-    const chunkList = chunk<string>(newLinksList, 5);
+    await page.dispose();
 
-    for (let i = 0; i < chunkList.length; i++) {
-      await Promise.all(
-        chunkList[i].map(async (newLink) => {
-          await pageWithInfo.init(newLink);
+    if (data.vendor_code) {
+      // Set preVendorCode
+      data.vendor_code = source.preVendorCode + data.vendor_code;
 
-          const [data, images] = await Promise.all([
-            pageWithInfo.getPageData(source.fields),
-            pageWithInfo.getImageLinks(source.imagesXPath),
-          ]);
+      console.log(`Страница ${url} обработана!`);
 
-          if (data.vendor_code) {
-            // Set preVendorCode
-            data.vendor_code = source.preVendorCode + data.vendor_code;
-            result.push({ ...data, images });
-
-            console.log(
-              `(${i + 1} из ${
-                newLinksList.length
-              }) Страница ${newLink} обработана!`
-            );
-          } else {
-            console.error(
-              `(${i + 1} из ${
-                newLinksList.length
-              }) Страница ${newLink} не обработана! Отсутствует информация`
-            );
-          }
-        })
-      );
-      
-      await pageWithInfo.dispose();
+      return { ...data, images };
+    } else {
+      console.error(`Страница ${url} не обработана! Отсутствует информация`);
     }
-
-    return result;
   }
 
   async getNewLinksCount(): Promise<number> {

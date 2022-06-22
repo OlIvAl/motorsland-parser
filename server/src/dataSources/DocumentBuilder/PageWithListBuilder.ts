@@ -174,19 +174,6 @@ export class PageWithListBuilder implements IPageWithListBuilder {
       throw Error("Страница не проинициализирован!");
     }
 
-    await this.page.evaluate(() => {
-      if (window && typeof window.gc === 'function') {
-        window.gc();
-        window.gc();
-        window.gc();
-        window.gc();
-        window.gc();
-      } else {
-        console.log("window => ", window);
-        console.log("window.gc => ", window.gc);
-      }
-    });
-
-    await this.page.close();
+    await PuppeteerHelpers.closePage(this.page);
   }
 }

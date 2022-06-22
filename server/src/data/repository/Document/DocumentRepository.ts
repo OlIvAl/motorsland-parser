@@ -16,6 +16,16 @@ import { UPLOADING_NAME } from "../../../constants";
 import { injected } from "brandi";
 import { DATA_SOURCE_REMOTE } from "../../../di/dataSource";
 
+function chunk<T>(arr: T[], size: number): T[][] {
+  const result = [];
+
+  for (let i = 0; i < Math.ceil(arr.length / size); i++) {
+    result.push(arr.slice(i * size, i * size + size));
+  }
+
+  return result;
+}
+
 export class DocumentRepository implements IDocumentRepository {
   constructor(
     private documentTableClient: IDocumentTableClient,
@@ -124,7 +134,46 @@ export class DocumentRepository implements IDocumentRepository {
       await this.documentBuilder.dispose();
       console.log("Браузер заткрыт!");
 
-      for (let i = 0; i < docObj.length; i++) {
+      const chunkSize = 10;
+      const chunkDocObj = chunk<IItemData>(docObj, chunkSize);
+
+      console.log(
+        `Время начала: ${new Date().toLocaleDateString(undefined, {
+          hour: "numeric",
+          minute: "numeric",
+          second: "numeric",
+        })}`
+      );
+
+      for (let i = 0; i < chunkDocObj.length; i++) {
+        (
+          await Promise.all(
+            chunkDocObj[i].map(
+              async (obj) =>
+                await Promise.all(
+                  obj.images.map(async (imgSrc: string) => {
+                    const imageBuilder = new ImageBuilder(imgSrc);
+                    const [fileName, buffer] = await imageBuilder.getBuffer();
+
+                    await this.imagesStorage.upload(
+                      buffer,
+                      fileName,
+                      "image/jpeg"
+                    );
+
+                    return decodeURIComponent(
+                      this.imagesStorage.getURL(fileName)
+                    );
+                  })
+                )
+            )
+          )
+        ).forEach((images, index) => {
+          chunkDocObj[i][index].images = images;
+        });
+      }
+
+      /*for (let i = 0; i < docObj.length; i++) {
         docObj[i].images = await Promise.all(
           docObj[i].images.map(async (imgSrc: string) => {
             const imageBuilder = new ImageBuilder(imgSrc);
@@ -142,7 +191,7 @@ export class DocumentRepository implements IDocumentRepository {
             docObj[i].vendor_code
           }`
         );
-      }
+      }*/
 
       const date = new Date();
 
@@ -155,6 +204,14 @@ export class DocumentRepository implements IDocumentRepository {
 
       await this.uploadingTableClient.setNewDocumentsCount(uploading, 0);
 
+      console.log(
+        `Время окончания: ${new Date().toLocaleDateString(undefined, {
+          hour: "numeric",
+          minute: "numeric",
+          second: "numeric",
+        })}`
+      );
+
       return {
         ...new Document(),
         ...{
@@ -165,7 +222,7 @@ export class DocumentRepository implements IDocumentRepository {
       };
     } catch (e) {
       await this.documentBuilder.dispose();
-      console.log("Произошла ошибка! Браузер заткрыт, если был открыт!");
+      console.log("Произошла ошибка! Браузер закрыт, если был открыт!");
 
       throw e;
     } finally {

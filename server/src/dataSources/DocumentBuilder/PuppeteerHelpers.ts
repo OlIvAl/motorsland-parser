@@ -11,6 +11,15 @@ export class PuppeteerHelpers {
 
     return page;
   }
+  static async closePage(page: Page): Promise<void> {
+    await page.evaluate(() => {
+      if (window && typeof window.gc === "function") {
+        window.gc();
+      }
+    });
+
+    await page.close();
+  }
   private static async optimizePageLoading(page: Page): Promise<void> {
     await page.setRequestInterception(true);
 
