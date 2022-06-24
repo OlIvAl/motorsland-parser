@@ -72,13 +72,12 @@ export class DocumentRepository implements IDocumentRepository {
 
     const lastDocumentVC = await this.getLastDocumentVC(uploading);
     const sources = await this.uploadingTableClient.getSources(uploading);
+    this.documentBuilder.setSources(sources);
 
     await this.documentBuilder.dispose();
     await this.documentBuilder.init();
 
     console.log("Браузер открыт!");
-
-    this.documentBuilder.setSources(sources);
 
     try {
       await this.documentBuilder.setVendorCodesListFromLastDocument(
@@ -155,8 +154,6 @@ export class DocumentRepository implements IDocumentRepository {
       await this.documentBuilder.dispose();
       console.log("Браузер заткрыт!");
 
-      throw new Error("Stop!!!");
-
       const chunkSize = 10;
 
       console.log(
@@ -179,12 +176,12 @@ export class DocumentRepository implements IDocumentRepository {
 
       const date = new Date();
 
-      /*const resp = await this.documentTableClient.addDocument(
+      const resp = await this.documentTableClient.addDocument(
         uploading,
         docObj
-      );*/
+      );
 
-      // console.log(`Новая выгрузка ${resp.name} добавлена в БД!`);
+      console.log(`Новая выгрузка ${resp.name} добавлена в БД!`);
 
       await this.uploadingTableClient.setNewDocumentsCount(uploading, 0);
 
@@ -274,9 +271,7 @@ export class DocumentRepository implements IDocumentRepository {
   ): Promise<IItemData[]> {
     const result = JSON.parse(
       (
-        await this.tempStorage.getBuffer(
-          `${uploading}_scraped_data_with_images.json`
-        )
+        await this.tempStorage.getBuffer(`${uploading}_scraped_data.json`)
       ).toString()
     );
 

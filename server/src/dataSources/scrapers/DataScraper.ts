@@ -4,25 +4,22 @@ import { Conveyor } from "./Conveyor";
 import { IBrowserFacade } from "./interfaces";
 import { BrowserFacade } from "./BrowserFacade";
 
-// ToDo: попробовать сделать фабрику
 export class DataScraper {
-  private page?: Page;
   private source?: ISource;
 
   constructor(private browser: IBrowserFacade) {
-    this.init = this.init.bind(this);
+    this.getNewPage = this.getNewPage.bind(this);
     this.scrapImageLinks = this.scrapImageLinks.bind(this);
     this.scrapData = this.scrapData.bind(this);
     this.scrapDataByPage = this.scrapDataByPage.bind(this);
-    this.dispose = this.dispose.bind(this);
   }
 
   setSource(source: ISource): void {
     this.source = source;
   }
 
-  private async init(): Promise<void> {
-    this.page = await this.browser.openNewPage();
+  private async getNewPage(): Promise<Page> {
+    return await this.browser.openNewPage();
   }
 
   private static async getFieldBySelector(
@@ -56,30 +53,23 @@ export class DataScraper {
     return { [field]: value };
   }
 
-  private async scrapImageLinks(xpath: string): Promise<string[]> {
-    if (!this.page) {
-      throw Error("Страница не проинициализирован!");
-    }
-
-    const imageHandlers = await this.page.$x(xpath);
+  private async scrapImageLinks(xpath: string, page: Page): Promise<string[]> {
+    const imageHandlers = await page.$x(xpath);
 
     return await Promise.all(
       imageHandlers.map((handler) =>
-        this.page!.evaluate((img) => img.src || "", handler)
+        page!.evaluate((img) => (img as HTMLImageElement).src || "", handler)
       )
     );
   }
 
   private async scrapData(
-    fieldSelectors: IFieldSelector[]
+    fieldSelectors: IFieldSelector[],
+    page: Page
   ): Promise<IItemData> {
-    if (!this.page) {
-      throw Error("Страница не проинициализирован!");
-    }
-
     const parsedData = await Promise.all(
       fieldSelectors.map((fieldSelector) =>
-        DataScraper.getFieldBySelector(this.page as Page, fieldSelector)
+        DataScraper.getFieldBySelector(page, fieldSelector)
       )
     );
 
@@ -100,13 +90,19 @@ export class DataScraper {
       throw new Error("Source не проинициализирован!");
     }
 
+    const page = await this.getNewPage();
+
+    await page.goto(url, {
+      waitUntil: "networkidle2",
+      timeout: 0,
+    });
+
     const [data, images] = await Promise.all([
-      this.scrapData(this.source.fields),
-      this.scrapImageLinks(this.source.imagesXPath),
+      this.scrapData(this.source.fields, page),
+      this.scrapImageLinks(this.source.imagesXPath, page),
     ]);
 
-    //await this.dispose();
-    // Закрывать страницу
+    await BrowserFacade.closePage(page);
 
     if (data.vendor_code) {
       // Set preVendorCode
@@ -131,29 +127,15 @@ export class DataScraper {
       })}`
     );
 
-    await this.init();
-
-    const conveyor = new Conveyor(
+    const conveyor = new Conveyor<string, IItemData | undefined>(
       newLinksList,
       chunkSize,
       this.scrapDataByPage,
       [this.source]
     );
 
-    const result = (await conveyor.handle()).filter((obj) =>
+    return (await conveyor.handle()).filter((obj) =>
       Boolean(obj)
     ) as IItemData[];
-
-    await this.dispose();
-
-    return result;
-  }
-
-  private async dispose(): Promise<void> {
-    if (!this.page) {
-      throw Error("Страница не проинициализирован!");
-    }
-
-    await BrowserFacade.closePage(this.page);
   }
 }
