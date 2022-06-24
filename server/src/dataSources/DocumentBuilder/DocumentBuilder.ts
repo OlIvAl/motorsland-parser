@@ -1,27 +1,15 @@
-import Puppeteer, { Browser, Page } from "puppeteer";
+import Puppeteer, { Browser } from "puppeteer";
 import { IItemData, ISource } from "../interfases";
 import { PageWithListBuilder } from "./PageWithListBuilder";
 import { IDocumentBuilder } from "./interfaces";
 import { PageWithInfo } from "./PageWithInfo";
-
-function chunk<T>(arr: T[], size: number): T[][] {
-  const result = [];
-
-  for (let i = 0; i < Math.ceil(arr.length / size); i++) {
-    result.push(arr.slice(i * size, i * size + size));
-  }
-
-  return result;
-}
-function alterChunk<T>(arr: T[], size: number): T[][] {
-  const realSize = Math.floor(arr.length / size);
-  return chunk<T>(arr, realSize);
-}
+import { Conveyor } from "./Conveyor";
 
 export class DocumentBuilder implements IDocumentBuilder {
   private browser?: Browser;
   private sources?: ISource[];
   private vendorCodesListFromLastDocument?: string[];
+  private newLinks: string[] = [];
   private document: IItemData[] = [];
 
   async initBrowser(): Promise<void> {
@@ -86,56 +74,36 @@ export class DocumentBuilder implements IDocumentBuilder {
     source: ISource,
     newLinksList: string[]
   ): Promise<IItemData[]> {
-    let result: IItemData[] = [];
-
-    const chunkSize = 20;
-    const chunkList = chunk<string>(newLinksList, chunkSize);
+    const chunkSize = 10;
 
     console.log(
-      `Время начала: ${new Date().toLocaleDateString('ru', {
+      `Время начала: ${new Date().toLocaleDateString("ru", {
         hour: "numeric",
         minute: "numeric",
         second: "numeric",
       })}`
     );
 
-    for (let i = 0; i < chunkList.length; i++) {
-      const itemDataArr = (
-        await Promise.all(
-          chunkList[i].map(async (url, index) =>
-            this.getDataByPage(
-              url,
-              source
-            )
-          )
-        )
-      ).filter((obj) => Boolean(obj)) as IItemData[];
+    const conveyor = new Conveyor(newLinksList, chunkSize, this.getDataByPage, [
+      source,
+      this.browser,
+    ]);
 
-      result.concat(...itemDataArr);
-
-      console.log(
-        `Завершен парсинг ${
-          (i + 1) * chunkSize
-        } из ${newLinksList.length} элементов: ${new Date().toLocaleDateString('ru', {
-          hour: "numeric",
-          minute: "numeric",
-          second: "numeric",
-        })}`
-      );
-    }
-
-    return result;
+    return (await conveyor.handle()).filter((obj) =>
+      Boolean(obj)
+    ) as IItemData[];
   }
 
   private async getDataByPage(
     url: string,
-    source: ISource
+    source: ISource,
+    browser: Browser
   ): Promise<IItemData | undefined> {
-    if (!this.browser) {
+    if (!browser) {
       throw Error("Браузер не проинициализирован!");
     }
 
-    const page = new PageWithInfo(this.browser);
+    const page = new PageWithInfo(browser);
     await page.init(url);
 
     const [data, images] = await Promise.all([
@@ -149,7 +117,7 @@ export class DocumentBuilder implements IDocumentBuilder {
       // Set preVendorCode
       data.vendor_code = source.preVendorCode + data.vendor_code;
 
-      console.log(`Страница ${url} обработана!`);
+      // console.log(`Страница ${url} обработана!`);
 
       return { ...data, images };
     } else {
@@ -157,7 +125,7 @@ export class DocumentBuilder implements IDocumentBuilder {
     }
   }
 
-  async getNewLinksCount(): Promise<number> {
+  async scrapNewLinks(): Promise<void> {
     if (!this.sources) {
       throw Error("Sources не проинициализирован!");
     }
@@ -168,20 +136,23 @@ export class DocumentBuilder implements IDocumentBuilder {
       result = [...result, ...sourceResult];
     }
 
-    return result.length;
+    this.newLinks = result;
   }
 
-  async buildDocument(): Promise<void> {
+  setNewLinks(links: string[]): void {
+    this.newLinks = links;
+  }
+
+  async scrapData(): Promise<void> {
     if (!this.sources) {
       throw Error("Sources не проинициализирован!");
     }
 
     let result: IItemData[] = [];
     for (let i = 0; i < this.sources.length; i++) {
-      const newLinksList = await this.getNewLinksListBySource(this.sources[i]);
       const sourceResult = await this.getDataBySource(
         this.sources[i],
-        newLinksList
+        this.newLinks
       );
 
       result = [...result, ...sourceResult];
@@ -190,8 +161,12 @@ export class DocumentBuilder implements IDocumentBuilder {
     this.document = result;
   }
 
-  getDocument(): IItemData[] {
+  getScrapedData(): IItemData[] {
     return this.document;
+  }
+
+  getNewLinks(): string[] {
+    return this.newLinks;
   }
 
   async dispose(): Promise<void> {

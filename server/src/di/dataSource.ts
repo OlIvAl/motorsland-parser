@@ -13,6 +13,7 @@ import { DocumentTableClient } from "../dataSources/DocumentTableClient";
 
 export const DATA_SOURCE_REMOTE = {
   ImageStorage: token<IAzureBlobStorage>("ImageStorage"),
+  TempStorage: token<IAzureBlobStorage>("TempStorage"),
   DocumentBuilder: token<IDocumentBuilder>("DocumentBuilder"),
   UploadingTableClient: token<IUploadingTableClient>("UploadingTableClient"),
   DocumentTableClient: token<IDocumentTableClient>("DocumentTableClient"),
@@ -25,8 +26,10 @@ export function getContainerWithDataSource(container: Container): Container {
   const imagesStorage = new AzureBlobStorage(
     CONTAINER_NAME.IMAGES_CONTAINER_NAME
   );
+  const tempStorage = new AzureBlobStorage(CONTAINER_NAME.TEMP_CONTAINER_NAME);
 
   container.bind(DATA_SOURCE_REMOTE.ImageStorage).toConstant(imagesStorage);
+  container.bind(DATA_SOURCE_REMOTE.TempStorage).toConstant(tempStorage);
 
   container
     .bind(DATA_SOURCE_REMOTE.DocumentBuilder)

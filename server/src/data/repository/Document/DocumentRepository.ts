@@ -15,24 +15,24 @@ import { ErrCodes } from "../../../errCodes";
 import { UPLOADING_NAME } from "../../../constants";
 import { injected } from "brandi";
 import { DATA_SOURCE_REMOTE } from "../../../di/dataSource";
-
-function chunk<T>(arr: T[], size: number): T[][] {
-  const result = [];
-
-  for (let i = 0; i < Math.ceil(arr.length / size); i++) {
-    result.push(arr.slice(i * size, i * size + size));
-  }
-
-  return result;
-}
+import { Conveyor } from "../../../dataSources/DocumentBuilder/Conveyor";
 
 export class DocumentRepository implements IDocumentRepository {
   constructor(
     private documentTableClient: IDocumentTableClient,
     private uploadingTableClient: IUploadingTableClient,
-    protected imagesStorage: IAzureBlobStorage,
-    protected documentBuilder: IDocumentBuilder
-  ) {}
+    private imagesStorage: IAzureBlobStorage,
+    private tempStorage: IAzureBlobStorage,
+    private documentBuilder: IDocumentBuilder
+  ) {
+    this.getDocuments = this.getDocuments.bind(this);
+    this.getDocumentWithPublicLink = this.getDocumentWithPublicLink.bind(this);
+    this.updateNewDocumentsCount = this.updateNewDocumentsCount.bind(this);
+    this.create = this.create.bind(this);
+    this.delete = this.delete.bind(this);
+    this.imageFolderHandler = this.imageFolderHandler.bind(this);
+    this.getLastDocumentVC = this.getLastDocumentVC.bind(this);
+  }
 
   async getDocuments(uploading: UPLOADING_NAME): Promise<IDocument[]> {
     const result = await this.documentTableClient.getAll(uploading);
@@ -84,7 +84,8 @@ export class DocumentRepository implements IDocumentRepository {
         lastDocumentVC
       );
 
-      result = await this.documentBuilder.getNewLinksCount();
+      await this.documentBuilder.scrapNewLinks();
+      result = this.documentBuilder.getNewLinks().length;
 
       await this.uploadingTableClient.setNewDocumentsCount(uploading, result);
     } catch (e) {
@@ -108,90 +109,126 @@ export class DocumentRepository implements IDocumentRepository {
       await this.uploadingTableClient.setProgress(uploading);
       console.log("Начался процесс создания документа!");
 
-      const lastDocumentVC = await this.getLastDocumentVC(uploading);
-      const sources = await this.uploadingTableClient.getSources(uploading);
+      let newLinks: string[] = [];
 
-      await this.documentBuilder.dispose();
-      await this.documentBuilder.initBrowser();
+      if (
+        !(await this.tempStorage.isBlobExist(uploading + "_new_links.json"))
+      ) {
+        const lastDocumentVC = await this.getLastDocumentVC(uploading);
+        const sources = await this.uploadingTableClient.getSources(uploading);
 
-      console.log("Браузер открыт!");
+        await this.documentBuilder.dispose();
+        await this.documentBuilder.initBrowser();
 
-      await this.documentBuilder.setSources(sources);
-      await this.documentBuilder.setVendorCodesListFromLastDocument(
-        lastDocumentVC
-      );
-      // ToDo: RETURN!!!!
-      // ToDo: повторяющиеся 2 раза действие
-      /*if ((await this.documentBuilder.getNewLinksCount()) < 50) {
-        // ToDo: update new links count!
-        throw new BadRequest(ErrCodes.LESS_THAN_50_ITEMS);
-      }*/
+        console.log("Браузер открыт!");
 
-      await this.documentBuilder.buildDocument();
+        await this.documentBuilder.setSources(sources);
+        await this.documentBuilder.setVendorCodesListFromLastDocument(
+          lastDocumentVC
+        );
 
-      docObj = this.documentBuilder.getDocument();
+        await this.documentBuilder.scrapNewLinks();
+
+        newLinks = this.documentBuilder.getNewLinks();
+
+        if (newLinks.length < 50) {
+          // ToDo: update new links count!
+          throw new BadRequest(ErrCodes.LESS_THAN_50_ITEMS);
+        } else {
+          await this.tempStorage.upload(
+            Buffer.from(JSON.stringify(newLinks)),
+            uploading + "_new_links.json",
+            "text/plain"
+          );
+          console.log("Список новых ссылок записан в хранилище!");
+        }
+      }
+      if (
+        !(await this.tempStorage.isBlobExist(uploading + "_scraped_data.json"))
+      ) {
+        newLinks = JSON.parse(
+          (
+            await this.tempStorage.getBuffer(uploading + "_new_links.json")
+          ).toString()
+        );
+
+        this.documentBuilder.setNewLinks(newLinks);
+
+        console.log(
+          `Список из ${newLinks.length} новых ссылок взят из хранилища!`
+        );
+      }
+
+      if (
+        !(await this.tempStorage.isBlobExist(uploading + "_scraped_data.json"))
+      ) {
+        await this.documentBuilder.scrapData();
+
+        docObj = this.documentBuilder.getScrapedData();
+
+        await this.tempStorage.upload(
+          Buffer.from(JSON.stringify(docObj)),
+          uploading + "_scraped_data.json",
+          "text/plain"
+        );
+        console.log("Список собранных данных записан в хранилище!");
+      }
+      if (
+        !(await this.tempStorage.isBlobExist(
+          uploading + "_scraped_data_with_images.json"
+        ))
+      ) {
+        docObj = JSON.parse(
+          (
+            await this.tempStorage.getBuffer(uploading + "_scraped_data.json")
+          ).toString()
+        );
+        console.log(
+          `Список из ${docObj.length} элементов собранных данных взят из хранилища!`
+        );
+      }
 
       await this.documentBuilder.dispose();
       console.log("Браузер заткрыт!");
 
       const chunkSize = 10;
-      const chunkDocObj = chunk<IItemData>(docObj, chunkSize);
 
       console.log(
-        `Время начала: ${new Date().toLocaleDateString(undefined, {
+        `Время начала: ${new Date().toLocaleDateString("ru", {
           hour: "numeric",
           minute: "numeric",
           second: "numeric",
         })}`
       );
 
-      for (let i = 0; i < chunkDocObj.length; i++) {
-        (
-          await Promise.all(
-            chunkDocObj[i].map(
-              async (obj) =>
-                await Promise.all(
-                  obj.images.map(async (imgSrc: string) => {
-                    const imageBuilder = new ImageBuilder(imgSrc);
-                    const [fileName, buffer] = await imageBuilder.getBuffer();
+      if (
+        !(await this.tempStorage.isBlobExist(
+          uploading + "_scraped_data_with_images.json"
+        ))
+      ) {
+        const conveyor = new Conveyor<IItemData, IItemData>(
+          docObj,
+          chunkSize,
+          this.imageFolderHandler
+        );
 
-                    await this.imagesStorage.upload(
-                      buffer,
-                      fileName,
-                      "image/jpeg"
-                    );
+        docObj = await conveyor.handle();
 
-                    return decodeURIComponent(
-                      this.imagesStorage.getURL(fileName)
-                    );
-                  })
-                )
+        await this.tempStorage.upload(
+          Buffer.from(JSON.stringify(docObj)),
+          uploading + "_scraped_data_with_images.json",
+          "text/plain"
+        );
+        console.log("Список обработанных данных записан в хранилище!");
+      } else {
+        docObj = JSON.parse(
+          (
+            await this.tempStorage.getBuffer(
+              uploading + "_scraped_data_with_images.json"
             )
-          )
-        ).forEach((images, index) => {
-          chunkDocObj[i][index].images = images;
-        });
+          ).toString()
+        );
       }
-
-      /*for (let i = 0; i < docObj.length; i++) {
-        docObj[i].images = await Promise.all(
-          docObj[i].images.map(async (imgSrc: string) => {
-            const imageBuilder = new ImageBuilder(imgSrc);
-            const [fileName, buffer] = await imageBuilder.getBuffer();
-
-            await this.imagesStorage.upload(buffer, fileName, "image/jpeg");
-
-            return decodeURIComponent(this.imagesStorage.getURL(fileName));
-          })
-        );
-        console.log(
-          `(${i + 1} из ${
-            docObj.length
-          }) Закончена обработка картинок товара с артикулом ${
-            docObj[i].vendor_code
-          }`
-        );
-      }*/
 
       const date = new Date();
 
@@ -204,8 +241,33 @@ export class DocumentRepository implements IDocumentRepository {
 
       await this.uploadingTableClient.setNewDocumentsCount(uploading, 0);
 
+      if (await this.tempStorage.isBlobExist(uploading + "_new_links.json")) {
+        await this.tempStorage.deleteBlob(uploading + "_new_links.json");
+        console.log("Удален new_links.json после сбора данных со страниц!");
+      }
+      if (
+        await this.tempStorage.isBlobExist(uploading + "_scraped_data.json")
+      ) {
+        await this.tempStorage.deleteBlob(uploading + "_scraped_data.json");
+        console.log(
+          "Удален scraped_data.json после успешного обработки изображений!"
+        );
+      }
+      if (
+        await this.tempStorage.isBlobExist(
+          uploading + "_scraped_data_with_images.json"
+        )
+      ) {
+        await this.tempStorage.deleteBlob(
+          uploading + "_scraped_data_with_images.json"
+        );
+        console.log(
+          "Удален scraped_data_with_images.json после успешного добавления нового документа в БД!"
+        );
+      }
+
       console.log(
-        `Время окончания: ${new Date().toLocaleDateString(undefined, {
+        `Время окончания: ${new Date().toLocaleDateString("ru", {
           hour: "numeric",
           minute: "numeric",
           second: "numeric",
@@ -234,6 +296,30 @@ export class DocumentRepository implements IDocumentRepository {
   async delete(uploading: UPLOADING_NAME, name: string): Promise<void> {
     await this.documentTableClient.delete(uploading, name);
     await this.updateNewDocumentsCount(uploading);
+  }
+
+  private async imageFolderHandler(data: IItemData): Promise<IItemData> {
+    data.images = (
+      await Promise.all(
+        data.images.map(async (imgSrc: string) => {
+          const imageBuilder = new ImageBuilder(imgSrc);
+
+          try {
+            const [fileName, buffer] = await imageBuilder.getBuffer();
+
+            await this.imagesStorage.upload(buffer, fileName, "image/jpeg");
+
+            return decodeURIComponent(this.imagesStorage.getURL(fileName));
+          } catch (e) {
+            console.log(e);
+
+            return "";
+          }
+        })
+      )
+    ).filter((str) => Boolean(str));
+
+    return data;
   }
 
   private async getLastDocumentVC(
@@ -266,5 +352,6 @@ injected(
   DATA_SOURCE_REMOTE.DocumentTableClient,
   DATA_SOURCE_REMOTE.UploadingTableClient,
   DATA_SOURCE_REMOTE.ImageStorage,
+  DATA_SOURCE_REMOTE.TempStorage,
   DATA_SOURCE_REMOTE.DocumentBuilder
 );

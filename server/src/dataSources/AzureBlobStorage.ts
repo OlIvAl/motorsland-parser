@@ -88,4 +88,7 @@ export class AzureBlobStorage implements IAzureBlobStorage {
       .getBlockBlobClient(name)
       .downloadToBuffer(0);
   }
+  async isBlobExist(name: string): Promise<boolean> {
+    return await this.containerClient.getBlockBlobClient(name).exists();
+  }
 }

@@ -137,6 +137,7 @@ export class DocumentTableClient implements IDocumentTableClient {
       }));
     });
 
+    console.log("Начато сохранение картинок!");
     for (const item of document) {
       await Promise.all(
         item.images.map((src) => {
@@ -152,6 +153,7 @@ export class DocumentTableClient implements IDocumentTableClient {
       );
     }
     console.log("Сохранение картинок завершилось успешно!");
+    console.log("Начато сохранение данных полей!");
     for (const data of dataFromPages) {
       await Promise.all(
         data.map((field) => {

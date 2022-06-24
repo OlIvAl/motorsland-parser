@@ -7,7 +7,11 @@ export class ImageBuilder implements IImageBuilder {
   private fileName: string = "";
   private buffer?: Buffer;
 
-  constructor(private imgSrc: string) {}
+  constructor(private imgSrc: string) {
+    this.init = this.init.bind(this);
+    this.setWatermark = this.setWatermark.bind(this);
+    this.getBuffer = this.getBuffer.bind(this);
+  }
 
   private async init(): Promise<void> {
     const response = await fetch(this.imgSrc);

@@ -15,6 +15,7 @@ export interface IAzureBlobStorage {
   getURL(name: string): string;
   getPublicURL(name: string): Promise<string>;
   getBuffer(name: string): Promise<Buffer>;
+  isBlobExist(name: string): Promise<boolean>;
 }
 
 export interface IUploadingTableClient {
