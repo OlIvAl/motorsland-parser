@@ -113,6 +113,19 @@ export class DocumentRepository implements IDocumentRepository {
 
       let newLinks: string[][] = [];
 
+      const lastDocumentVC = await this.getLastDocumentVC(uploading);
+      const sources = await this.uploadingTableClient.getSources(uploading);
+
+      await this.documentBuilder.dispose();
+      await this.documentBuilder.init();
+
+      console.log("Браузер открыт!");
+
+      await this.documentBuilder.setSources(sources);
+      await this.documentBuilder.setVendorCodesListFromLastDocument(
+        lastDocumentVC
+      );
+
       if (
         !(await this.tempStorage.isBlobExist(`${uploading}_new_links.json`))
       ) {
@@ -142,6 +155,8 @@ export class DocumentRepository implements IDocumentRepository {
       await this.documentBuilder.dispose();
       console.log("Браузер заткрыт!");
 
+      throw new Error("Stop!!!");
+
       const chunkSize = 10;
 
       console.log(
@@ -164,12 +179,12 @@ export class DocumentRepository implements IDocumentRepository {
 
       const date = new Date();
 
-      const resp = await this.documentTableClient.addDocument(
+      /*const resp = await this.documentTableClient.addDocument(
         uploading,
         docObj
-      );
+      );*/
 
-      console.log(`Новая выгрузка ${resp.name} добавлена в БД!`);
+      // console.log(`Новая выгрузка ${resp.name} добавлена в БД!`);
 
       await this.uploadingTableClient.setNewDocumentsCount(uploading, 0);
 
@@ -184,16 +199,14 @@ export class DocumentRepository implements IDocumentRepository {
       );
 
       return {
-        ...new Document(),
-        ...{
-          id: resp.name,
-          name: resp.name,
-          createdOn: date,
-        },
+        id: "",
+        name: "",
+        createdOn: date,
       };
     } catch (e) {
       await this.documentBuilder.dispose();
       console.log("Произошла ошибка! Браузер закрыт, если был открыт!");
+      console.log(e);
 
       throw e;
     } finally {
@@ -205,24 +218,11 @@ export class DocumentRepository implements IDocumentRepository {
   private async getNewLinksFromPages(
     uploading: UPLOADING_NAME
   ): Promise<string[][]> {
-    const lastDocumentVC = await this.getLastDocumentVC(uploading);
-    const sources = await this.uploadingTableClient.getSources(uploading);
-
-    await this.documentBuilder.dispose();
-    await this.documentBuilder.init();
-
-    console.log("Браузер открыт!");
-
-    await this.documentBuilder.setSources(sources);
-    await this.documentBuilder.setVendorCodesListFromLastDocument(
-      lastDocumentVC
-    );
-
     await this.documentBuilder.scrapNewLinks();
 
     const newLinks = this.documentBuilder.getNewLinks();
 
-    if (newLinks.length < 50) {
+    if (this.documentBuilder.getNewLinksLength() < 50) {
       // ToDo: update new links count!
       throw new BadRequest(ErrCodes.LESS_THAN_50_ITEMS);
     }
@@ -369,7 +369,7 @@ export class DocumentRepository implements IDocumentRepository {
           try {
             const [fileName, buffer] = await imageBuilder.getBuffer();
 
-            await this.imagesStorage.upload(buffer, fileName, "image/jpeg");
+            // await this.imagesStorage.upload(buffer, fileName, "image/jpeg");
 
             return decodeURIComponent(this.imagesStorage.getURL(fileName));
           } catch (e) {

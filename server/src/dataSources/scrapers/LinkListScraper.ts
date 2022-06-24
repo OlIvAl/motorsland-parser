@@ -13,8 +13,12 @@ export class LinkListScraper implements ILinkListScraper {
   private preVendorCode?: string;
 
   constructor(private browser: IBrowserFacade) {
-    this.init = this.init.bind(this);
+    this.setSource = this.setSource.bind(this);
+    this.setVendorCodesListFromLastDocument =
+      this.setVendorCodesListFromLastDocument.bind(this);
     this.getNewLinks = this.getNewLinks.bind(this);
+    this.init = this.init.bind(this);
+    this.assembleNewLinksList = this.assembleNewLinksList.bind(this);
     this.scrapLastPageNumber = this.scrapLastPageNumber.bind(this);
     this.scrapLinks = this.scrapLinks.bind(this);
     this.dispose = this.dispose.bind(this);
@@ -34,11 +38,7 @@ export class LinkListScraper implements ILinkListScraper {
   async getNewLinks(): Promise<string[]> {
     console.log("Начат процесс сбора новых ссылок");
 
-    await this.init();
-
     const result = await this.assembleNewLinksList();
-
-    await this.dispose();
 
     console.log(
       `Закончен процесс сбора новых ссылок. Результат: ${result.length} ссылок`
@@ -80,10 +80,7 @@ export class LinkListScraper implements ILinkListScraper {
           const link = links[j];
           // const vendorCode = (link.match(/(\d+)\/$/) as string[])[1];
 
-          if (flag) {
-            console.log(`Завершился сбор ссылок!`);
-            break;
-          } else if (
+          if (
             // ToDo: RETURN!!!!
             /*(vendorCodesListFromLastDocument.length &&
               !vendorCodesListFromLastDocument.includes(
@@ -133,7 +130,7 @@ export class LinkListScraper implements ILinkListScraper {
     const lastPageTagHandles = await this.page.$x(this.lastPageXpath);
 
     if (!lastPageTagHandles.length) {
-      throw Error("Не найдена панель пагинации");
+      throw new Error("Не найдена панель пагинации");
     }
 
     const lastPage = await this.page.evaluate(
@@ -142,7 +139,7 @@ export class LinkListScraper implements ILinkListScraper {
     );
 
     if (!lastPage) {
-      throw Error("Не найден элемент последней страницы!");
+      throw new Error("Не найден элемент последней страницы!");
     }
 
     await this.dispose();
@@ -154,13 +151,13 @@ export class LinkListScraper implements ILinkListScraper {
 
   private async scrapLinks(pageNumber: number): Promise<string[]> {
     if (!this.page) {
-      throw Error("Страница не проинициализирован!");
+      throw new Error("Страница не проинициализирован!");
     }
     if (!this.linkXpath) {
-      throw Error("linkXpath не проинициализировано!");
+      throw new Error("linkXpath не проинициализировано!");
     }
     if (!this.listPageExpression) {
-      throw Error("listPageExpression не проинициализировано!");
+      throw new Error("listPageExpression не проинициализировано!");
     }
 
     const listPageSubStr = this.listPageExpression.replace(
@@ -194,7 +191,7 @@ export class LinkListScraper implements ILinkListScraper {
 
   private async dispose(): Promise<void> {
     if (!this.page) {
-      throw Error("Страница не проинициализирован!");
+      throw new Error("Страница не проинициализирован!");
     }
 
     await BrowserFacade.closePage(this.page);
