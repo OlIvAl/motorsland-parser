@@ -4,10 +4,10 @@ import {
   IDocumentTableClient,
   IUploadingTableClient,
 } from "../dataSources/interfases";
-import { IDocumentBuilder } from "../dataSources/DocumentBuilder/interfaces";
+import { IDocumentBuilder } from "../dataSources/scrapers/interfaces";
 import { AzureBlobStorage } from "../dataSources/AzureBlobStorage";
 import { CONTAINER_NAME } from "../constants";
-import { DocumentBuilder } from "../dataSources/DocumentBuilder/DocumentBuilder";
+import { DocumentBuilder } from "../dataSources/scrapers/DocumentBuilder";
 import { UploadingTableClient } from "../dataSources/UploadingTableClient";
 import { DocumentTableClient } from "../dataSources/DocumentTableClient";
 

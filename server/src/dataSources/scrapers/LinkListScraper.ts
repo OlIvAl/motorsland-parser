@@ -1,52 +1,71 @@
-import { Browser, Page } from "puppeteer";
-import { PuppeteerHelpers } from "./PuppeteerHelpers";
-import { IPageWithListBuilder } from "./interfaces";
+import { Page } from "puppeteer";
+import { IBrowserFacade, ILinkListScraper } from "./interfaces";
+import { ISource } from "../interfases";
+import { BrowserFacade } from "./BrowserFacade";
 
-export class PageWithListBuilder implements IPageWithListBuilder {
+export class LinkListScraper implements ILinkListScraper {
   private page?: Page;
+  private vendorCodesListFromLastDocument?: string[];
   private url?: string;
   private lastPageXpath?: string;
   private linkXpath?: string;
   private listPageExpression?: string;
+  private preVendorCode?: string;
 
-  constructor(private browser: Browser) {
-    this.setUrl = this.setUrl.bind(this);
-    this.setLastPageXpath = this.setLastPageXpath.bind(this);
-    this.setLinkXpath = this.setLinkXpath.bind(this);
-    this.setListPageExpression = this.setListPageExpression.bind(this);
+  constructor(private browser: IBrowserFacade) {
     this.init = this.init.bind(this);
+    this.getNewLinks = this.getNewLinks.bind(this);
+    this.scrapLastPageNumber = this.scrapLastPageNumber.bind(this);
+    this.scrapLinks = this.scrapLinks.bind(this);
     this.dispose = this.dispose.bind(this);
-    this.getNewLinksList = this.getNewLinksList.bind(this);
-    this.getLastPageNumber = this.getLastPageNumber.bind(this);
-    this.getLinksFromList = this.getLinksFromList.bind(this);
   }
 
-  setUrl(url: string): void {
-    this.url = url;
+  setSource(source: ISource): void {
+    this.linkXpath = source.linkXpath;
+    this.lastPageXpath = source.lastPageXpath;
+    this.listPageExpression = source.listPageExpression;
+    this.url = source.site + source.linkListUrl;
+    this.preVendorCode = source.preVendorCode;
   }
-  setLastPageXpath(lastPageXpath: string): void {
-    this.lastPageXpath = lastPageXpath;
-  }
-  setLinkXpath(linkXpath: string): void {
-    this.linkXpath = linkXpath;
-  }
-  setListPageExpression(listPageExpression: string): void {
-    this.listPageExpression = listPageExpression;
+  setVendorCodesListFromLastDocument(codes: string[]): void {
+    this.vendorCodesListFromLastDocument = codes;
   }
 
-  async init(): Promise<void> {
-    this.page = await PuppeteerHelpers.getNewPage(this.browser);
+  async getNewLinks(): Promise<string[]> {
+    console.log("Начат процесс сбора новых ссылок");
+
+    await this.init();
+
+    const result = await this.assembleNewLinksList();
+
+    await this.dispose();
+
+    console.log(
+      `Закончен процесс сбора новых ссылок. Результат: ${result.length} ссылок`
+    );
+
+    return result;
   }
 
-  async getNewLinksList(
-    vendorCodesListFromLastDocument: string[]
-  ): Promise<string[]> {
+  private async init(): Promise<void> {
+    this.page = await this.browser.openNewPage();
+  }
+
+  private async assembleNewLinksList(): Promise<string[]> {
+    if (!this.vendorCodesListFromLastDocument) {
+      throw Error("VendorCodesListFromLastDocument не проинициализирован!");
+    }
+    if (!this.preVendorCode) {
+      throw Error("PreVendorCode не проинициализирован!");
+    }
+
     let flag = false;
 
     async function innerGetLinks(
       vendorCodesListFromLastDocument: string[],
       getLinksFromList: (pageNumber: number) => Promise<string[]>,
       lastPage: number,
+      preVendorCode: string,
       result: string[] = []
     ): Promise<string[]> {
       console.log(`Начат сбор ссылок!`);
@@ -59,7 +78,7 @@ export class PageWithListBuilder implements IPageWithListBuilder {
 
         for (let j = 0; j < links.length; j++) {
           const link = links[j];
-          const vendorCode = (link.match(/(\d+)\/$/) as string[])[1];
+          // const vendorCode = (link.match(/(\d+)\/$/) as string[])[1];
 
           if (flag) {
             console.log(`Завершился сбор ссылок!`);
@@ -67,10 +86,12 @@ export class PageWithListBuilder implements IPageWithListBuilder {
           } else if (
             // ToDo: RETURN!!!!
             /*(vendorCodesListFromLastDocument.length &&
-              !vendorCodesListFromLastDocument.find((str) =>
-                str.includes(vendorCode.toString())
+              !vendorCodesListFromLastDocument.includes(
+                vendorCode
+                  .toString()
+                  .replace(new RegExp(`^${preVendorCode.toString()}`), "")
               )) ||*/
-            result.length >= 4000
+            result.length >= 500
           ) {
             flag = true;
             break;
@@ -84,16 +105,17 @@ export class PageWithListBuilder implements IPageWithListBuilder {
       return result;
     }
 
-    const lastPage = await this.getLastPageNumber();
+    const lastPage = await this.scrapLastPageNumber();
 
     return await innerGetLinks(
-      vendorCodesListFromLastDocument,
-      this.getLinksFromList,
-      lastPage
+      this.vendorCodesListFromLastDocument,
+      this.scrapLinks,
+      lastPage,
+      this.preVendorCode
     );
   }
 
-  private async getLastPageNumber(): Promise<number> {
+  private async scrapLastPageNumber(): Promise<number> {
     await this.init();
 
     if (!this.page) {
@@ -130,7 +152,7 @@ export class PageWithListBuilder implements IPageWithListBuilder {
     return parseInt(lastPage as string);
   }
 
-  private async getLinksFromList(pageNumber: number): Promise<string[]> {
+  private async scrapLinks(pageNumber: number): Promise<string[]> {
     if (!this.page) {
       throw Error("Страница не проинициализирован!");
     }
@@ -169,11 +191,12 @@ export class PageWithListBuilder implements IPageWithListBuilder {
 
     return result;
   }
-  async dispose(): Promise<void> {
+
+  private async dispose(): Promise<void> {
     if (!this.page) {
       throw Error("Страница не проинициализирован!");
     }
 
-    await PuppeteerHelpers.closePage(this.page);
+    await BrowserFacade.closePage(this.page);
   }
 }
