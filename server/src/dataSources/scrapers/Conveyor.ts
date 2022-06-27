@@ -1,7 +1,10 @@
 export class Conveyor<E, R> {
   private arrCounter = 0;
-  private elemCounter = 0;
   private matrix: E[][];
+
+  private logNumber = 100;
+  private startHandleTime = true;
+  private finishHandleTime = true;
 
   constructor(
     private list: E[],
@@ -12,18 +15,40 @@ export class Conveyor<E, R> {
     this.matrix = Conveyor.alterChunk(list, lineCount);
   }
 
-  async handle(): Promise<R[]> {
-    const result = await Promise.all(
-      this.matrix.map((arr) => {
-        this.elemCounter = this.elemCounter + 1;
-        const i = this.elemCounter;
-        console.log(`Начата обработка ${i} линии`);
+  setLogNumber(logNumber: number): void {
+    this.logNumber = logNumber;
+  }
+  setStartHandleTime(startHandleTime: boolean): void {
+    this.startHandleTime = startHandleTime;
+  }
+  setFinishHandleTime(finishHandleTime: boolean): void {
+    this.finishHandleTime = finishHandleTime;
+  }
 
-        return this.handleSubArr(arr);
-      })
+  async handle(): Promise<R[]> {
+    console.log(
+      `${new Date().toLocaleDateString("ru", {
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric",
+      })} Начата обработка линий`
     );
 
-    return result.flat();
+    const result = await Promise.all(
+      this.matrix.map((arr) => this.handleSubArr(arr))
+    );
+
+    const flatResult = result.flat();
+
+    console.log(
+      `${new Date().toLocaleDateString("ru", {
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric",
+      })} Обработано ${flatResult.length} элементов`
+    );
+
+    return flatResult;
   }
 
   private async handleSubArr(arr: E[]): Promise<R[]> {
@@ -33,7 +58,7 @@ export class Conveyor<E, R> {
       this.arrCounter = this.arrCounter + 1;
       const i = this.arrCounter;
 
-      if (i % 100 === 0) {
+      if (this.startHandleTime && i % this.logNumber === 0) {
         console.log(
           `${new Date().toLocaleDateString("ru", {
             hour: "numeric",
@@ -46,7 +71,7 @@ export class Conveyor<E, R> {
       const result = await this.elementHandler(elem, ...this.params);
       resultArr.push(result);
 
-      if (i % 100 === 0) {
+      if (this.finishHandleTime && i % this.logNumber === 0) {
         console.log(
           `${new Date().toLocaleDateString("ru", {
             hour: "numeric",

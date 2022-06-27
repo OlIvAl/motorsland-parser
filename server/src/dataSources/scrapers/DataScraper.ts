@@ -82,10 +82,7 @@ export class DataScraper {
     ) as IItemData;
   }
 
-  private async scrapDataByPage(
-    url: string,
-    source: ISource
-  ): Promise<IItemData | undefined> {
+  private async scrapDataByPage(url: string): Promise<IItemData | undefined> {
     if (!this.source) {
       throw new Error("Source не проинициализирован!");
     }
@@ -105,11 +102,6 @@ export class DataScraper {
     await BrowserFacade.closePage(page);
 
     if (data.vendor_code) {
-      // Set preVendorCode
-      data.vendor_code = source.preVendorCode + data.vendor_code;
-
-      // console.log(`Страница ${url} обработана!`);
-
       return { ...data, images };
     } else {
       console.error(`Страница ${url} не обработана! Отсутствует информация`);

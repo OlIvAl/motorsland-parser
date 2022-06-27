@@ -44,6 +44,7 @@ export interface IDocumentTableClient {
     document: IItemData[]
   ): Promise<IDocumentInfo>;
   delete(uploading: UPLOADING_NAME, name: string): Promise<void>;
+  migrate(): Promise<void>;
 }
 
 export interface IImageBuilder {

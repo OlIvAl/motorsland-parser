@@ -4,11 +4,11 @@ import {
   IAzureBlobStorage,
   IDocumentTableClient,
   IItemData,
+  ITableDocumentField,
   IUploadingTableClient,
 } from "../../../dataSources/interfases";
 import { IDocumentBuilder } from "../../../dataSources/scrapers/interfaces";
 import { ImageBuilder } from "../../../dataSources/ImageBuilder";
-import { Document } from "../../../domain/entity/Document/structures/Document";
 import { ItemsListSchema } from "../../validationSchemas/Document";
 import { BadRequest } from "http-json-errors";
 import { ErrCodes } from "../../../errCodes";
@@ -27,7 +27,7 @@ export class DocumentRepository implements IDocumentRepository {
     private documentBuilder: IDocumentBuilder
   ) {
     this.getDocuments = this.getDocuments.bind(this);
-    this.getDocumentWithPublicLink = this.getDocumentWithPublicLink.bind(this);
+    this.getDocument = this.getDocument.bind(this);
     this.updateNewDocumentsCount = this.updateNewDocumentsCount.bind(this);
     this.create = this.create.bind(this);
     this.delete = this.delete.bind(this);
@@ -41,30 +41,47 @@ export class DocumentRepository implements IDocumentRepository {
     return ItemsListSchema.cast(result);
   }
 
-  async getDocumentWithPublicLink(name: string): Promise<IItemData[]> {
-    const pageDataArr: IItemData[] = (
-      await this.documentTableClient.get(name)
-    ).map((fields) =>
-      fields.reduce<IItemData>(
-        (acc, field) => ({
-          ...acc,
-          [field.name]: field.value,
-        }),
-        { name: "", price: "", vendor_code: "", images: [] }
-      )
+  async getDocument(name: string): Promise<IItemData[]> {
+    console.log(
+      `${new Date().toLocaleDateString("ru", {
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric",
+      })} Начата выборка полей`
+    );
+    const rows = await this.documentTableClient.get(name);
+    console.log(
+      `${new Date().toLocaleDateString("ru", {
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric",
+      })} Закончена выборка полей`
     );
 
-    return (
-      await Promise.all(
-        pageDataArr.map((item) =>
-          this.documentTableClient.getPagePublicImages(item.vendor_code)
-        )
-      )
-    ).map((images, i) => {
-      pageDataArr[i].images = images;
+    const conveyor = new Conveyor<ITableDocumentField[], IItemData>(
+      rows,
+      100,
+      async (fields) => {
+        const item = fields.reduce<IItemData>(
+          (acc, field) => ({
+            ...acc,
+            [field.name]: field.value,
+          }),
+          { name: "", price: "", vendor_code: "", images: [] }
+        );
 
-      return pageDataArr[i];
-    });
+        item.images = await this.documentTableClient.getPagePublicImages(
+          item.vendor_code
+        );
+
+        return item;
+      }
+    );
+
+    conveyor.setLogNumber(1000);
+    conveyor.setStartHandleTime(false);
+
+    return await conveyor.handle();
   }
 
   async updateNewDocumentsCount(uploading: UPLOADING_NAME): Promise<number> {
@@ -361,13 +378,13 @@ export class DocumentRepository implements IDocumentRepository {
         data.images.map(async (imgSrc: string) => {
           const imageBuilder = new ImageBuilder(imgSrc);
 
+          const [fileName, buffer] = await imageBuilder.getBuffer();
           try {
-            const [fileName, buffer] = await imageBuilder.getBuffer();
-
-            // await this.imagesStorage.upload(buffer, fileName, "image/jpeg");
+            await this.imagesStorage.upload(buffer, fileName, "image/jpeg");
 
             return decodeURIComponent(this.imagesStorage.getURL(fileName));
           } catch (e) {
+            console.log("Возникла ошибка при обработке " + fileName);
             console.log(e);
 
             return "";

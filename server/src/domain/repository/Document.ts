@@ -4,7 +4,7 @@ import { IItemData } from "../../dataSources/interfases";
 
 export interface IDocumentRepository {
   getDocuments(uploading: UPLOADING_NAME): Promise<IDocument[]>;
-  getDocumentWithPublicLink(name: string): Promise<IItemData[]>;
+  getDocument(name: string): Promise<IItemData[]>;
   create(uploading: UPLOADING_NAME): Promise<IDocument>;
   delete(uploading: UPLOADING_NAME, name: string): Promise<void>;
   updateNewDocumentsCount(uploading: UPLOADING_NAME): Promise<number>;

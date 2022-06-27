@@ -6,6 +6,7 @@ import { CreateNewDocumentRouter } from "./routers/CreateNewDocumentRouter";
 import { DownloadDocumentRouter } from "./routers/DownloadDocumentRouter";
 import { DeleteDocumentRouter } from "./routers/DeleteDocumentRouter";
 import { GetUploadingListRouter } from "./routers/GetUploadingListRouter";
+import { MigrationRouter } from "./routers/MigrationRouter";
 
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
@@ -26,6 +27,7 @@ app
   .use(CreateNewDocumentRouter)
   .use(DeleteDocumentRouter)
   .use(DownloadDocumentRouter)
+  .use(MigrationRouter)
   .use(GetUploadingListRouter);
 
 const server = app.listen(app.get("port"), () => {

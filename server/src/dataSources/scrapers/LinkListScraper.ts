@@ -88,7 +88,7 @@ export class LinkListScraper implements ILinkListScraper {
                   .toString()
                   .replace(new RegExp(`^${preVendorCode.toString()}`), "")
               )) ||*/
-            result.length >= 500
+            result.length >= 9000
           ) {
             flag = true;
             break;

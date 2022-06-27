@@ -14,6 +14,7 @@ import {
   ITableDocumentField,
   ITableImage,
 } from "./interfases";
+import { Conveyor } from "./scrapers/Conveyor";
 
 export class DocumentTableClient implements IDocumentTableClient {
   private documentTableClient: TableClient;
@@ -73,7 +74,7 @@ export class DocumentTableClient implements IDocumentTableClient {
     let arr: string[] = [];
 
     for await (const item of result) {
-      arr.push(item.name);
+      arr.push(decodeURIComponent(item.name));
     }
 
     return await Promise.all(
@@ -124,7 +125,13 @@ export class DocumentTableClient implements IDocumentTableClient {
     uploading: UPLOADING_NAME,
     document: IItemData[]
   ): Promise<IDocumentInfo> {
-    console.log("Начато сохранение документа!");
+    console.log(
+      `${new Date().toLocaleDateString("ru", {
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric",
+      })} Начато сохранение документа!`
+    );
 
     const fileName = `${uploading}-${new Date().toISOString()}`;
 
@@ -138,43 +145,74 @@ export class DocumentTableClient implements IDocumentTableClient {
     });
 
     console.log("Начато сохранение картинок!");
-    for (const item of document) {
-      await Promise.all(
-        item.images.map((src) => {
-          const name = (src.match(/\d+\/[\d\w_]+.jpg$/g) as string[])[0];
-          return this.imagesTableClient.createEntity<ITableImage>({
-            partitionKey: item.vendor_code,
-            rowKey: encodeURIComponent(name),
-            url: src,
-            name: name,
-            document: fileName,
-          });
-        })
-      );
-    }
-    console.log("Сохранение картинок завершилось успешно!");
-    console.log("Начато сохранение данных полей!");
-    for (const data of dataFromPages) {
-      await Promise.all(
-        data.map((field) => {
-          const vendorCodeIndex = data.findIndex(
-            (field) => field.name === "vendor_code"
-          ) as number;
-          const vendorCode = data[vendorCodeIndex].value as string;
 
-          return this.documentFieldTableClient.createEntity<ITableDocumentField>(
-            {
-              partitionKey: vendorCode,
-              rowKey: field.name,
-              name: field.name,
-              value: field.value,
+    const imagesConveyor = new Conveyor<IItemData, void>(
+      document,
+      100,
+      async (row) => {
+        await Promise.all(
+          row.images.map((src) => {
+            const name = (src.match(/\d+\/[\d\w_]+.jpg$/g) as string[])[0];
+            return this.imagesTableClient.createEntity<ITableImage>({
+              partitionKey: row.vendor_code,
+              rowKey: encodeURIComponent(name),
+              url: src,
+              name: name,
               document: fileName,
-            }
-          );
-        })
-      );
-    }
-    console.log("Сохранение данных полей товаров завершилось успешно!");
+            });
+          })
+        );
+      }
+    );
+
+    await imagesConveyor.handle();
+
+    console.log(
+      `${new Date().toLocaleDateString("ru", {
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric",
+      })} Сохранение картинок завершилось успешно! Сохранено ${
+        document.length
+      } элементов`
+    );
+    console.log("Начато сохранение данных полей!");
+    const fieldDataConveyor = new Conveyor<IFieldData[], void>(
+      dataFromPages,
+      100,
+      async (row) => {
+        await Promise.all(
+          row.map((field) => {
+            const vendorCodeIndex = row.findIndex(
+              (field) => field.name === "vendor_code"
+            ) as number;
+            const vendorCode = row[vendorCodeIndex].value as string;
+
+            return this.documentFieldTableClient.createEntity<ITableDocumentField>(
+              {
+                partitionKey: vendorCode,
+                rowKey: field.name,
+                name: field.name,
+                value: field.value,
+                document: fileName,
+              }
+            );
+          })
+        );
+      }
+    );
+
+    await fieldDataConveyor.handle();
+
+    console.log(
+      `${new Date().toLocaleDateString("ru", {
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric",
+      })} Сохранение данных полей товаров завершилось успешно! Сохранено ${
+        dataFromPages.length
+      } элементов`
+    );
     const createDocumentResponse =
       await this.documentTableClient.createEntity<{}>({
         partitionKey: uploading,
@@ -248,5 +286,118 @@ export class DocumentTableClient implements IDocumentTableClient {
       ),
     ]);
     console.log("Остальные данные о документе удалены успешно!");
+  }
+  async migrate(): Promise<void> {
+    /*const rows =
+      await this.documentFieldTableClient.listEntities<ITableDocumentField>();
+
+    let arr: TableEntityResult<ITableDocumentField>[] = [];
+
+    let j: number = 0;
+    for await (const row of rows) {
+      arr.push({
+        partitionKey: row.partitionKey as string,
+        rowKey: row.rowKey as string,
+        name: row.name as string,
+        value: row.value as string,
+        document: row.document as string,
+        etag: "",
+      });
+      if (j % 1000 === 0) {
+        console.log(`Забрано ${j} строк`);
+      }
+      j = j + 1;
+    }
+
+    console.log(`Всего ${arr.length} строк`);*/
+    /*const tempStorage = new AzureBlobStorage(CONTAINER_NAME.TEMP_CONTAINER_NAME);
+
+    await tempStorage.upload(
+      Buffer.from(JSON.stringify(arr)),
+      `arr.json`,
+      "text/plain"
+    );*/
+    /*const conveyor = new Conveyor<TableEntityResult<ITableDocumentField>, void>(
+      arr,
+      100,
+      async (row) => {
+        await this.documentFieldTableClient.deleteEntity(
+          row.partitionKey as string,
+          row.rowKey as string
+        );
+      }
+    );
+
+    await conveyor.handle();*/
+    /*for (let i = 0; i < arr.length; i++) {
+      const row = arr[i];
+
+      if (i % 1000 === 0) {
+        console.log(`Удалено ${i} строк`);
+      }
+    }*/
+    /*for (let i = 0; i < arr.length; i++) {
+      const row = arr[i];
+      await this.documentFieldTableClient.createEntity<ITableDocumentField>({
+        partitionKey: (row.value as string).replace("001", ""),
+        rowKey: row.name,
+        name: row.name,
+        value: (row.value as string).replace("001", ""),
+        document: row.document as string,
+      });
+
+      if (i % 1000 === 0) {
+        console.log(`Добавлено ${i} строк`);
+      }
+    }*/
+    /*const options = {
+      objectMode: true,
+      delimiter: ",",
+      quote: null,
+      headers: true,
+      renameHeaders: false,
+      discardUnmappedColumns: true,
+    };
+
+    const data: any[] = [];
+
+    const readableStream = fs.createReadStream(CSV_FILE);
+
+    parseStream(readableStream, options)
+      .on("error", (error: any) => {
+        console.log(error);
+      })
+      .on("data", (row: any) => {
+        data.push({
+          partitionKey: (row.PartitionKey as string).replace("001", ""),
+          rowKey: row.name,
+          name: row.name,
+          value:
+            row.value && /^001/.test(row.value)
+              ? (row.value as string).replace("001", "")
+              : row.value,
+          document: row.document as string,
+        });
+      })
+      .on("end", async (rowCount: number) => {
+        for (let i = 0; i < data.length; i++) {
+          const row = data[i];
+          await this.documentFieldTableClient.createEntity<ITableDocumentField>(
+            {
+              partitionKey: row.partitionKey,
+              rowKey: row.rowKey,
+              name: row.name,
+              value: row.value,
+              document: row.document,
+            }
+          );
+
+          if (i % 1000 === 0) {
+            console.log(`Добавлено ${i} строк`);
+          }
+        }
+
+        console.log(`Добавлено ${rowCount} строк`);
+      });*/
   }
 }
