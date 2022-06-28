@@ -1,4 +1,4 @@
-import { IItemData, ISource } from "../interfases";
+import { IItemData, IItemSourceDictionary, ISource } from "../interfases";
 import { Page } from "puppeteer";
 
 export interface IDocumentBuilder {
@@ -13,6 +13,7 @@ export interface IDocumentBuilder {
   scrapNewLinks(): Promise<void>;
   scrapData(): Promise<void>;
   getScrapedData(): IItemData[];
+  getDictionary(): IItemSourceDictionary[];
   getNewLinks(): string[][];
   getNewLinksLength(): number;
   dispose(): Promise<void>;

@@ -2,6 +2,7 @@ import {
   AzureNamedKeyCredential,
   odata,
   TableClient,
+  TableEntityResult,
 } from "@azure/data-tables";
 import { BlobClient } from "@azure/storage-blob";
 import { CONTAINER_NAME, UPLOADING_NAME } from "../constants";
@@ -11,15 +12,21 @@ import {
   IDocumentTableClient,
   IFieldData,
   IItemData,
+  IItemSourceDictionary,
   ITableDocumentField,
+  ITableDocumentSourceRelation,
   ITableImage,
+  ITableSource,
+  IUsefulFieldData,
 } from "./interfases";
 import { Conveyor } from "./scrapers/Conveyor";
 
 export class DocumentTableClient implements IDocumentTableClient {
   private documentTableClient: TableClient;
   private documentFieldTableClient: TableClient;
+  private documentSourceRelationTableClient: TableClient;
   private imagesTableClient: TableClient;
+  private sourceTableClient: TableClient;
 
   constructor(private imagesStorage: IAzureBlobStorage) {
     const credential = new AzureNamedKeyCredential(
@@ -42,29 +49,96 @@ export class DocumentTableClient implements IDocumentTableClient {
       "images",
       credential
     );
+    this.documentSourceRelationTableClient = new TableClient(
+      `https://${process.env.AZURE_ACCOUNT}.table.core.windows.net`,
+      "documentSourceRelation",
+      credential
+    );
+    this.sourceTableClient = new TableClient(
+      `https://${process.env.AZURE_ACCOUNT}.table.core.windows.net`,
+      "source",
+      credential
+    );
   }
 
-  async get(name: string): Promise<ITableDocumentField[][]> {
-    const result =
+  async get(name: string): Promise<IUsefulFieldData[][]> {
+    const [sourcesRecord, dictionaryRecord] = await Promise.all([
+      (async (): Promise<
+        Record<string, Pick<ITableSource, "preVendorCode" | "markup">>
+      > => {
+        const sources =
+          await this.sourceTableClient.listEntities<ITableSource>();
+
+        let sourcesRec: Record<
+          string,
+          Pick<ITableSource, "preVendorCode" | "markup">
+        > = {};
+
+        for await (const source of sources) {
+          sourcesRec = {
+            ...sourcesRec,
+            ...{
+              [source.rowKey as string]: {
+                preVendorCode: source.preVendorCode as string,
+                markup: source.markup,
+              },
+            },
+          };
+        }
+        return sourcesRec;
+      })(),
+      (async (): Promise<Record<string, string>> => {
+        const dictionaries =
+          await this.documentSourceRelationTableClient.listEntities<ITableDocumentSourceRelation>(
+            {
+              queryOptions: { filter: odata`document eq ${name}` },
+            }
+          );
+
+        let dictionaryRec: Record<string, string> = {};
+
+        for await (let dictionary of dictionaries) {
+          dictionaryRec = {
+            ...dictionaryRec,
+            [dictionary.rowKey as string]: dictionary.partitionKey as string,
+          };
+        }
+
+        return dictionaryRec;
+      })(),
+    ]);
+
+    const fields =
       await this.documentFieldTableClient.listEntities<ITableDocumentField>({
         queryOptions: { filter: odata`document eq ${name}` },
       });
 
-    let acc: Record<string, ITableDocumentField[]> = {};
+    let acc: Record<string, IUsefulFieldData[]> = {};
 
     // Separate by vendor code
-    for await (const item of result) {
-      if ((item.partitionKey as string) in acc) {
-        acc[item.partitionKey as string] = [
-          ...acc[item.partitionKey as string],
-          item,
+    for await (let field of fields) {
+      // ToDo: придумать что то интереснее!!!
+      const usefulField: IUsefulFieldData = {
+        name: field.name,
+        value: field.value,
+        preVendorCode:
+          sourcesRecord[dictionaryRecord[field.partitionKey as string]]
+            .preVendorCode,
+        markup:
+          sourcesRecord[dictionaryRecord[field.partitionKey as string]].markup,
+      };
+
+      if ((field.partitionKey as string) in acc) {
+        acc[field.partitionKey as string] = [
+          ...acc[field.partitionKey as string],
+          usefulField,
         ];
       } else {
-        acc[item.partitionKey as string] = [item];
+        acc[field.partitionKey as string] = [usefulField];
       }
     }
 
-    return Object.values<ITableDocumentField[]>(acc);
+    return Object.values<IUsefulFieldData[]>(acc);
   }
   async getPagePublicImages(vcId: string): Promise<string[]> {
     const result = await this.imagesTableClient.listEntities<ITableImage>({
@@ -74,7 +148,7 @@ export class DocumentTableClient implements IDocumentTableClient {
     let arr: string[] = [];
 
     for await (const item of result) {
-      arr.push(decodeURIComponent(item.name));
+      arr.push(item.name);
     }
 
     return await Promise.all(
@@ -123,7 +197,8 @@ export class DocumentTableClient implements IDocumentTableClient {
   }
   async addDocument(
     uploading: UPLOADING_NAME,
-    document: IItemData[]
+    document: IItemData[],
+    dictionary: IItemSourceDictionary[]
   ): Promise<IDocumentInfo> {
     console.log(
       `${new Date().toLocaleDateString("ru", {
@@ -203,6 +278,22 @@ export class DocumentTableClient implements IDocumentTableClient {
     );
 
     await fieldDataConveyor.handle();
+
+    const dictionaryConveyor = new Conveyor<IItemSourceDictionary, void>(
+      dictionary,
+      100,
+      async (row) => {
+        await this.documentSourceRelationTableClient.createEntity<ITableDocumentSourceRelation>(
+          {
+            partitionKey: row.sourceName,
+            rowKey: row.vendorCode,
+            document: fileName,
+          }
+        );
+      }
+    );
+
+    await dictionaryConveyor.handle();
 
     console.log(
       `${new Date().toLocaleDateString("ru", {
@@ -287,29 +378,87 @@ export class DocumentTableClient implements IDocumentTableClient {
     ]);
     console.log("Остальные данные о документе удалены успешно!");
   }
-  async migrate(): Promise<void> {
-    /*const rows =
-      await this.documentFieldTableClient.listEntities<ITableDocumentField>();
 
-    let arr: TableEntityResult<ITableDocumentField>[] = [];
+  async migrate(): Promise<void> {
+    const rows =
+      await this.documentFieldTableClient.listEntities<ITableDocumentField>({
+        queryOptions: { filter: odata`PartitionKey eq 'motorlandby.ru'` },
+      });
+
+    let arr: TableEntityResult<ITableDocumentSourceRelation>[] = [];
+
+    for await (let row of rows) {
+      arr.push({
+        partitionKey: "motorlandby.ru",
+        rowKey: row.rowKey as string,
+        document: row.document,
+        etag: "",
+      });
+    }
+
+    console.log("arr.length => ", arr.length);
+
+    const deleteConveyor = new Conveyor<
+      TableEntityResult<ITableDocumentSourceRelation>,
+      void
+    >(arr, 100, async (row) => {
+      await this.documentFieldTableClient.deleteEntity(
+        row.partitionKey as string,
+        row.rowKey as string
+      );
+    });
+
+    await deleteConveyor.handle();
+
+    /*const createConveyor = new Conveyor<
+      TableEntityResult<ITableDocumentSourceRelation>,
+      void
+    >(arr, 100, async (row) => {
+      await this.documentSourceRelationTableClient.createEntity<ITableDocumentSourceRelation>(
+        {
+          partitionKey: row.partitionKey as string,
+          rowKey: row.rowKey as string,
+          document: row.document,
+        }
+      );
+    });
+
+    await createConveyor.handle();*/
+    /*let set: Set<string> = new Set();
 
     let j: number = 0;
     for await (const row of rows) {
-      arr.push({
-        partitionKey: row.partitionKey as string,
-        rowKey: row.rowKey as string,
-        name: row.name as string,
-        value: row.value as string,
-        document: row.document as string,
-        etag: "",
-      });
+      set.add(row.partitionKey as string);
+
       if (j % 1000 === 0) {
         console.log(`Забрано ${j} строк`);
       }
       j = j + 1;
     }
 
-    console.log(`Всего ${arr.length} строк`);*/
+    let arr: TableEntityResult<{}>[] = [];
+    set.forEach((key) => {
+      arr.push({
+        partitionKey: "motorlandby.ru",
+        rowKey: key,
+        etag: "",
+      });
+    });
+
+    console.log(`Всего ${arr.length} строк`);
+
+    const conveyor = new Conveyor<TableEntityResult<{}>, void>(
+      arr,
+      100,
+      async (row) => {
+        await this.documentSourceRelationTableClient.createEntity({
+          partitionKey: row.partitionKey as string,
+          rowKey: row.rowKey as string,
+        });
+      }
+    );
+
+    await conveyor.handle();*/
     /*const tempStorage = new AzureBlobStorage(CONTAINER_NAME.TEMP_CONTAINER_NAME);
 
     await tempStorage.upload(

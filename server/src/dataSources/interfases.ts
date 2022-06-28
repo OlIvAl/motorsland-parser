@@ -31,17 +31,18 @@ export interface IUploadingTableClient {
     uploading: UPLOADING_NAME,
     fields: Record<string, string>
   ): Promise<void>;
-  getSources(uploading: UPLOADING_NAME): Promise<ISource[]>;
+  getUploadingSources(uploading: UPLOADING_NAME): Promise<ISource[]>;
 }
 
 export interface IDocumentTableClient {
-  get(name: string): Promise<ITableDocumentField[][]>;
+  get(name: string): Promise<IUsefulFieldData[][]>;
   getPagePublicImages(vcId: string): Promise<string[]>;
   getAll(uploading: UPLOADING_NAME): Promise<IDocumentInfo[]>;
   getLast(uploading: UPLOADING_NAME): Promise<IDocumentInfo | null>;
   addDocument(
     uploading: UPLOADING_NAME,
-    document: IItemData[]
+    document: IItemData[],
+    dictionary: IItemSourceDictionary[]
   ): Promise<IDocumentInfo>;
   delete(uploading: UPLOADING_NAME, name: string): Promise<void>;
   migrate(): Promise<void>;
@@ -69,6 +70,10 @@ export interface IItemData {
   images: string[];
   [field: string]: any;
 }
+export interface IItemSourceDictionary {
+  vendorCode: string;
+  sourceName: string;
+}
 export interface IFieldData {
   name: string;
   value?: string;
@@ -76,12 +81,18 @@ export interface IFieldData {
 export interface ITableDocumentField extends IFieldData {
   document: string;
 }
+export interface IUsefulFieldData
+  extends IFieldData,
+    Pick<ITableSource, "preVendorCode" | "markup"> {}
 
 export interface ITableUploadingSource {
   linkListUrl: string;
   imagesXPath: string;
 }
 
+export interface ITableDocumentSourceRelation {
+  document: string;
+}
 export interface ITableUploadingFieldRelation {
   field: string;
 }
@@ -108,6 +119,7 @@ export interface ITableSource {
   listPageExpression: string;
   preVendorCode: string;
   site: string;
+  markup: number;
 }
 export interface ITableImage {
   url: string;
@@ -115,5 +127,6 @@ export interface ITableImage {
   document: string;
 }
 export interface ISource extends ITableSource, ITableUploadingSource {
+  name: string;
   fields: IFieldSelector[];
 }

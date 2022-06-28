@@ -1,4 +1,4 @@
-import { IItemData, ISource } from "../interfases";
+import { IItemData, IItemSourceDictionary, ISource } from "../interfases";
 import { IBrowserFacade, IDocumentBuilder } from "./interfaces";
 import { BrowserFacade } from "./BrowserFacade";
 import { LinkListScraper } from "./LinkListScraper";
@@ -9,7 +9,8 @@ export class DocumentBuilder implements IDocumentBuilder {
   private sources?: ISource[];
   private vendorCodesListFromLastDocument?: string[];
   private newLinks: string[][] = [];
-  private document: IItemData[] = [];
+  private items: IItemData[] = [];
+  private dictionary: IItemSourceDictionary[] = [];
 
   constructor() {
     this.init = this.init.bind(this);
@@ -77,22 +78,32 @@ export class DocumentBuilder implements IDocumentBuilder {
 
     const dataScraper = new DataScraper(this.browser);
 
-    let result: IItemData[] = [];
+    let items: IItemData[] = [];
+    let dictionary: IItemSourceDictionary[] = [];
     for (let i = 0; i < this.sources.length; i++) {
       dataScraper.setSource(this.sources[i]);
 
-      const sourceResult = await dataScraper.assembleScrapedData(
+      const sourceItems = await dataScraper.assembleScrapedData(
         this.newLinks[i]
       );
+      const sourceDictionary = sourceItems.map((item) => ({
+        vendorCode: item.vendor_code,
+        sourceName: (this.sources as ISource[])[i].name,
+      }));
 
-      result = [...result, ...sourceResult];
+      items = [...items, ...sourceItems];
+      dictionary = [...dictionary, ...sourceDictionary];
     }
 
-    this.document = result;
+    this.items = items;
+    this.dictionary = dictionary;
   }
 
   getScrapedData(): IItemData[] {
-    return this.document;
+    return this.items;
+  }
+  getDictionary(): IItemSourceDictionary[] {
+    return this.dictionary;
   }
 
   getNewLinks(): string[][] {

@@ -174,7 +174,7 @@ export class UploadingTableClient implements IUploadingTableClient {
     return Promise.resolve(undefined);
   }
 
-  async getSources(uploading: UPLOADING_NAME): Promise<ISource[]> {
+  async getUploadingSources(uploading: UPLOADING_NAME): Promise<ISource[]> {
     const uploadingSources =
       await this.uploadingSourceTableClient.listEntities<ITableUploadingSource>(
         {
@@ -199,6 +199,7 @@ export class UploadingTableClient implements IUploadingTableClient {
         );
 
       item = {
+        name: uploadingSource.rowKey as string,
         linkListUrl: uploadingSource.linkListUrl,
         imagesXPath: uploadingSource.imagesXPath,
         lastPageXpath: source.lastPageXpath,
@@ -206,6 +207,7 @@ export class UploadingTableClient implements IUploadingTableClient {
         listPageExpression: source.listPageExpression,
         preVendorCode: source.preVendorCode,
         site: source.site,
+        markup: source.markup,
         fields: [],
       };
 
