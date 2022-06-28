@@ -83,7 +83,7 @@ export interface ITableDocumentField extends IFieldData {
 }
 export interface IUsefulFieldData
   extends IFieldData,
-    Pick<ITableSource, "preVendorCode" | "markup"> {}
+    Pick<ITableSource, "preVendorCode" | "markup" | "exchangeRate"> {}
 
 export interface ITableUploadingSource {
   linkListUrl: string;
@@ -120,6 +120,7 @@ export interface ITableSource {
   preVendorCode: string;
   site: string;
   markup: number;
+  exchangeRate: number;
 }
 export interface ITableImage {
   url: string;

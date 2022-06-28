@@ -64,14 +64,17 @@ export class DocumentTableClient implements IDocumentTableClient {
   async get(name: string): Promise<IUsefulFieldData[][]> {
     const [sourcesRecord, dictionaryRecord] = await Promise.all([
       (async (): Promise<
-        Record<string, Pick<ITableSource, "preVendorCode" | "markup">>
+        Record<
+          string,
+          Pick<ITableSource, "preVendorCode" | "markup" | "exchangeRate">
+        >
       > => {
         const sources =
           await this.sourceTableClient.listEntities<ITableSource>();
 
         let sourcesRec: Record<
           string,
-          Pick<ITableSource, "preVendorCode" | "markup">
+          Pick<ITableSource, "preVendorCode" | "markup" | "exchangeRate">
         > = {};
 
         for await (const source of sources) {
@@ -81,6 +84,7 @@ export class DocumentTableClient implements IDocumentTableClient {
               [source.rowKey as string]: {
                 preVendorCode: source.preVendorCode as string,
                 markup: source.markup,
+                exchangeRate: source.exchangeRate,
               },
             },
           };
@@ -126,6 +130,9 @@ export class DocumentTableClient implements IDocumentTableClient {
             .preVendorCode,
         markup:
           sourcesRecord[dictionaryRecord[field.partitionKey as string]].markup,
+        exchangeRate:
+          sourcesRecord[dictionaryRecord[field.partitionKey as string]]
+            .exchangeRate,
       };
 
       if ((field.partitionKey as string) in acc) {
@@ -380,7 +387,7 @@ export class DocumentTableClient implements IDocumentTableClient {
   }
 
   async migrate(): Promise<void> {
-    const rows =
+    /*const rows =
       await this.documentFieldTableClient.listEntities<ITableDocumentField>({
         queryOptions: { filter: odata`PartitionKey eq 'motorlandby.ru'` },
       });
@@ -408,8 +415,7 @@ export class DocumentTableClient implements IDocumentTableClient {
       );
     });
 
-    await deleteConveyor.handle();
-
+    await deleteConveyor.handle();*/
     /*const createConveyor = new Conveyor<
       TableEntityResult<ITableDocumentSourceRelation>,
       void

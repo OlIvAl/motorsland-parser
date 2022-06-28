@@ -81,7 +81,8 @@ export class DocumentRepository implements IDocumentRepository {
         return this.postProcessingData(
           item,
           fields[0].preVendorCode,
-          fields[0].markup
+          fields[0].markup,
+          fields[0].exchangeRate
         );
       }
     );
@@ -95,9 +96,13 @@ export class DocumentRepository implements IDocumentRepository {
   private postProcessingData(
     item: IItemData,
     preVendorCode: string,
-    markup: number
+    markup: number,
+    exchangeRate: number
   ): IItemData {
-    item.price = (Number(item.price) + Number(item.price) * markup).toString();
+    item.price = (
+      (Number(item.price) + Number(item.price) * markup) *
+      exchangeRate
+    ).toString();
     item.vendor_code = preVendorCode + item.vendor_code;
 
     return item;

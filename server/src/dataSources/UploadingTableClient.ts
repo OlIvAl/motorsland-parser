@@ -208,6 +208,7 @@ export class UploadingTableClient implements IUploadingTableClient {
         preVendorCode: source.preVendorCode,
         site: source.site,
         markup: source.markup,
+        exchangeRate: source.exchangeRate,
         fields: [],
       };
 
