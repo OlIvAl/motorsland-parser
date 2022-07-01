@@ -7,6 +7,7 @@ import {
   IItemSourceDictionary,
   IUploadingTableClient,
   IUsefulFieldData,
+  IWatermarkSettings,
 } from "../../../dataSources/interfases";
 import { IDocumentBuilder } from "../../../dataSources/scrapers/interfaces";
 import { ImageBuilder } from "../../../dataSources/ImageBuilder";
@@ -156,10 +157,13 @@ export class DocumentRepository implements IDocumentRepository {
 
       let newLinks: string[][] = [];
 
-      const lastDocumentVC = await this.getLastDocumentVC(uploading);
+      // ToDo: return!!!
+      // const lastDocumentVC = await this.getLastDocumentVC(uploading);
       const sources = await this.uploadingTableClient.getUploadingSources(
         uploading
       );
+
+      console.log("sources => ", sources);
 
       await this.documentBuilder.dispose();
       await this.documentBuilder.init();
@@ -167,9 +171,9 @@ export class DocumentRepository implements IDocumentRepository {
       console.log("Браузер открыт!");
 
       await this.documentBuilder.setSources(sources);
-      await this.documentBuilder.setVendorCodesListFromLastDocument(
-        lastDocumentVC
-      );
+      // ToDo: return!!!
+      // await this.documentBuilder.setVendorCodesListFromLastDocument(lastDocumentVC);
+      await this.documentBuilder.setVendorCodesListFromLastDocument([]);
 
       if (
         !(await this.tempStorage.isBlobExist(`${uploading}_new_links.json`))
@@ -215,7 +219,17 @@ export class DocumentRepository implements IDocumentRepository {
           `${uploading}_scraped_data_with_images.json`
         ))
       ) {
-        docObj = await this.getHandledData(uploading, docObj, chunkSize);
+        const watermarkSettingsArr = sources.map(
+          (source) => source.watermarkSettings
+        );
+        const sourceNames = sources.map((source) => source.name);
+        docObj = await this.getHandledData(
+          uploading,
+          docObj,
+          chunkSize,
+          watermarkSettingsArr,
+          sourceNames
+        );
       } else {
         docObj = await this.getHandledDataFromTempStorage(uploading);
       }
@@ -243,9 +257,12 @@ export class DocumentRepository implements IDocumentRepository {
       );
 
       return {
-        id: "",
-        name: "",
-        createdOn: date,
+        ...new Document(),
+        ...{
+          id: resp.name,
+          name: resp.name,
+          createdOn: date,
+        },
       };
     } catch (e) {
       await this.documentBuilder.dispose();
@@ -342,15 +359,41 @@ export class DocumentRepository implements IDocumentRepository {
   private async getHandledData(
     uploading: UPLOADING_NAME,
     docObj: IItemData[],
-    chunkSize: number
+    chunkSize: number,
+    watermarkSettingsArr: (IWatermarkSettings | undefined)[],
+    sourceNames: string[]
   ): Promise<IItemData[]> {
-    const conveyor = new Conveyor<IItemData, IItemData>(
-      docObj,
-      chunkSize,
-      this.imageFolderHandler
-    );
+    let result: IItemData[] = [];
 
-    const result = await conveyor.handle();
+    for (let i = 0; i < watermarkSettingsArr.length; i++) {
+      console.log(
+        `${new Date().toLocaleDateString("ru", {
+          hour: "numeric",
+          minute: "numeric",
+          second: "numeric",
+        })} Начата обработка картинок от ${sourceNames[i]}`
+      );
+
+      const watermarkSettings = watermarkSettingsArr[i];
+      const conveyor = new Conveyor<IItemData, IItemData>(
+        docObj,
+        chunkSize,
+        this.imageFolderHandler,
+        [watermarkSettings]
+      );
+
+      const resultOfSource = await conveyor.handle();
+
+      result = [...result, ...resultOfSource];
+
+      console.log(
+        `${new Date().toLocaleDateString("ru", {
+          hour: "numeric",
+          minute: "numeric",
+          second: "numeric",
+        })} Завершена обработка картинок от ${sourceNames[i]}`
+      );
+    }
 
     await this.tempStorage.upload(
       Buffer.from(JSON.stringify(result)),
@@ -416,11 +459,14 @@ export class DocumentRepository implements IDocumentRepository {
     await this.updateNewDocumentsCount(uploading);
   }
 
-  private async imageFolderHandler(data: IItemData): Promise<IItemData> {
+  private async imageFolderHandler(
+    data: IItemData,
+    watermarkSettings?: IWatermarkSettings
+  ): Promise<IItemData> {
     data.images = (
       await Promise.all(
         data.images.map(async (imgSrc: string) => {
-          const imageBuilder = new ImageBuilder(imgSrc);
+          const imageBuilder = new ImageBuilder(imgSrc, watermarkSettings);
 
           const [fileName, buffer] = await imageBuilder.getBuffer();
           try {

@@ -38,8 +38,9 @@ export class BrowserFacade implements IBrowserFacade {
       if (
         ["image", "stylesheet", "font", "script"].includes(
           request.resourceType()
-        ) ||
-        !/^https:\/\/motorlandby/.test(request.url())
+        )
+        // pass site from settings
+        // || !/^https:\/\/motorlandby/.test(request.url())
       ) {
         request.abort();
       } else {

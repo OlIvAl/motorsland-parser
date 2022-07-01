@@ -2,7 +2,6 @@ import {
   AzureNamedKeyCredential,
   odata,
   TableClient,
-  TableEntityResult,
 } from "@azure/data-tables";
 import { BlobClient } from "@azure/storage-blob";
 import { CONTAINER_NAME, UPLOADING_NAME } from "../constants";

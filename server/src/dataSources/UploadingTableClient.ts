@@ -7,6 +7,7 @@ import { UPLOADING_NAME } from "../constants";
 import {
   ISource,
   ITableField,
+  ITableWatermarkSettings,
   ITableSource,
   ITableUploadingFieldRelation,
   ITableUploadingFieldSource,
@@ -21,6 +22,7 @@ export class UploadingTableClient implements IUploadingTableClient {
   private uploadingSourceTableClient: TableClient;
   private uploadingFieldSourceTableClient: TableClient;
   private uploadingFieldRelationTableClient: TableClient;
+  private watermarkSettingsTableClient: TableClient;
   private sourceTableClient: TableClient;
   private fieldTableClient: TableClient;
 
@@ -43,6 +45,11 @@ export class UploadingTableClient implements IUploadingTableClient {
     this.sourceTableClient = new TableClient(
       `https://${process.env.AZURE_ACCOUNT}.table.core.windows.net`,
       "source",
+      credential
+    );
+    this.watermarkSettingsTableClient = new TableClient(
+      `https://${process.env.AZURE_ACCOUNT}.table.core.windows.net`,
+      "watermarkSettings",
       credential
     );
     this.uploadingFieldSourceTableClient = new TableClient(
@@ -189,20 +196,33 @@ export class UploadingTableClient implements IUploadingTableClient {
         "uploadingSource",
         uploadingSource.rowKey as string
       );
-      const fields =
-        await this.uploadingFieldSourceTableClient.listEntities<ITableUploadingFieldSource>(
+      // ToDo: оптимизировать!!!
+      const [fieldRows, watermarkSettingsRows] = await Promise.all([
+        this.uploadingFieldSourceTableClient.listEntities<ITableUploadingFieldSource>(
           {
             queryOptions: {
-              filter: odata`PartitionKey eq ${uploading} and source eq ${uploadingSource.rowKey}`,
+              filter: odata`uploading eq ${uploading} and source eq ${uploadingSource.rowKey}`,
             },
           }
-        );
+        ),
+        this.watermarkSettingsTableClient.listEntities<ITableWatermarkSettings>(
+          {
+            queryOptions: {
+              filter: odata`source eq ${uploadingSource.rowKey}`,
+            },
+          }
+        ),
+      ]);
+
+      const watermarkSettings: ITableWatermarkSettings = (
+        await watermarkSettingsRows.next()
+      ).value;
 
       item = {
         name: uploadingSource.rowKey as string,
         linkListUrl: uploadingSource.linkListUrl,
-        imagesXPath: uploadingSource.imagesXPath,
         lastPageXpath: source.lastPageXpath,
+        nextPageXpath: source.nextPageXpath,
         linkXpath: source.linkXpath,
         listPageExpression: source.listPageExpression,
         preVendorCode: source.preVendorCode,
@@ -210,9 +230,17 @@ export class UploadingTableClient implements IUploadingTableClient {
         markup: source.markup,
         exchangeRate: source.exchangeRate,
         fields: [],
+        imagesXPath: source.imagesXPath,
+        watermarkSettings: watermarkSettings.watermark
+          ? {
+              watermarkScale: watermarkSettings.watermarkScale,
+              position: watermarkSettings.position,
+            }
+          : undefined,
+        disabled: source.disabled,
       };
 
-      for await (const field of fields) {
+      for await (const field of fieldRows) {
         item.fields.push({
           field: field.field,
           xpath: field.xpath,

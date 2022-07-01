@@ -55,7 +55,12 @@ export class DocumentBuilder implements IDocumentBuilder {
     const linkListScraper = new LinkListScraper(this.browser);
 
     let result: string[][] = [];
-    for (let source of this.sources) {
+
+    const sources = this.sources.filter((source) => !source.disabled);
+
+    for (let source of sources) {
+      console.log(`Начат сбор новых ссылок с ${source.name}`);
+
       linkListScraper.setVendorCodesListFromLastDocument(
         this.vendorCodesListFromLastDocument
       );
@@ -64,7 +69,14 @@ export class DocumentBuilder implements IDocumentBuilder {
       const sourceResult = await linkListScraper.getNewLinks();
 
       result = [...result, sourceResult];
+
+      console.log(
+        `Закончен сбора новых ссылок с ${source.name}. Результат: ${sourceResult.length} ссылок`
+      );
     }
+    console.log(
+      `Собрано ${result.reduce((sum, arr) => sum + arr.length, 0)} ссылок!`
+    );
     this.newLinks = result;
   }
 

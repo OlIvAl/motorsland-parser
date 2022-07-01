@@ -1,4 +1,4 @@
-import { IImageBuilder } from "./interfases";
+import { IImageBuilder, IWatermarkSettings } from "./interfases";
 import fetch from "cross-fetch";
 import Jimp from "jimp";
 import { WATERMARK_FILE } from "../constants";
@@ -7,7 +7,10 @@ export class ImageBuilder implements IImageBuilder {
   private fileName: string = "";
   private buffer?: Buffer;
 
-  constructor(private imgSrc: string) {
+  constructor(
+    private imgSrc: string,
+    private watermarkSettings?: IWatermarkSettings
+  ) {
     this.init = this.init.bind(this);
     this.setWatermark = this.setWatermark.bind(this);
     this.getBuffer = this.getBuffer.bind(this);
@@ -31,19 +34,16 @@ export class ImageBuilder implements IImageBuilder {
     }
 
     try {
-      const [image, watermark] = await Promise.all([
-        Jimp.read(this.buffer),
-        Jimp.read(WATERMARK_FILE),
-      ]);
+      let image: Jimp = await Jimp.read(this.buffer);
 
-      watermark.resize(watermark.bitmap.width / 2, Jimp.AUTO);
+      if (this.watermarkSettings) {
+        image = await ImageBuilder.compositeWatermark(
+          image,
+          this.watermarkSettings
+        );
+      }
 
       this.buffer = await image
-        .composite(
-          watermark,
-          image.bitmap.width - watermark.bitmap.width,
-          image.bitmap.height - watermark.bitmap.height
-        )
         .quality(50)
         .resize(960, Jimp.AUTO)
         .getBufferAsync("image/jpeg");
@@ -60,5 +60,41 @@ export class ImageBuilder implements IImageBuilder {
     }
 
     return [this.fileName, this.buffer];
+  }
+  private static async compositeWatermark(
+    image: Jimp,
+    settings: IWatermarkSettings
+  ): Promise<Jimp> {
+    let watermark: Jimp = await Jimp.read(WATERMARK_FILE);
+
+    watermark.resize(
+      watermark.bitmap.width * settings.watermarkScale,
+      Jimp.AUTO
+    );
+
+    switch (settings.position) {
+      case "right top":
+        return image.composite(
+          watermark,
+          image.bitmap.width - watermark.bitmap.width,
+          0
+        );
+      case "right bottom":
+        return image.composite(
+          watermark,
+          image.bitmap.width - watermark.bitmap.width,
+          image.bitmap.height - watermark.bitmap.height
+        );
+      case "left top":
+        return image.composite(watermark, 0, 0);
+      case "left bottom":
+        return image.composite(
+          watermark,
+          0,
+          image.bitmap.height - watermark.bitmap.height
+        );
+      default:
+        throw new Error("Unknown position!!!");
+    }
   }
 }

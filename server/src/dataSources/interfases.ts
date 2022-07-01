@@ -87,7 +87,6 @@ export interface IUsefulFieldData
 
 export interface ITableUploadingSource {
   linkListUrl: string;
-  imagesXPath: string;
 }
 
 export interface ITableDocumentSourceRelation {
@@ -106,6 +105,15 @@ export interface ITableUploadingFieldSource {
   cleanRegexp?: string;
   source: string;
 }
+export interface ITableWatermarkSettings {
+  source: string;
+  watermark: boolean;
+  watermarkScale: number;
+  position: string;
+}
+
+export interface IWatermarkSettings
+  extends Pick<ITableWatermarkSettings, "watermarkScale" | "position"> {}
 
 export interface IFieldSelector {
   field: string;
@@ -114,13 +122,16 @@ export interface IFieldSelector {
 }
 
 export interface ITableSource {
-  lastPageXpath: string;
+  lastPageXpath?: string;
+  nextPageXpath?: string;
   linkXpath: string;
   listPageExpression: string;
   preVendorCode: string;
   site: string;
   markup: number;
   exchangeRate: number;
+  imagesXPath?: string;
+  disabled: boolean;
 }
 export interface ITableImage {
   url: string;
@@ -130,4 +141,5 @@ export interface ITableImage {
 export interface ISource extends ITableSource, ITableUploadingSource {
   name: string;
   fields: IFieldSelector[];
+  watermarkSettings?: IWatermarkSettings;
 }

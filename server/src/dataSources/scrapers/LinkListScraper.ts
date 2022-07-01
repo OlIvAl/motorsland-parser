@@ -5,9 +5,11 @@ import { BrowserFacade } from "./BrowserFacade";
 
 export class LinkListScraper implements ILinkListScraper {
   private page?: Page;
-  private vendorCodesListFromLastDocument?: string[];
+  // private vendorCodesListFromLastDocument?: string[];
+  private site?: string;
   private url?: string;
   private lastPageXpath?: string;
+  private nextPageXpath?: string;
   private linkXpath?: string;
   private listPageExpression?: string;
   private preVendorCode?: string;
@@ -16,10 +18,12 @@ export class LinkListScraper implements ILinkListScraper {
     this.setSource = this.setSource.bind(this);
     this.setVendorCodesListFromLastDocument =
       this.setVendorCodesListFromLastDocument.bind(this);
-    this.getNewLinks = this.getNewLinks.bind(this);
     this.init = this.init.bind(this);
-    this.assembleNewLinksList = this.assembleNewLinksList.bind(this);
+    this.getNewLinks = this.getNewLinks.bind(this);
+    this.getNewLinksWithLastPage = this.getNewLinksWithLastPage.bind(this);
+    this.getNewLinksWithNextPage = this.getNewLinksWithNextPage.bind(this);
     this.scrapLastPageNumber = this.scrapLastPageNumber.bind(this);
+    this.scrapNextPageLink = this.scrapNextPageLink.bind(this);
     this.scrapLinks = this.scrapLinks.bind(this);
     this.dispose = this.dispose.bind(this);
   }
@@ -27,94 +31,164 @@ export class LinkListScraper implements ILinkListScraper {
   setSource(source: ISource): void {
     this.linkXpath = source.linkXpath;
     this.lastPageXpath = source.lastPageXpath;
+    this.nextPageXpath = source.nextPageXpath;
     this.listPageExpression = source.listPageExpression;
+    this.site = source.site;
     this.url = source.site + source.linkListUrl;
     this.preVendorCode = source.preVendorCode;
   }
   setVendorCodesListFromLastDocument(codes: string[]): void {
-    this.vendorCodesListFromLastDocument = codes;
-  }
-
-  async getNewLinks(): Promise<string[]> {
-    console.log("Начат процесс сбора новых ссылок");
-
-    const result = await this.assembleNewLinksList();
-
-    console.log(
-      `Закончен процесс сбора новых ссылок. Результат: ${result.length} ссылок`
-    );
-
-    return result;
+    // this.vendorCodesListFromLastDocument = codes;
   }
 
   private async init(): Promise<void> {
     this.page = await this.browser.openNewPage();
   }
 
-  private async assembleNewLinksList(): Promise<string[]> {
-    if (!this.vendorCodesListFromLastDocument) {
-      throw Error("VendorCodesListFromLastDocument не проинициализирован!");
+  async getNewLinks(): Promise<string[]> {
+    await this.init();
+
+    if (!this.page) {
+      throw Error("Страница не проинициализирован!");
     }
-    if (!this.preVendorCode) {
-      throw Error("PreVendorCode не проинициализирован!");
+    if (!this.url) {
+      throw Error("url не проинициализировано!");
+    }
+
+    await this.page.goto(this.url, { waitUntil: "networkidle2" });
+
+    if (this.lastPageXpath) {
+      return await this.getNewLinksWithLastPage();
+    } else if (this.nextPageXpath) {
+      return await this.getNewLinksWithNextPage();
+    }
+
+    throw new Error("I do not know, how I can do it!!!");
+  }
+
+  private async getNewLinksWithLastPage(): Promise<string[]> {
+    /*if (!this.vendorCodesListFromLastDocument) {
+      throw Error("VendorCodesListFromLastDocument не проинициализирован!");
+    }*/
+    if (!this.url) {
+      throw Error("url не проинициализировано!");
+    }
+    if (!this.listPageExpression) {
+      throw new Error("listPageExpression не проинициализировано!");
     }
 
     let flag = false;
+    let result: string[] = [];
 
-    async function innerGetLinks(
-      vendorCodesListFromLastDocument: string[],
-      getLinksFromList: (pageNumber: number) => Promise<string[]>,
-      lastPage: number,
-      preVendorCode: string,
-      result: string[] = []
-    ): Promise<string[]> {
-      console.log(`Начат сбор ссылок!`);
-      for (let i = 1; i < lastPage; i++) {
-        if (flag) {
-          break;
-        }
+    const getUrl = (
+      baseUrl: string,
+      listPageExpression: string,
+      page: number
+    ): string => {
+      const listPageSubStr = listPageExpression.replace(
+        "${number}",
+        page.toString()
+      );
 
-        const links = await getLinksFromList(i);
-
-        for (let j = 0; j < links.length; j++) {
-          const link = links[j];
-          // const vendorCode = (link.match(/(\d+)\/$/) as string[])[1];
-
-          if (
-            // ToDo: RETURN!!!!
-            /*(vendorCodesListFromLastDocument.length &&
-              !vendorCodesListFromLastDocument.includes(
-                vendorCode
-                  .toString()
-                  .replace(new RegExp(`^${preVendorCode.toString()}`), "")
-              )) ||*/
-            result.length >= 9000
-          ) {
-            flag = true;
-            break;
-          } else {
-            result = [...result, link];
-          }
-        }
-        console.log(`Завершился сбор ссылок с ${i} страницы!`);
-      }
-
-      return result;
-    }
-
+      return baseUrl + listPageSubStr;
+    };
     const lastPage = await this.scrapLastPageNumber();
 
-    return await innerGetLinks(
-      this.vendorCodesListFromLastDocument,
-      this.scrapLinks,
-      lastPage,
-      this.preVendorCode
-    );
+    for (let i = 1; i < lastPage; i++) {
+      if (flag) {
+        break;
+      }
+
+      await this.init();
+      const links = await this.scrapLinks(
+        getUrl(this.url, this.listPageExpression, i)
+      );
+      await this.dispose();
+
+      for (let j = 0; j < links.length; j++) {
+        const link = links[j];
+        // const vendorCode = (link.match(/(\d+)\/$/) as string[])[1];
+
+        if (
+          // ToDo: RETURN!!!!
+          /*(vendorCodesListFromLastDocument.length &&
+            !vendorCodesListFromLastDocument.includes(
+              vendorCode
+            )) ||*/
+          result.length >= 100000
+        ) {
+          flag = true;
+          break;
+        } else {
+          result = [...result, link];
+        }
+      }
+      console.log(`Завершился сбор ссылок с ${i} страницы!`);
+    }
+
+    return result;
+  }
+  private async getNewLinksWithNextPage(): Promise<string[]> {
+    /*if (!this.vendorCodesListFromLastDocument) {
+      throw Error("VendorCodesListFromLastDocument не проинициализирован!");
+    }*/
+    if (!this.page) {
+      throw Error("Страница не проинициализирован!");
+    }
+    if (!this.url) {
+      throw Error("url не проинициализировано!");
+    }
+
+    let result: string[] = [];
+    let flag = false;
+    let pageNumber = 0;
+    let url: string | undefined = this.url;
+
+    do {
+      pageNumber = pageNumber + 1;
+      if (flag) {
+        break;
+      }
+
+      // Почему 2 раза??? Разобраться!!!!
+      // объединить!!!
+      await this.init();
+
+      const links = await this.scrapLinks(url as string);
+
+      for (let j = 0; j < links.length; j++) {
+        const link = links[j];
+        // const vendorCode = (link.match(/(\d+)\/$/) as string[])[1];
+
+        if (
+          // ToDo: RETURN!!!!
+          /*(this.vendorCodesListFromLastDocument.length &&
+            !this.vendorCodesListFromLastDocument.includes(
+              vendorCode
+            )) ||*/
+          result.length >= 100000
+        ) {
+          flag = true;
+          break;
+        } else {
+          result = [...result, link];
+        }
+      }
+      console.log(`Завершился сбор ссылок с ${pageNumber} страницы!`);
+
+      url = await this.scrapNextPageLink();
+
+      await this.dispose();
+
+      if (!url) {
+        break;
+      }
+    } while (true);
+
+    return result;
   }
 
   private async scrapLastPageNumber(): Promise<number> {
-    await this.init();
-
     if (!this.page) {
       throw Error("Страница не проинициализирован!");
     }
@@ -125,8 +199,6 @@ export class LinkListScraper implements ILinkListScraper {
       throw Error("lastPageXpath не проинициализировано!");
     }
 
-    await this.page.goto(this.url, { waitUntil: "networkidle2" });
-
     const lastPageTagHandles = await this.page.$x(this.lastPageXpath);
 
     if (!lastPageTagHandles.length) {
@@ -134,7 +206,8 @@ export class LinkListScraper implements ILinkListScraper {
     }
 
     const lastPage = await this.page.evaluate(
-      (a) => a.textContent || "",
+      // @ts-ignore
+      (a) => a.getAttribute("href").match(/\d+$/g)[0] || "",
       lastPageTagHandles[0]
     );
 
@@ -149,44 +222,59 @@ export class LinkListScraper implements ILinkListScraper {
     return parseInt(lastPage as string);
   }
 
-  private async scrapLinks(pageNumber: number): Promise<string[]> {
+  private async scrapNextPageLink(): Promise<string | undefined> {
+    let nextPageLink = "";
+    if (!this.page) {
+      throw Error("Страница не проинициализирован!");
+    }
+    if (!this.url) {
+      throw Error("url не проинициализировано!");
+    }
+    if (!this.nextPageXpath) {
+      throw Error("nextPageXpath не проинициализировано!");
+    }
+
+    const nextPageTagHandles = await this.page.$x(this.nextPageXpath);
+
+    if (nextPageTagHandles.length) {
+      nextPageLink = await this.page.evaluate(
+        (a) => a.getAttribute("href") || "",
+        nextPageTagHandles[0]
+      );
+    }
+
+    return nextPageLink;
+  }
+
+  private async scrapLinks(url: string): Promise<string[]> {
     if (!this.page) {
       throw new Error("Страница не проинициализирован!");
     }
     if (!this.linkXpath) {
       throw new Error("linkXpath не проинициализировано!");
     }
-    if (!this.listPageExpression) {
-      throw new Error("listPageExpression не проинициализировано!");
-    }
 
-    const listPageSubStr = this.listPageExpression.replace(
-      "${number}",
-      pageNumber.toString()
-    );
+    const resultUrl = new RegExp(`^${this.site}`).test(url)
+      ? url
+      : this.site + url;
 
-    await this.init();
-
-    await this.page.goto(this.url + listPageSubStr, {
+    await this.page.goto(resultUrl, {
       waitUntil: "networkidle2",
     });
 
     const linksFromListHandles = await this.page.$x(this.linkXpath);
 
     if (!linksFromListHandles.length) {
+      console.log(await this.page.content());
       throw Error("Ссылки на товары не найдены!");
     }
 
-    const result = await Promise.all(
+    return await Promise.all(
       linksFromListHandles.map((handler) =>
         // @ts-ignore
         this.page.evaluate((a) => a.href || "", handler)
       )
     );
-
-    await this.dispose();
-
-    return result;
   }
 
   private async dispose(): Promise<void> {
