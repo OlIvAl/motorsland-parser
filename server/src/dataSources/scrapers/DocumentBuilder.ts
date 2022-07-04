@@ -3,13 +3,14 @@ import { IBrowserFacade, IDocumentBuilder } from "./interfaces";
 import { BrowserFacade } from "./BrowserFacade";
 import { LinkListScraper } from "./LinkListScraper";
 import { DataScraper } from "./DataScraper";
+import { getLocalTime } from "../../libs/getLocalTime";
 
 export class DocumentBuilder implements IDocumentBuilder {
   private browser?: IBrowserFacade;
   private sources?: ISource[];
   private vendorCodesListFromLastDocument?: string[];
   private newLinks: string[][] = [];
-  private items: IItemData[] = [];
+  private itemsBySources: IItemData[][] = [];
   private dictionary: IItemSourceDictionary[] = [];
 
   constructor() {
@@ -20,7 +21,7 @@ export class DocumentBuilder implements IDocumentBuilder {
       this.setVendorCodesListFromLastDocument.bind(this);
     this.scrapNewLinks = this.scrapNewLinks.bind(this);
     this.scrapData = this.scrapData.bind(this);
-    this.getScrapedData = this.getScrapedData.bind(this);
+    this.getItemsBySources = this.getItemsBySources.bind(this);
     this.getNewLinks = this.getNewLinks.bind(this);
     this.getNewLinksLength = this.getNewLinksLength.bind(this);
     this.dispose = this.dispose.bind(this);
@@ -34,9 +35,11 @@ export class DocumentBuilder implements IDocumentBuilder {
   setSources(sources: ISource[]): void {
     this.sources = sources;
   }
+
   setNewLinks(links: string[][]): void {
     this.newLinks = links;
   }
+
   setVendorCodesListFromLastDocument(codes: string[]): void {
     this.vendorCodesListFromLastDocument = codes;
   }
@@ -90,9 +93,12 @@ export class DocumentBuilder implements IDocumentBuilder {
 
     const dataScraper = new DataScraper(this.browser);
 
-    let items: IItemData[] = [];
+    let items: IItemData[][] = [];
     let dictionary: IItemSourceDictionary[] = [];
     for (let i = 0; i < this.sources.length; i++) {
+      console.log(
+        `${getLocalTime()} Начата обработка позиций от ${this.sources[i].name}`
+      );
       dataScraper.setSource(this.sources[i]);
 
       const sourceItems = await dataScraper.assembleScrapedData(
@@ -103,23 +109,29 @@ export class DocumentBuilder implements IDocumentBuilder {
         sourceName: (this.sources as ISource[])[i].name,
       }));
 
-      items = [...items, ...sourceItems];
+      items = [...items, sourceItems];
       dictionary = [...dictionary, ...sourceDictionary];
+      console.log(
+        `${getLocalTime()} Завершена обработка позиций от ${
+          this.sources[i].name
+        }`
+      );
     }
 
-    this.items = items;
+    this.itemsBySources = items;
     this.dictionary = dictionary;
   }
 
-  getScrapedData(): IItemData[] {
-    return this.items;
-  }
-  getDictionary(): IItemSourceDictionary[] {
-    return this.dictionary;
+  getItemsBySources(): IItemData[][] {
+    return this.itemsBySources;
   }
 
   getNewLinks(): string[][] {
     return this.newLinks;
+  }
+
+  getDictionary(): IItemSourceDictionary[] {
+    return this.dictionary;
   }
 
   getNewLinksLength(): number {

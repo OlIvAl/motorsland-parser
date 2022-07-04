@@ -1,10 +1,12 @@
 import { IDocument } from "../../../domain/entity/Document/structures/interfaces";
+import { Document } from "../../../domain/entity/Document/structures/Document";
 import { IDocumentRepository } from "../../../domain/repository/Document";
 import {
   IAzureBlobStorage,
   IDocumentTableClient,
   IItemData,
   IItemSourceDictionary,
+  ISource,
   IUploadingTableClient,
   IUsefulFieldData,
   IWatermarkSettings,
@@ -18,6 +20,7 @@ import { UPLOADING_NAME } from "../../../constants";
 import { injected } from "brandi";
 import { DATA_SOURCE_REMOTE } from "../../../di/dataSource";
 import { Conveyor } from "../../../dataSources/scrapers/Conveyor";
+import { getLocalTime } from "../../../libs/getLocalTime";
 
 // Todo: delete temporary files!!!!!!!!
 export class DocumentRepository implements IDocumentRepository {
@@ -44,22 +47,10 @@ export class DocumentRepository implements IDocumentRepository {
   }
 
   async getDocument(name: string): Promise<IItemData[]> {
-    console.log(
-      `${new Date().toLocaleDateString("ru", {
-        hour: "numeric",
-        minute: "numeric",
-        second: "numeric",
-      })} Начата выборка полей`
-    );
+    console.log(`${getLocalTime()} Начата выборка полей`);
     const items = await this.documentTableClient.get(name);
 
-    console.log(
-      `${new Date().toLocaleDateString("ru", {
-        hour: "numeric",
-        minute: "numeric",
-        second: "numeric",
-      })} Закончена выборка полей`
-    );
+    console.log(`${getLocalTime()} Закончена выборка полей`);
 
     const conveyor = new Conveyor<IUsefulFieldData[], IItemData>(
       items,
@@ -148,7 +139,8 @@ export class DocumentRepository implements IDocumentRepository {
       throw new BadRequest(ErrCodes.PROCESS_IS_BUSY);
     }
 
-    let docObj: IItemData[] = [];
+    let itemsBySources: IItemData[][] = [];
+    let items: IItemData[] = [];
     let dictionary: IItemSourceDictionary[] = [];
 
     try {
@@ -162,8 +154,6 @@ export class DocumentRepository implements IDocumentRepository {
       const sources = await this.uploadingTableClient.getUploadingSources(
         uploading
       );
-
-      console.log("sources => ", sources);
 
       await this.documentBuilder.dispose();
       await this.documentBuilder.init();
@@ -181,7 +171,10 @@ export class DocumentRepository implements IDocumentRepository {
         newLinks = await this.getNewLinksFromPages(uploading);
       }
       if (
-        !(await this.tempStorage.isBlobExist(`${uploading}_scraped_data.json`))
+        !(await this.tempStorage.isBlobExist(
+          `${uploading}_items_by_sources.json`
+        )) &&
+        !(await this.tempStorage.isBlobExist(`${uploading}_new_links.json`))
       ) {
         newLinks = await this.getNewLinksFromTempStorage(uploading);
       }
@@ -189,16 +182,24 @@ export class DocumentRepository implements IDocumentRepository {
       this.documentBuilder.setNewLinks(newLinks);
 
       if (
-        !(await this.tempStorage.isBlobExist(`${uploading}_scraped_data.json`))
+        !(await this.tempStorage.isBlobExist(
+          `${uploading}_items_by_sources.json`
+        ))
       ) {
-        [docObj, dictionary] = await this.getDataFromPages(uploading);
+        [itemsBySources, dictionary] = await this.getDataFromPages(uploading);
       }
       if (
         !(await this.tempStorage.isBlobExist(
-          `${uploading}_scraped_data_with_images.json`
+          `${uploading}_items_with_images.json`
+        )) &&
+        !(await this.tempStorage.isBlobExist(
+          `${uploading}_items_by_sources.json`
         ))
       ) {
-        [docObj, dictionary] = await this.getDataFromTempStorage(uploading);
+        [itemsBySources, dictionary] = await Promise.all([
+          this.getItemsBySourceFromTempStorage(uploading),
+          this.getDictionaryFromTempStorage(uploading),
+        ]);
       }
 
       await this.documentBuilder.dispose();
@@ -206,39 +207,31 @@ export class DocumentRepository implements IDocumentRepository {
 
       const chunkSize = 10;
 
-      console.log(
-        `Время начала: ${new Date().toLocaleDateString("ru", {
-          hour: "numeric",
-          minute: "numeric",
-          second: "numeric",
-        })}`
-      );
+      console.log(`Время начала: ${getLocalTime()}`);
 
       if (
         !(await this.tempStorage.isBlobExist(
-          `${uploading}_scraped_data_with_images.json`
+          `${uploading}_items_with_images.json`
         ))
       ) {
-        const watermarkSettingsArr = sources.map(
-          (source) => source.watermarkSettings
-        );
-        const sourceNames = sources.map((source) => source.name);
-        docObj = await this.getHandledData(
+        items = await this.getHandledData(
           uploading,
-          docObj,
+          itemsBySources,
           chunkSize,
-          watermarkSettingsArr,
-          sourceNames
+          sources
         );
       } else {
-        docObj = await this.getHandledDataFromTempStorage(uploading);
+        [items, dictionary] = await Promise.all([
+          this.getHandledDataFromTempStorage(uploading),
+          this.getDictionaryFromTempStorage(uploading),
+        ]);
       }
 
       const date = new Date();
 
       const resp = await this.documentTableClient.addDocument(
         uploading,
-        docObj,
+        items,
         dictionary
       );
 
@@ -246,15 +239,9 @@ export class DocumentRepository implements IDocumentRepository {
 
       await this.uploadingTableClient.setNewDocumentsCount(uploading, 0);
 
-      await this.deleteUploadingTempFiles(uploading);
+      // await this.deleteUploadingTempFiles(uploading);
 
-      console.log(
-        `Время окончания: ${new Date().toLocaleDateString("ru", {
-          hour: "numeric",
-          minute: "numeric",
-          second: "numeric",
-        })}`
-      );
+      console.log(`Время окончания: ${getLocalTime()}`);
 
       return {
         ...new Document(),
@@ -314,15 +301,15 @@ export class DocumentRepository implements IDocumentRepository {
 
   private async getDataFromPages(
     uploading: UPLOADING_NAME
-  ): Promise<[IItemData[], IItemSourceDictionary[]]> {
+  ): Promise<[IItemData[][], IItemSourceDictionary[]]> {
     await this.documentBuilder.scrapData();
 
-    const docObj = this.documentBuilder.getScrapedData();
+    const itemsBySources = this.documentBuilder.getItemsBySources();
     const dictionary = this.documentBuilder.getDictionary();
 
     await this.tempStorage.upload(
-      Buffer.from(JSON.stringify(docObj)),
-      `${uploading}_scraped_data.json`,
+      Buffer.from(JSON.stringify(itemsBySources)),
+      `${uploading}_items_by_sources.json`,
       "text/plain"
     );
     await this.tempStorage.upload(
@@ -332,15 +319,15 @@ export class DocumentRepository implements IDocumentRepository {
     );
     console.log("Список собранных данных записан в хранилище!");
 
-    return [docObj, dictionary];
+    return [itemsBySources, dictionary];
   }
 
-  private async getDataFromTempStorage(
+  /*private async getDataFromTempStorage(
     uploading: UPLOADING_NAME
-  ): Promise<[IItemData[], IItemSourceDictionary[]]> {
+  ): Promise<[IItemData[][], IItemSourceDictionary[]]> {
     const docObj = JSON.parse(
       (
-        await this.tempStorage.getBuffer(`${uploading}_scraped_data.json`)
+        await this.tempStorage.getBuffer(`${uploading}_items_by_sources.json`)
       ).toString()
     );
     const dictionary = JSON.parse(
@@ -350,54 +337,76 @@ export class DocumentRepository implements IDocumentRepository {
     );
 
     console.log(
-      `Список из ${docObj.length} элементов собранных данных взят из хранилища!`
+      `Список из ${
+        docObj.flat().length
+      } элементов собранных данных взят из хранилища!`
     );
 
     return [docObj, dictionary];
+  }*/
+
+  private async getItemsBySourceFromTempStorage(
+    uploading: UPLOADING_NAME
+  ): Promise<IItemData[][]> {
+    const docObj = JSON.parse(
+      (
+        await this.tempStorage.getBuffer(`${uploading}_items_by_sources.json`)
+      ).toString()
+    );
+
+    console.log(
+      `Список из ${
+        docObj.flat().length
+      } элементов собранных данных взят из хранилища!`
+    );
+
+    return docObj;
+  }
+  private async getDictionaryFromTempStorage(
+    uploading: UPLOADING_NAME
+  ): Promise<IItemSourceDictionary[]> {
+    return JSON.parse(
+      (
+        await this.tempStorage.getBuffer(`${uploading}_dictionary.json`)
+      ).toString()
+    );
   }
 
   private async getHandledData(
     uploading: UPLOADING_NAME,
-    docObj: IItemData[],
+    itemsBySources: IItemData[][],
     chunkSize: number,
-    watermarkSettingsArr: (IWatermarkSettings | undefined)[],
-    sourceNames: string[]
+    sources: ISource[]
   ): Promise<IItemData[]> {
     let result: IItemData[] = [];
 
-    for (let i = 0; i < watermarkSettingsArr.length; i++) {
+    for (let i = 0; i < sources.length; i++) {
+      const source = sources[i];
       console.log(
-        `${new Date().toLocaleDateString("ru", {
-          hour: "numeric",
-          minute: "numeric",
-          second: "numeric",
-        })} Начата обработка картинок от ${sourceNames[i]}`
+        `${getLocalTime()} Начата обработка картинок от ${source.name}`
       );
 
-      const watermarkSettings = watermarkSettingsArr[i];
       const conveyor = new Conveyor<IItemData, IItemData>(
-        docObj,
+        itemsBySources[i],
         chunkSize,
         this.imageFolderHandler,
-        [watermarkSettings]
+        [source.watermarkSettings]
       );
+
+      conveyor.setLogNumber(10);
 
       const resultOfSource = await conveyor.handle();
 
       result = [...result, ...resultOfSource];
 
       console.log(
-        `${new Date().toLocaleDateString("ru", {
-          hour: "numeric",
-          minute: "numeric",
-          second: "numeric",
-        })} Завершена обработка картинок от ${sourceNames[i]}`
+        `${getLocalTime()} Завершена обработка картинок от ${source.name}`
       );
     }
 
     await this.tempStorage.upload(
       Buffer.from(JSON.stringify(result)),
-      `${uploading}_scraped_data_with_images.json`,
+      `${uploading}_items_with_images.json`,
       "text/plain"
     );
     console.log("Список обработанных данных записан в хранилище!");
@@ -410,14 +419,14 @@ export class DocumentRepository implements IDocumentRepository {
   ): Promise<IItemData[]> {
     const result = JSON.parse(
       (
-        await this.tempStorage.getBuffer(
-          `${uploading}_scraped_data_with_images.json`
-        )
+        await this.tempStorage.getBuffer(`${uploading}_items_with_images.json`)
       ).toString()
     );
 
     console.log(
-      `Список из ${result.length} обработанных элементов собранных данных взят из хранилища!`
+      `Список из ${
+        result.flat().length
+      } обработанных элементов собранных данных взят из хранилища!`
     );
 
     return result;
@@ -434,22 +443,20 @@ export class DocumentRepository implements IDocumentRepository {
       await this.tempStorage.deleteBlob(`${uploading}_dictionary.json`);
       console.log("Удален dictionary.json после сбора данных со страниц!");
     }
-    if (await this.tempStorage.isBlobExist(`${uploading}_scraped_data.json`)) {
-      await this.tempStorage.deleteBlob(`${uploading}_scraped_data.json`);
+    if (
+      await this.tempStorage.isBlobExist(`${uploading}_items_by_sources.json`)
+    ) {
+      await this.tempStorage.deleteBlob(`${uploading}_items_by_sources.json`);
       console.log(
-        "Удален scraped_data.json после успешного обработки изображений!"
+        "Удален items_by_sources.json после успешного обработки изображений!"
       );
     }
     if (
-      await this.tempStorage.isBlobExist(
-        `${uploading}_scraped_data_with_images.json`
-      )
+      await this.tempStorage.isBlobExist(`${uploading}_items_with_images.json`)
     ) {
-      await this.tempStorage.deleteBlob(
-        `${uploading}_scraped_data_with_images.json`
-      );
+      await this.tempStorage.deleteBlob(`${uploading}_items_with_images.json`);
       console.log(
-        "Удален scraped_data_with_images.json после успешного добавления нового документа в БД!"
+        "Удален items_with_images.json после успешного добавления нового документа в БД!"
       );
     }
   }
@@ -466,10 +473,11 @@ export class DocumentRepository implements IDocumentRepository {
     data.images = (
       await Promise.all(
         data.images.map(async (imgSrc: string) => {
+          let fileName = "";
           const imageBuilder = new ImageBuilder(imgSrc, watermarkSettings);
 
-          const [fileName, buffer] = await imageBuilder.getBuffer();
           try {
+            const [fileName, buffer] = await imageBuilder.getBuffer();
             await this.imagesStorage.upload(buffer, fileName, "image/jpeg");
 
             return decodeURIComponent(this.imagesStorage.getURL(fileName));
@@ -482,7 +490,6 @@ export class DocumentRepository implements IDocumentRepository {
         })
       )
     ).filter((str) => Boolean(str));
-
     return data;
   }
 

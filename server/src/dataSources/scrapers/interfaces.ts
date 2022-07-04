@@ -12,7 +12,7 @@ export interface IDocumentBuilder {
 
   scrapNewLinks(): Promise<void>;
   scrapData(): Promise<void>;
-  getScrapedData(): IItemData[];
+  getItemsBySources(): IItemData[][];
   getDictionary(): IItemSourceDictionary[];
   getNewLinks(): string[][];
   getNewLinksLength(): number;

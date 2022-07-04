@@ -93,6 +93,12 @@ export class ImageBuilder implements IImageBuilder {
           0,
           image.bitmap.height - watermark.bitmap.height
         );
+      case "center center":
+        return image.composite(
+          watermark,
+          (image.bitmap.width - watermark.bitmap.width) / 2,
+          (image.bitmap.height - watermark.bitmap.height) / 2
+        );
       default:
         throw new Error("Unknown position!!!");
     }

@@ -1,3 +1,5 @@
+import { getLocalTime } from "../../libs/getLocalTime";
+
 export class Conveyor<E, R> {
   private arrCounter = 0;
   private matrix: E[][];
@@ -26,13 +28,7 @@ export class Conveyor<E, R> {
   }
 
   async handle(): Promise<R[]> {
-    console.log(
-      `${new Date().toLocaleDateString("ru", {
-        hour: "numeric",
-        minute: "numeric",
-        second: "numeric",
-      })} Начата обработка линий`
-    );
+    console.log(`${getLocalTime()} Начата обработка линий`);
 
     const result = await Promise.all(
       this.matrix.map((arr) => this.handleSubArr(arr))
@@ -40,13 +36,7 @@ export class Conveyor<E, R> {
 
     const flatResult = result.flat();
 
-    console.log(
-      `${new Date().toLocaleDateString("ru", {
-        hour: "numeric",
-        minute: "numeric",
-        second: "numeric",
-      })} Обработано ${flatResult.length} элементов`
-    );
+    console.log(`${getLocalTime()} Обработано ${flatResult.length} элементов`);
 
     return flatResult;
   }
@@ -59,26 +49,14 @@ export class Conveyor<E, R> {
       const i = this.arrCounter;
 
       if (this.startHandleTime && i % this.logNumber === 0) {
-        console.log(
-          `${new Date().toLocaleDateString("ru", {
-            hour: "numeric",
-            minute: "numeric",
-            second: "numeric",
-          })} Начата обработка ${i} элемента`
-        );
+        console.log(`${getLocalTime()} Начата обработка ${i} элемента`);
       }
 
       const result = await this.elementHandler(elem, ...this.params);
       resultArr.push(result);
 
       if (this.finishHandleTime && i % this.logNumber === 0) {
-        console.log(
-          `${new Date().toLocaleDateString("ru", {
-            hour: "numeric",
-            minute: "numeric",
-            second: "numeric",
-          })} Закончена обработка ${i} элемента`
-        );
+        console.log(`${getLocalTime()} Закончена обработка ${i} элемента`);
       }
     }
 

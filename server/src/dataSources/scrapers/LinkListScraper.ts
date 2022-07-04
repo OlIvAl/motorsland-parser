@@ -115,7 +115,7 @@ export class LinkListScraper implements ILinkListScraper {
             !vendorCodesListFromLastDocument.includes(
               vendorCode
             )) ||*/
-          result.length >= 100000
+          result.length >= 100
         ) {
           flag = true;
           break;
@@ -166,7 +166,7 @@ export class LinkListScraper implements ILinkListScraper {
             !this.vendorCodesListFromLastDocument.includes(
               vendorCode
             )) ||*/
-          result.length >= 100000
+          result.length >= 100
         ) {
           flag = true;
           break;

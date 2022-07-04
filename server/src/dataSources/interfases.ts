@@ -100,10 +100,11 @@ export interface ITableField {
   title: string;
 }
 export interface ITableUploadingFieldSource {
+  source: string;
   field: string;
   xpath: string;
   cleanRegexp?: string;
-  source: string;
+  regexp?: string;
 }
 export interface ITableWatermarkSettings {
   source: string;
@@ -115,11 +116,11 @@ export interface ITableWatermarkSettings {
 export interface IWatermarkSettings
   extends Pick<ITableWatermarkSettings, "watermarkScale" | "position"> {}
 
-export interface IFieldSelector {
-  field: string;
-  xpath: string;
-  cleanRegexp?: string;
-}
+export interface IFieldSelector
+  extends Pick<
+    ITableUploadingFieldSource,
+    "field" | "xpath" | "regexp" | "cleanRegexp"
+  > {}
 
 export interface ITableSource {
   lastPageXpath?: string;
@@ -130,7 +131,7 @@ export interface ITableSource {
   site: string;
   markup: number;
   exchangeRate: number;
-  imagesXPath?: string;
+  imagesXPath: string;
   disabled: boolean;
 }
 export interface ITableImage {

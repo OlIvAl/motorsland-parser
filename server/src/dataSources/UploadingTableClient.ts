@@ -196,6 +196,10 @@ export class UploadingTableClient implements IUploadingTableClient {
         "uploadingSource",
         uploadingSource.rowKey as string
       );
+
+      if (source.disabled) {
+        continue;
+      }
       // ToDo: оптимизировать!!!
       const [fieldRows, watermarkSettingsRows] = await Promise.all([
         this.uploadingFieldSourceTableClient.listEntities<ITableUploadingFieldSource>(
@@ -218,6 +222,7 @@ export class UploadingTableClient implements IUploadingTableClient {
         await watermarkSettingsRows.next()
       ).value;
 
+      // Привязать настройки полей к испочникам!!!
       item = {
         name: uploadingSource.rowKey as string,
         linkListUrl: uploadingSource.linkListUrl,
@@ -244,6 +249,7 @@ export class UploadingTableClient implements IUploadingTableClient {
         item.fields.push({
           field: field.field,
           xpath: field.xpath,
+          regexp: field.regexp,
           cleanRegexp: field.cleanRegexp,
         });
       }

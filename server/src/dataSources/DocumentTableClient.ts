@@ -19,6 +19,7 @@ import {
   IUsefulFieldData,
 } from "./interfases";
 import { Conveyor } from "./scrapers/Conveyor";
+import { getLocalTime } from "../libs/getLocalTime";
 
 export class DocumentTableClient implements IDocumentTableClient {
   private documentTableClient: TableClient;
@@ -121,6 +122,9 @@ export class DocumentTableClient implements IDocumentTableClient {
     // Separate by vendor code
     for await (let field of fields) {
       // ToDo: придумать что то интереснее!!!
+      console.log(sourcesRecord);
+      console.log(dictionaryRecord);
+      console.log(field.partitionKey);
       const usefulField: IUsefulFieldData = {
         name: field.name,
         value: field.value,
@@ -206,14 +210,9 @@ export class DocumentTableClient implements IDocumentTableClient {
     document: IItemData[],
     dictionary: IItemSourceDictionary[]
   ): Promise<IDocumentInfo> {
-    console.log(
-      `${new Date().toLocaleDateString("ru", {
-        hour: "numeric",
-        minute: "numeric",
-        second: "numeric",
-      })} Начато сохранение документа!`
-    );
+    console.log(`${getLocalTime()} Начато сохранение документа!`);
 
+    // ToDo: сохранять имя в хранилище
     const fileName = `${uploading}-${new Date().toISOString()}`;
 
     const dataFromPages: IFieldData[][] = document.map((itemData) => {
@@ -227,13 +226,16 @@ export class DocumentTableClient implements IDocumentTableClient {
 
     console.log("Начато сохранение картинок!");
 
+    // ToDo: использовать транзакции
     const imagesConveyor = new Conveyor<IItemData, void>(
       document,
       100,
       async (row) => {
         await Promise.all(
           row.images.map((src) => {
-            const name = (src.match(/\d+\/[\d\w_]+.jpg$/g) as string[])[0];
+            const name = (
+              src.match(/[\d\w]+\/[\d\w_-]+.(jpe?g|png)$/g) as string[]
+            )[0];
             return this.imagesTableClient.createEntity<ITableImage>({
               partitionKey: row.vendor_code,
               rowKey: encodeURIComponent(name),
@@ -249,11 +251,7 @@ export class DocumentTableClient implements IDocumentTableClient {
     await imagesConveyor.handle();
 
     console.log(
-      `${new Date().toLocaleDateString("ru", {
-        hour: "numeric",
-        minute: "numeric",
-        second: "numeric",
-      })} Сохранение картинок завершилось успешно! Сохранено ${
+      `${getLocalTime()} Сохранение картинок завершилось успешно! Сохранено ${
         document.length
       } элементов`
     );
@@ -262,13 +260,13 @@ export class DocumentTableClient implements IDocumentTableClient {
       dataFromPages,
       100,
       async (row) => {
+        const vendorCodeIndex = row.findIndex(
+          (field) => field.name === "vendor_code"
+        ) as number;
+        const vendorCode = row[vendorCodeIndex].value as string;
+
         await Promise.all(
           row.map((field) => {
-            const vendorCodeIndex = row.findIndex(
-              (field) => field.name === "vendor_code"
-            ) as number;
-            const vendorCode = row[vendorCodeIndex].value as string;
-
             return this.documentFieldTableClient.createEntity<ITableDocumentField>(
               {
                 partitionKey: vendorCode,
@@ -302,11 +300,7 @@ export class DocumentTableClient implements IDocumentTableClient {
     await dictionaryConveyor.handle();
 
     console.log(
-      `${new Date().toLocaleDateString("ru", {
-        hour: "numeric",
-        minute: "numeric",
-        second: "numeric",
-      })} Сохранение данных полей товаров завершилось успешно! Сохранено ${
+      `${getLocalTime()} Сохранение данных полей товаров завершилось успешно! Сохранено ${
         dataFromPages.length
       } элементов`
     );

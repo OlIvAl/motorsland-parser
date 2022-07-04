@@ -1,8 +1,9 @@
 import { IFieldSelector, IItemData, ISource } from "../interfases";
-import { Page } from "puppeteer";
+import { ElementHandle, Page } from "puppeteer";
 import { Conveyor } from "./Conveyor";
 import { IBrowserFacade } from "./interfaces";
 import { BrowserFacade } from "./BrowserFacade";
+import { getLocalTime } from "../../libs/getLocalTime";
 
 export class DataScraper {
   private source?: ISource;
@@ -26,41 +27,91 @@ export class DataScraper {
     page: Page,
     fieldSelector: IFieldSelector
   ): Promise<Record<string, string | undefined>> {
-    const { field, xpath, cleanRegexp } = fieldSelector;
+    const { field, xpath, cleanRegexp, regexp } = fieldSelector;
+    let elementHandlers: ElementHandle<Element>[] = [];
 
-    const elementHandlers = await page.$x(xpath);
+    if (/^\[.*\]$/.test(xpath)) {
+      const xpathSelectors = JSON.parse(xpath) as string[];
+      for (let xpathSelector of xpathSelectors) {
+        const handlers = await page.$x(decodeURIComponent(xpathSelector));
 
-    if (!elementHandlers.length && field === "price") {
-      console.warn(`На странице ${page.url()} отсутствует цена!`);
+        if (handlers.length) {
+          elementHandlers = handlers;
+          break;
+        } else {
+          continue;
+        }
+      }
+    } else {
+      elementHandlers = await page.$x(xpath);
     }
 
     if (!elementHandlers.length) {
       return { [field]: undefined };
     }
 
-    let value = (await page.evaluate(
-      (tag) => tag.textContent || "",
-      elementHandlers[0]
-    )) as string;
+    let value = (await page.evaluate((node: Node) => {
+      switch (node.nodeType) {
+        case 2:
+          return node.nodeValue;
+        case 3:
+          return node.textContent;
+        default:
+          throw new Error("Unknown node type!!!");
+      }
+    }, elementHandlers[0])) as string;
 
     if (cleanRegexp) {
       const match = cleanRegexp.match(
         new RegExp("^/(.*?)/([gimy]*)$")
-      ) as string[];
+      ) as RegExpMatchArray;
       value = value.replace(new RegExp(match[1], match[2]), "");
     }
+    if (regexp) {
+      const match = regexp.match(
+        new RegExp("^/(.*?)/([gimy]*)$")
+      ) as RegExpMatchArray;
 
-    return { [field]: value };
+      const result = value.match(new RegExp(match[1], match[2]));
+
+      value = result ? result[result.length - 1] : "";
+    }
+
+    return { [field]: value.trim() };
   }
 
   private async scrapImageLinks(xpath: string, page: Page): Promise<string[]> {
-    const imageHandlers = await page.$x(xpath);
+    if (!this.source) {
+      throw new Error("Source не проинициализирован!");
+    }
 
-    return await Promise.all(
-      imageHandlers.map((handler) =>
-        page!.evaluate((img) => (img as HTMLImageElement).src || "", handler)
-      )
-    );
+    try {
+      const imageHandlers = await page.$x(xpath);
+
+      return await Promise.all(
+        imageHandlers.map((handler) =>
+          page!.evaluate(
+            (src, sourceName) => {
+              switch (sourceName) {
+                case "f-avto.by":
+                  // @ts-ignore
+                  return ((src as Node).nodeValue as string)
+                    .match(/http.+(jpg|jpeg|webp|png|bmp)/)[0]
+                    .replace(/(http.+)(d\.)(jpg|jpeg|webp|png|bmp)/, "$1.$3");
+                default:
+                  return (src as Node).nodeValue || "";
+              }
+            },
+            handler,
+            this.source?.name
+          )
+        )
+      );
+    } catch (e) {
+      console.log(page.url());
+      console.log(e);
+      throw e;
+    }
   }
 
   private async scrapData(
@@ -99,8 +150,14 @@ export class DataScraper {
       this.scrapImageLinks(this.source.imagesXPath, page),
     ]);
 
-    await BrowserFacade.closePage(page);
+    if (data.vendor_code && !images.length) {
+      console.log(`На странице ${page.url()} не обнаружено картинок!!!`);
+    }
 
+    if (data.vendor_code && !data.price) {
+      console.warn(`На странице ${page.url()} отсутствует цена!`);
+    }
+    await BrowserFacade.closePage(page);
     if (data.vendor_code) {
       return { ...data, images };
     } else {
@@ -111,13 +168,7 @@ export class DataScraper {
   async assembleScrapedData(newLinksList: string[]): Promise<IItemData[]> {
     const chunkSize = 10;
 
-    console.log(
-      `Время начала: ${new Date().toLocaleDateString("ru", {
-        hour: "numeric",
-        minute: "numeric",
-        second: "numeric",
-      })}`
-    );
+    console.log(`Время начала: ${getLocalTime()}`);
 
     const conveyor = new Conveyor<string, IItemData | undefined>(
       newLinksList,
@@ -125,6 +176,9 @@ export class DataScraper {
       this.scrapDataByPage,
       [this.source]
     );
+
+    conveyor.setLogNumber(10);
+    conveyor.setStartHandleTime(false);
 
     return (await conveyor.handle()).filter((obj) =>
       Boolean(obj)
