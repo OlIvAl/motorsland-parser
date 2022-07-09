@@ -2,6 +2,7 @@ import {
   AzureNamedKeyCredential,
   odata,
   TableClient,
+  TableEntityResult,
 } from "@azure/data-tables";
 import { BlobClient } from "@azure/storage-blob";
 import { CONTAINER_NAME, UPLOADING_NAME } from "../constants";
@@ -18,7 +19,7 @@ import {
   ITableSource,
   IUsefulFieldData,
 } from "./interfases";
-import { Conveyor } from "./scrapers/Conveyor";
+import { Conveyor } from "../libs/Conveyor";
 import { getLocalTime } from "../libs/getLocalTime";
 
 export class DocumentTableClient implements IDocumentTableClient {
@@ -122,9 +123,6 @@ export class DocumentTableClient implements IDocumentTableClient {
     // Separate by vendor code
     for await (let field of fields) {
       // ToDo: придумать что то интереснее!!!
-      console.log(sourcesRecord);
-      console.log(dictionaryRecord);
-      console.log(field.partitionKey);
       const usefulField: IUsefulFieldData = {
         name: field.name,
         value: field.value,
@@ -233,9 +231,13 @@ export class DocumentTableClient implements IDocumentTableClient {
       async (row) => {
         await Promise.all(
           row.images.map((src) => {
-            const name = (
-              src.match(/[\d\w]+\/[\d\w_-]+.(jpe?g|png)$/g) as string[]
-            )[0];
+            const regexpResult = src.match(
+              /[\d\w]+\/[\d\w_)(-]+.(jpe?g|png)$/gi
+            ) as RegExpMatchArray;
+            if (!regexpResult) {
+              throw new Error(`Ошибка при парсинге ${src}!!!`);
+            }
+            const name = regexpResult[0];
             return this.imagesTableClient.createEntity<ITableImage>({
               partitionKey: row.vendor_code,
               rowKey: encodeURIComponent(name),
@@ -247,7 +249,8 @@ export class DocumentTableClient implements IDocumentTableClient {
         );
       }
     );
-
+    imagesConveyor.setLogNumber(1000);
+    imagesConveyor.setStartHandleTime(false);
     await imagesConveyor.handle();
 
     console.log(
@@ -267,36 +270,48 @@ export class DocumentTableClient implements IDocumentTableClient {
 
         await Promise.all(
           row.map((field) => {
-            return this.documentFieldTableClient.createEntity<ITableDocumentField>(
-              {
-                partitionKey: vendorCode,
-                rowKey: field.name,
-                name: field.name,
-                value: field.value,
-                document: fileName,
-              }
-            );
+            try {
+              return this.documentFieldTableClient.createEntity<ITableDocumentField>(
+                {
+                  partitionKey: vendorCode,
+                  rowKey: field.name,
+                  name: field.name,
+                  value: field.value,
+                  document: fileName,
+                }
+              );
+            } catch (e) {
+              console.log("error data => ", vendorCode, field.name);
+              throw e;
+            }
           })
         );
       }
     );
-
+    fieldDataConveyor.setLogNumber(1000);
+    fieldDataConveyor.setStartHandleTime(false);
     await fieldDataConveyor.handle();
 
     const dictionaryConveyor = new Conveyor<IItemSourceDictionary, void>(
       dictionary,
       100,
       async (row) => {
-        await this.documentSourceRelationTableClient.createEntity<ITableDocumentSourceRelation>(
-          {
-            partitionKey: row.sourceName,
-            rowKey: row.vendorCode,
-            document: fileName,
-          }
-        );
+        try {
+          await this.documentSourceRelationTableClient.createEntity<ITableDocumentSourceRelation>(
+            {
+              partitionKey: row.sourceName,
+              rowKey: row.vendorCode,
+              document: fileName,
+            }
+          );
+        } catch (e) {
+          console.log("error data => ", row.sourceName, row.vendorCode);
+          throw e;
+        }
       }
     );
-
+    dictionaryConveyor.setLogNumber(1000);
+    dictionaryConveyor.setStartHandleTime(false);
     await dictionaryConveyor.handle();
 
     console.log(
@@ -317,14 +332,20 @@ export class DocumentTableClient implements IDocumentTableClient {
     };
   }
   async delete(uploading: UPLOADING_NAME, name: string): Promise<void> {
-    const [imagesSelectResult, documentFieldsSelectResult] = await Promise.all([
-      this.imagesTableClient.listEntities<ITableImage>({
-        queryOptions: { filter: odata`document eq ${name}` },
-      }),
-      this.documentFieldTableClient.listEntities<ITableDocumentField>({
-        queryOptions: { filter: odata`document eq ${name}` },
-      }),
-    ]);
+    const [imagesSelectResult, documentFieldsSelectResult, dictionaryResult] =
+      await Promise.all([
+        this.imagesTableClient.listEntities<ITableImage>({
+          queryOptions: { filter: odata`document eq ${name}` },
+        }),
+        this.documentFieldTableClient.listEntities<ITableDocumentField>({
+          queryOptions: { filter: odata`document eq ${name}` },
+        }),
+        this.documentSourceRelationTableClient.listEntities<ITableDocumentSourceRelation>(
+          {
+            queryOptions: { filter: odata`document eq ${name}` },
+          }
+        ),
+      ]);
 
     let names: string[] = [];
     let imagesKeysPairs: { partitionKey: string; rowKey: string }[] = [];
@@ -340,6 +361,15 @@ export class DocumentTableClient implements IDocumentTableClient {
       [];
     for await (const item of documentFieldsSelectResult) {
       documentFieldsKeysPairs.push({
+        partitionKey: item.partitionKey as string,
+        rowKey: item.rowKey as string,
+      });
+    }
+
+    let dictionaryFieldsKeysPairs: { partitionKey: string; rowKey: string }[] =
+      [];
+    for await (const item of dictionaryResult) {
+      dictionaryFieldsKeysPairs.push({
         partitionKey: item.partitionKey as string,
         rowKey: item.rowKey as string,
       });
@@ -363,6 +393,12 @@ export class DocumentTableClient implements IDocumentTableClient {
     await Promise.all([
       this.documentTableClient.deleteEntity(uploading, name),
       this.imagesStorage.deleteBlobs(blobClients),
+      ...dictionaryFieldsKeysPairs.map((keysPair) =>
+        this.documentSourceRelationTableClient.deleteEntity(
+          keysPair.partitionKey,
+          keysPair.rowKey
+        )
+      ),
       ...documentFieldsKeysPairs.map((keysPair) =>
         this.documentFieldTableClient.deleteEntity(
           keysPair.partitionKey,
@@ -380,35 +416,58 @@ export class DocumentTableClient implements IDocumentTableClient {
   }
 
   async migrate(): Promise<void> {
-    /*const rows =
-      await this.documentFieldTableClient.listEntities<ITableDocumentField>({
-        queryOptions: { filter: odata`PartitionKey eq 'motorlandby.ru'` },
-      });
+    const rows =
+      await this.documentSourceRelationTableClient.listEntities<ITableDocumentField>(
+        {
+          queryOptions: {
+            filter: odata`document eq 'headlamps-2022-07-09T07:48:50.055Z'`,
+          },
+        }
+      );
 
-    let arr: TableEntityResult<ITableDocumentSourceRelation>[] = [];
+    console.log(getLocalTime(), "Start!");
 
+    let arr = [];
+    let i = 0;
     for await (let row of rows) {
-      arr.push({
-        partitionKey: "motorlandby.ru",
-        rowKey: row.rowKey as string,
-        document: row.document,
-        etag: "",
-      });
-    }
+      arr.push(row);
+      i = i + 1;
 
-    console.log("arr.length => ", arr.length);
+      if (i % 1000 === 0) {
+        console.log(`Собрано ${i}  элементов`);
+      }
+    }
 
     const deleteConveyor = new Conveyor<
       TableEntityResult<ITableDocumentSourceRelation>,
       void
     >(arr, 100, async (row) => {
-      await this.documentFieldTableClient.deleteEntity(
+      await this.documentSourceRelationTableClient.deleteEntity(
         row.partitionKey as string,
         row.rowKey as string
       );
     });
 
-    await deleteConveyor.handle();*/
+    deleteConveyor.setLogNumber(1000);
+    deleteConveyor.setStartHandleTime(false);
+    await deleteConveyor.handle();
+    //
+    /*for await (let row of rows) {
+      arr.push(row.partitionKey as string);
+    }
+
+    console.log("arr.length => ", arr.length);*/
+    /*const deleteConveyor = new Conveyor<
+      TableEntityResult<ITableDocumentSourceRelation>,
+      void
+    >(arr, 100, async (row) => {
+      await this.documentSourceRelationTableClient.deleteEntity(
+        row.partitionKey as string,
+        row.rowKey as string
+      );
+    });
+
+    await deleteConveyor.handle();
     /*const createConveyor = new Conveyor<
       TableEntityResult<ITableDocumentSourceRelation>,
       void
@@ -547,5 +606,153 @@ export class DocumentTableClient implements IDocumentTableClient {
 
         console.log(`Добавлено ${rowCount} строк`);
       });*/
+    /*const imagesTableActions: CreateDeleteEntityAction[] = document
+      .reduce<TableEntity<ITableImage>[]>(
+        (itemRows, item) => [
+          ...itemRows,
+          ...item.images.map<TableEntity<ITableImage>>((src) => {
+            const name = (
+              src.match(/[\d\w]+\/[\d\w_-]+.(jpe?g|png)$/g) as string[]
+            )[0];
+            return {
+              partitionKey: item.vendor_code,
+              rowKey: encodeURIComponent(name),
+              url: src,
+              name: name,
+              document: fileName,
+            };
+          }),
+        ],
+        []
+      )
+      .map<CreateDeleteEntityAction>((tableEntity) => [
+        "create",
+        tableEntity as any,
+      ]);
+
+    const documentFieldTableActions: CreateDeleteEntityAction[] = dataFromPages
+      .reduce<TableEntity<IFieldData>[]>((rows, row) => {
+        const vendorCodeIndex = row.findIndex(
+          (field) => field.name === "vendor_code"
+        ) as number;
+        const vendorCode = row[vendorCodeIndex].value as string;
+
+        return [
+          ...rows,
+          ...row.map<TableEntity<IFieldData>>((field) => ({
+            partitionKey: vendorCode,
+            rowKey: field.name,
+            name: field.name,
+            value: field.value,
+            document: fileName,
+          })),
+        ];
+      }, [])
+      .map<CreateDeleteEntityAction>((tableEntity) => [
+        "create",
+        tableEntity as any,
+      ]);
+
+    const documentSourceRelationTableActions: CreateDeleteEntityAction[] =
+      dictionary
+        .reduce<TableEntity<ITableDocumentSourceRelation>[]>(
+          (rows, row) => [
+            ...rows,
+            {
+              partitionKey: row.sourceName,
+              rowKey: row.vendorCode,
+              document: fileName,
+            },
+          ],
+          []
+        )
+        .map<CreateDeleteEntityAction>((tableEntity) => [
+          "create",
+          tableEntity as any,
+        ]);
+
+    await Promise.all([
+      this.imagesTableClient.submitTransaction(imagesTableActions),
+      this.documentFieldTableClient.submitTransaction(
+        documentFieldTableActions
+      ),
+      this.documentSourceRelationTableClient.submitTransaction(
+        documentSourceRelationTableActions
+      ),
+    ]);*/
+    /*const imagesTableActions: CreateDeleteEntityAction[] = document
+      .reduce<TableEntity<ITableImage>[]>(
+        (itemRows, item) => [
+          ...itemRows,
+          ...item.images.map<TableEntity<ITableImage>>((src) => {
+            const name = (
+              src.match(/[\d\w]+\/[\d\w_-]+.(jpe?g|png)$/g) as string[]
+            )[0];
+            return {
+              partitionKey: item.vendor_code,
+              rowKey: encodeURIComponent(name),
+              url: src,
+              name: name,
+              document: fileName,
+            };
+          }),
+        ],
+        []
+      )
+      .map<CreateDeleteEntityAction>((tableEntity) => [
+        "create",
+        tableEntity as any,
+      ]);
+
+    const documentFieldTableActions: CreateDeleteEntityAction[] = dataFromPages
+      .reduce<TableEntity<IFieldData>[]>((rows, row) => {
+        const vendorCodeIndex = row.findIndex(
+          (field) => field.name === "vendor_code"
+        ) as number;
+        const vendorCode = row[vendorCodeIndex].value as string;
+
+        return [
+          ...rows,
+          ...row.map<TableEntity<IFieldData>>((field) => ({
+            partitionKey: vendorCode,
+            rowKey: field.name,
+            name: field.name,
+            value: field.value,
+            document: fileName,
+          })),
+        ];
+      }, [])
+      .map<CreateDeleteEntityAction>((tableEntity) => [
+        "create",
+        tableEntity as any,
+      ]);
+
+    const documentSourceRelationTableActions: CreateDeleteEntityAction[] =
+      dictionary
+        .reduce<TableEntity<ITableDocumentSourceRelation>[]>(
+          (rows, row) => [
+            ...rows,
+            {
+              partitionKey: row.sourceName,
+              rowKey: row.vendorCode,
+              document: fileName,
+            },
+          ],
+          []
+        )
+        .map<CreateDeleteEntityAction>((tableEntity) => [
+          "create",
+          tableEntity as any,
+        ]);
+
+    await Promise.all([
+      this.imagesTableClient.submitTransaction(imagesTableActions),
+      this.documentFieldTableClient.submitTransaction(
+        documentFieldTableActions
+      ),
+      this.documentSourceRelationTableClient.submitTransaction(
+        documentSourceRelationTableActions
+      ),
+    ]);*/
   }
 }

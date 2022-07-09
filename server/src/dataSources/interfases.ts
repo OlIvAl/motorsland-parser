@@ -105,6 +105,7 @@ export interface ITableUploadingFieldSource {
   xpath: string;
   cleanRegexp?: string;
   regexp?: string;
+  value?: string;
 }
 export interface ITableWatermarkSettings {
   source: string;
@@ -119,7 +120,7 @@ export interface IWatermarkSettings
 export interface IFieldSelector
   extends Pick<
     ITableUploadingFieldSource,
-    "field" | "xpath" | "regexp" | "cleanRegexp"
+    "field" | "xpath" | "regexp" | "cleanRegexp" | "value"
   > {}
 
 export interface ITableSource {

@@ -185,7 +185,7 @@ export class UploadingTableClient implements IUploadingTableClient {
     const uploadingSources =
       await this.uploadingSourceTableClient.listEntities<ITableUploadingSource>(
         {
-          queryOptions: { filter: odata`PartitionKey eq ${uploading}` },
+          queryOptions: { filter: odata`uploading eq ${uploading}` },
         }
       );
 
@@ -251,6 +251,7 @@ export class UploadingTableClient implements IUploadingTableClient {
           xpath: field.xpath,
           regexp: field.regexp,
           cleanRegexp: field.cleanRegexp,
+          value: field.value,
         });
       }
       result.push(item);

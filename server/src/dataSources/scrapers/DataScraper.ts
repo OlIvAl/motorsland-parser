@@ -1,6 +1,6 @@
 import { IFieldSelector, IItemData, ISource } from "../interfases";
 import { ElementHandle, Page } from "puppeteer";
-import { Conveyor } from "./Conveyor";
+import { Conveyor } from "../../libs/Conveyor";
 import { IBrowserFacade } from "./interfaces";
 import { BrowserFacade } from "./BrowserFacade";
 import { getLocalTime } from "../../libs/getLocalTime";
@@ -27,8 +27,18 @@ export class DataScraper {
     page: Page,
     fieldSelector: IFieldSelector
   ): Promise<Record<string, string | undefined>> {
-    const { field, xpath, cleanRegexp, regexp } = fieldSelector;
+    const {
+      field,
+      xpath,
+      cleanRegexp,
+      regexp,
+      value: fieldValue,
+    } = fieldSelector;
     let elementHandlers: ElementHandle<Element>[] = [];
+
+    if (fieldValue) {
+      return { [field]: fieldValue };
+    }
 
     if (/^\[.*\]$/.test(xpath)) {
       const xpathSelectors = JSON.parse(xpath) as string[];
@@ -109,6 +119,7 @@ export class DataScraper {
       );
     } catch (e) {
       console.log(page.url());
+      console.log(xpath);
       console.log(e);
       throw e;
     }
@@ -177,7 +188,6 @@ export class DataScraper {
       [this.source]
     );
 
-    conveyor.setLogNumber(10);
     conveyor.setStartHandleTime(false);
 
     return (await conveyor.handle()).filter((obj) =>

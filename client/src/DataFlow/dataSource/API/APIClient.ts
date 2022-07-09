@@ -51,11 +51,12 @@ export class APIClient implements IAPIClient {
       throw new ServerError(response.status, response.statusText);
     }
 
-    const result = await response.json();
+    const result = (await response.json()) as R;
 
-    if (result.isHttpError) {
+    // ToDo: return!!!
+    /*if (result.isHttpError) {
       throw new IntegrationError(result);
-    }
+    }*/
 
     return result;
   }

@@ -19,7 +19,7 @@ import { ErrCodes } from "../../../errCodes";
 import { UPLOADING_NAME } from "../../../constants";
 import { injected } from "brandi";
 import { DATA_SOURCE_REMOTE } from "../../../di/dataSource";
-import { Conveyor } from "../../../dataSources/scrapers/Conveyor";
+import { Conveyor } from "../../../libs/Conveyor";
 import { getLocalTime } from "../../../libs/getLocalTime";
 
 // Todo: delete temporary files!!!!!!!!
@@ -91,9 +91,9 @@ export class DocumentRepository implements IDocumentRepository {
     markup: number,
     exchangeRate: number
   ): IItemData {
-    item.price = (
-      (Number(item.price) + Number(item.price) * markup) *
-      exchangeRate
+    item.price = Math.ceil(
+      // (Number(item.price) * (1 + markup)) * exchangeRate
+      (Number(item.price) + Number(item.price) * markup) * exchangeRate
     ).toString();
     item.vendor_code = preVendorCode + item.vendor_code;
 
@@ -173,8 +173,7 @@ export class DocumentRepository implements IDocumentRepository {
       if (
         !(await this.tempStorage.isBlobExist(
           `${uploading}_items_by_sources.json`
-        )) &&
-        !(await this.tempStorage.isBlobExist(`${uploading}_new_links.json`))
+        ))
       ) {
         newLinks = await this.getNewLinksFromTempStorage(uploading);
       }
@@ -189,12 +188,7 @@ export class DocumentRepository implements IDocumentRepository {
         [itemsBySources, dictionary] = await this.getDataFromPages(uploading);
       }
       if (
-        !(await this.tempStorage.isBlobExist(
-          `${uploading}_items_with_images.json`
-        )) &&
-        !(await this.tempStorage.isBlobExist(
-          `${uploading}_items_by_sources.json`
-        ))
+        await this.tempStorage.isBlobExist(`${uploading}_items_by_sources.json`)
       ) {
         [itemsBySources, dictionary] = await Promise.all([
           this.getItemsBySourceFromTempStorage(uploading),
@@ -322,29 +316,6 @@ export class DocumentRepository implements IDocumentRepository {
     return [itemsBySources, dictionary];
   }
 
-  /*private async getDataFromTempStorage(
-    uploading: UPLOADING_NAME
-  ): Promise<[IItemData[][], IItemSourceDictionary[]]> {
-    const docObj = JSON.parse(
-      (
-        await this.tempStorage.getBuffer(`${uploading}_items_by_sources.json`)
-      ).toString()
-    );
-    const dictionary = JSON.parse(
-      (
-        await this.tempStorage.getBuffer(`${uploading}_dictionary.json`)
-      ).toString()
-    );
-
-    console.log(
-      `Список из ${
-        docObj.flat().length
-      } элементов собранных данных взят из хранилища!`
-    );
-
-    return [docObj, dictionary];
-  }*/
-
   private async getItemsBySourceFromTempStorage(
     uploading: UPLOADING_NAME
   ): Promise<IItemData[][]> {
@@ -392,8 +363,6 @@ export class DocumentRepository implements IDocumentRepository {
         this.imageFolderHandler,
         [source.watermarkSettings]
       );
-
-      conveyor.setLogNumber(10);
 
       const resultOfSource = await conveyor.handle();
 
@@ -473,6 +442,10 @@ export class DocumentRepository implements IDocumentRepository {
     data.images = (
       await Promise.all(
         data.images.map(async (imgSrc: string) => {
+          if (/nophoto.(jpe?g|png)$/.test(imgSrc)) {
+            return "";
+          }
+
           let fileName = "";
           const imageBuilder = new ImageBuilder(imgSrc, watermarkSettings);
 

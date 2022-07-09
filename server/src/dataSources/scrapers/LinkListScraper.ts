@@ -55,6 +55,24 @@ export class LinkListScraper implements ILinkListScraper {
       throw Error("url не проинициализировано!");
     }
 
+    // ToDo: KOSTYLLLLLL!!!!!!
+    /*if (this.site === "https://www.autopriwos.ru/") {
+      await this.page.setCookie(
+        {
+          name: "ADBSESSION",
+          value: "i7otqhk3u84ibfqc6dtuebui1n",
+          domain: "www.autopriwos.ru",
+          path: "/",
+        },
+        {
+          name: "_gat_UA-196229378-1",
+          value: "1",
+          domain: ".autopriwos.ru",
+          path: "/",
+        }
+      );
+    }*/
+
     await this.page.goto(this.url, { waitUntil: "networkidle2" });
 
     if (this.lastPageXpath) {
@@ -115,7 +133,7 @@ export class LinkListScraper implements ILinkListScraper {
             !vendorCodesListFromLastDocument.includes(
               vendorCode
             )) ||*/
-          result.length >= 100
+          result.length >= 100000
         ) {
           flag = true;
           break;
@@ -166,7 +184,7 @@ export class LinkListScraper implements ILinkListScraper {
             !this.vendorCodesListFromLastDocument.includes(
               vendorCode
             )) ||*/
-          result.length >= 100
+          result.length >= 100000
         ) {
           flag = true;
           break;
@@ -265,7 +283,7 @@ export class LinkListScraper implements ILinkListScraper {
     const linksFromListHandles = await this.page.$x(this.linkXpath);
 
     if (!linksFromListHandles.length) {
-      console.log(await this.page.content());
+      console.log("url => ", this.page.url());
       throw Error("Ссылки на товары не найдены!");
     }
 

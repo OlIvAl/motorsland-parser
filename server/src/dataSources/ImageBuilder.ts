@@ -16,8 +16,34 @@ export class ImageBuilder implements IImageBuilder {
     this.getBuffer = this.getBuffer.bind(this);
   }
 
+  private async fetch(
+    src: string,
+    retries = 3,
+    backoff = 150
+  ): Promise<Response> {
+    function delay(time: number) {
+      return new Promise((resolve) => setTimeout(resolve, time));
+    }
+    try {
+      return await fetch(src);
+    } catch (e) {
+      console.log("FetchError");
+      if ((e as Error).name === "FetchError" && retries) {
+        console.log(`Повтор запроса ${src} через ${backoff * 2} ms`);
+        await delay(backoff * 2);
+        const result = await this.fetch(src, retries - 1);
+
+        console.log(`Повтор запроса ${src} прошел успешно!!!`);
+
+        return result;
+      }
+
+      throw e;
+    }
+  }
+
   private async init(): Promise<void> {
-    const response = await fetch(this.imgSrc);
+    const response = await this.fetch(this.imgSrc);
     const arrayBuffer = await response.arrayBuffer();
 
     const parseUrl = response.url.split("/");
@@ -36,12 +62,10 @@ export class ImageBuilder implements IImageBuilder {
     try {
       let image: Jimp = await Jimp.read(this.buffer);
 
-      if (this.watermarkSettings) {
-        image = await ImageBuilder.compositeWatermark(
-          image,
-          this.watermarkSettings
-        );
-      }
+      image = await ImageBuilder.compositeWatermark(
+        image,
+        this.watermarkSettings
+      );
 
       this.buffer = await image
         .quality(50)
@@ -63,9 +87,18 @@ export class ImageBuilder implements IImageBuilder {
   }
   private static async compositeWatermark(
     image: Jimp,
-    settings: IWatermarkSettings
+    settings: IWatermarkSettings | undefined
   ): Promise<Jimp> {
     let watermark: Jimp = await Jimp.read(WATERMARK_FILE);
+
+    if (!settings) {
+      watermark.resize(watermark.bitmap.width * 0.5, Jimp.AUTO);
+      return image.composite(
+        watermark,
+        image.bitmap.width - watermark.bitmap.width,
+        image.bitmap.height - watermark.bitmap.height
+      );
+    }
 
     watermark.resize(
       watermark.bitmap.width * settings.watermarkScale,

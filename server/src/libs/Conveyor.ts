@@ -1,4 +1,4 @@
-import { getLocalTime } from "../../libs/getLocalTime";
+import { getLocalTime } from "./getLocalTime";
 
 export class Conveyor<E, R> {
   private arrCounter = 0;
@@ -61,11 +61,6 @@ export class Conveyor<E, R> {
     }
 
     return resultArr;
-    /*return arr.map(async (elem) => {
-        console.log(`Начата обработка ${++this.arrCounter} элемента`);
-
-        return await this.elementHandler(elem, ...this.params);
-    });*/
   }
 
   private static chunk<T>(arr: T[], size: number): T[][] {
