@@ -92,8 +92,7 @@ export class DocumentRepository implements IDocumentRepository {
     exchangeRate: number
   ): IItemData {
     item.price = Math.ceil(
-      // (Number(item.price) * (1 + markup)) * exchangeRate
-      (Number(item.price) + Number(item.price) * markup) * exchangeRate
+      Number(item.price) * (1 + markup) * exchangeRate
     ).toString();
     item.vendor_code = preVendorCode + item.vendor_code;
 
@@ -144,7 +143,7 @@ export class DocumentRepository implements IDocumentRepository {
     let dictionary: IItemSourceDictionary[] = [];
 
     try {
-      await this.uploadingTableClient.setProgress(uploading);
+      // await this.uploadingTableClient.setProgress(uploading);
       console.log("Начался процесс создания документа!");
 
       let newLinks: string[][] = [];
@@ -456,6 +455,7 @@ export class DocumentRepository implements IDocumentRepository {
             return decodeURIComponent(this.imagesStorage.getURL(fileName));
           } catch (e) {
             console.log("Возникла ошибка при обработке " + fileName);
+            console.log("Артикул:" + data.vendor_code);
             console.log(e);
 
             return "";

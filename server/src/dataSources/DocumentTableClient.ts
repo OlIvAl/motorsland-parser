@@ -416,14 +416,110 @@ export class DocumentTableClient implements IDocumentTableClient {
   }
 
   async migrate(): Promise<void> {
-    const rows =
-      await this.documentSourceRelationTableClient.listEntities<ITableDocumentField>(
-        {
-          queryOptions: {
-            filter: odata`document eq 'headlamps-2022-07-09T07:48:50.055Z'`,
+    // update price
+    /*const uploading = "transmissions";
+
+    const tempStorage = new AzureBlobStorage(
+      CONTAINER_NAME.TEMP_CONTAINER_NAME
+    );
+
+    const fAvtoLinks: string[] = JSON.parse(
+      (await tempStorage.getBuffer(`${uploading}_new_links.json`)).toString()
+    )[1];
+
+    console.log(`Взято ${fAvtoLinks.length} ссылок`);
+
+    const browser = new BrowserFacade();
+    await browser.init();
+
+    const conveyor = new Conveyor<
+      string,
+      { vendor_code?: string; price?: string }
+    >(fAvtoLinks, 10, async (link) => {
+      const page = await browser.openNewPage();
+
+      await page.setCookie({
+        name: "from_country",
+        value: "RU",
+        domain: "f-avto.by",
+        path: "/",
+      });
+
+      await page.goto(link, {
+        waitUntil: "networkidle2",
+        timeout: 0,
+      });
+
+      const [price, vendorCode] = await Promise.all([
+        DataScraper.getFieldBySelector(page, {
+          field: "price",
+          xpath: '//form[@id="orderdetail"]//span[@class="goods_price"]/text()',
+          regexp: "/^\\d+/",
+          cleanRegexp: "/[^\\d\\.]/g",
+        }),
+        DataScraper.getFieldBySelector(page, {
+          field: "vendor_code",
+          xpath:
+            '//form[@id="orderdetail"]//table[@class="send-order-form"]//td[@class="goods_label"]/b/text()',
+        }),
+      ]);
+
+      await BrowserFacade.closePage(page);
+
+      if (!vendorCode.vendor_code) {
+        return {
+          vendor_code: undefined,
+          price: undefined,
+        };
+      }
+
+      return {
+        ...vendorCode,
+        ...price,
+      };
+    });
+
+    conveyor.setStartHandleTime(false);
+    const arr = await conveyor.handle();
+
+    console.log(arr);
+
+    await browser.dispose();
+
+    const updateConveyor = new Conveyor<
+      { vendor_code?: string; price?: string },
+      void
+    >(arr, 100, async (obj) => {
+      if (!obj.vendor_code || !obj.price) {
+        return undefined;
+      }
+
+      try {
+        await this.documentFieldTableClient.updateEntity<
+          Partial<ITableDocumentField>
+        >(
+          {
+            partitionKey: obj.vendor_code,
+            rowKey: "price",
+            name: "price",
+            value: obj.price,
           },
-        }
-      );
+          "Merge"
+        );
+      } catch (e) {
+        console.log("Error => ", obj.vendor_code, obj.price);
+      }
+    });
+
+    updateConveyor.setStartHandleTime(false);
+    await updateConveyor.handle();*/
+    /* const rows = await this.imagesTableClient.listEntities<ITableDocumentField>(
+      {
+        queryOptions: {
+          filter: odata`document eq 'backlamps-2022-06-26T18:28:11.225Z'`,
+        },
+      }
+    );
 
     console.log(getLocalTime(), "Start!");
 
@@ -442,7 +538,7 @@ export class DocumentTableClient implements IDocumentTableClient {
       TableEntityResult<ITableDocumentSourceRelation>,
       void
     >(arr, 100, async (row) => {
-      await this.documentSourceRelationTableClient.deleteEntity(
+      await this.imagesTableClient.deleteEntity(
         row.partitionKey as string,
         row.rowKey as string
       );

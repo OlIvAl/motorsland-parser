@@ -8,5 +8,7 @@ export const ru = {
     headlamps: "Передние фары",
     hoods: "Капоты",
     trunk_lids: "Крышка богажника",
+    bumpers: "Бамперы",
+    mirrors: "Зеркала",
   },
 };

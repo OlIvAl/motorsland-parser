@@ -55,6 +55,10 @@ export class Conveyor<E, R> {
       const result = await this.elementHandler(elem, ...this.params);
       resultArr.push(result);
 
+      /*if (!i || i % 10 === 0) {
+        console.log(result);
+      }*/
+
       if (this.finishHandleTime && i % this.logNumber === 0) {
         console.log(`${getLocalTime()} Закончена обработка ${i} элемента`);
       }

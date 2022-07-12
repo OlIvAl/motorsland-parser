@@ -23,7 +23,7 @@ export class DataScraper {
     return await this.browser.openNewPage();
   }
 
-  private static async getFieldBySelector(
+  static async getFieldBySelector(
     page: Page,
     fieldSelector: IFieldSelector
   ): Promise<Record<string, string | undefined>> {
@@ -144,35 +144,57 @@ export class DataScraper {
     ) as IItemData;
   }
 
-  private async scrapDataByPage(url: string): Promise<IItemData | undefined> {
+  private async scrapDataByPage(
+    url: string,
+    retries = 5
+  ): Promise<IItemData | undefined> {
     if (!this.source) {
       throw new Error("Source не проинициализирован!");
     }
-
     const page = await this.getNewPage();
+    try {
+      await page.goto(url, {
+        waitUntil: "networkidle2",
+        timeout: 0,
+      });
 
-    await page.goto(url, {
-      waitUntil: "networkidle2",
-      timeout: 0,
-    });
+      const [data, images] = await Promise.all([
+        this.scrapData(this.source.fields, page),
+        this.scrapImageLinks(this.source.imagesXPath, page),
+      ]);
 
-    const [data, images] = await Promise.all([
-      this.scrapData(this.source.fields, page),
-      this.scrapImageLinks(this.source.imagesXPath, page),
-    ]);
+      if (data.vendor_code && !images.length) {
+        console.log(`На странице ${page.url()} не обнаружено картинок!!!`);
+      }
 
-    if (data.vendor_code && !images.length) {
-      console.log(`На странице ${page.url()} не обнаружено картинок!!!`);
-    }
+      if (data.vendor_code && !data.price) {
+        console.warn(`На странице ${page.url()} отсутствует цена!`);
+      }
+      await BrowserFacade.closePage(page);
+      if (data.vendor_code) {
+        return { ...data, images };
+      } else {
+        console.error(`Страница ${url} не обработана! Отсутствует информация`);
+      }
+    } catch (e) {
+      await BrowserFacade.closePage(page);
 
-    if (data.vendor_code && !data.price) {
-      console.warn(`На странице ${page.url()} отсутствует цена!`);
-    }
-    await BrowserFacade.closePage(page);
-    if (data.vendor_code) {
-      return { ...data, images };
-    } else {
-      console.error(`Страница ${url} не обработана! Отсутствует информация`);
+      console.log((e as Error).name);
+      console.log((e as Error).message);
+      if (
+        ((e as Error).message.includes("ERR_CONNECTION") ||
+          (e as Error).message.includes("ERR_NETWORK")) &&
+        retries
+      ) {
+        function delay(time: number) {
+          return new Promise((resolve) => setTimeout(resolve, time));
+        }
+        await delay(1000);
+
+        return this.scrapDataByPage(url, retries - 1);
+      }
+
+      throw e;
     }
   }
 

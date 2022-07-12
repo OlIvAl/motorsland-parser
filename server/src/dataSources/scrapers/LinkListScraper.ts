@@ -56,6 +56,14 @@ export class LinkListScraper implements ILinkListScraper {
     }
 
     // ToDo: KOSTYLLLLLL!!!!!!
+    if (this.site === "https://f-avto.by/") {
+      await this.page.setCookie({
+        name: "from_country",
+        value: "RU",
+        domain: "f-avto.by",
+        path: "/",
+      });
+    }
     /*if (this.site === "https://www.autopriwos.ru/") {
       await this.page.setCookie(
         {
