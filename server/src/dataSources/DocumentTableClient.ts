@@ -232,7 +232,7 @@ export class DocumentTableClient implements IDocumentTableClient {
         await Promise.all(
           row.images.map((src) => {
             const regexpResult = src.match(
-              /[\d\w]+\/[\d\w_)(-]+.(jpe?g|png)$/gi
+              /[\d\w]+\/[\d\w_\)\(\-\+,]+.(jpe?g|png)$/gi
             ) as RegExpMatchArray;
             if (!regexpResult) {
               throw new Error(`Ошибка при парсинге ${src}!!!`);
@@ -390,28 +390,45 @@ export class DocumentTableClient implements IDocumentTableClient {
 
     console.log("Картинки удалены успешно!");
 
-    await Promise.all([
-      this.documentTableClient.deleteEntity(uploading, name),
-      this.imagesStorage.deleteBlobs(blobClients),
-      ...dictionaryFieldsKeysPairs.map((keysPair) =>
-        this.documentSourceRelationTableClient.deleteEntity(
-          keysPair.partitionKey,
-          keysPair.rowKey
-        )
-      ),
-      ...documentFieldsKeysPairs.map((keysPair) =>
-        this.documentFieldTableClient.deleteEntity(
-          keysPair.partitionKey,
-          keysPair.rowKey
-        )
-      ),
-      ...imagesKeysPairs.map((keysPair) =>
-        this.imagesTableClient.deleteEntity(
-          keysPair.partitionKey,
-          keysPair.rowKey
-        )
-      ),
-    ]);
+    const documentFieldConveyor = new Conveyor<
+      { partitionKey: string; rowKey: string },
+      void
+    >(documentFieldsKeysPairs, 100, async (keysPair) => {
+      await this.documentFieldTableClient.deleteEntity(
+        keysPair.partitionKey,
+        keysPair.rowKey
+      );
+    });
+    const documentSourceRelationConveyor = new Conveyor<
+      { partitionKey: string; rowKey: string },
+      void
+    >(dictionaryFieldsKeysPairs, 100, async (keysPair) => {
+      await this.documentSourceRelationTableClient.deleteEntity(
+        keysPair.partitionKey,
+        keysPair.rowKey
+      );
+    });
+    const imagesConveyor = new Conveyor<
+      { partitionKey: string; rowKey: string },
+      void
+    >(imagesKeysPairs, 100, async (keysPair) => {
+      await this.imagesTableClient.deleteEntity(
+        keysPair.partitionKey,
+        keysPair.rowKey
+      );
+    });
+
+    imagesConveyor.setLogNumber(10000);
+    await imagesConveyor.handle();
+
+    documentFieldConveyor.setLogNumber(1000);
+    await documentFieldConveyor.handle();
+
+    documentSourceRelationConveyor.setLogNumber(1000);
+    await documentSourceRelationConveyor.handle();
+
+    await this.documentTableClient.deleteEntity(uploading, name);
+
     console.log("Остальные данные о документе удалены успешно!");
   }
 
@@ -425,7 +442,7 @@ export class DocumentTableClient implements IDocumentTableClient {
 
     const fAvtoLinks: string[] = JSON.parse(
       (await tempStorage.getBuffer(`${uploading}_new_links.json`)).toString()
-    )[1];
+    )[2];
 
     console.log(`Взято ${fAvtoLinks.length} ссылок`);
 
@@ -512,7 +529,7 @@ export class DocumentTableClient implements IDocumentTableClient {
     });
 
     updateConveyor.setStartHandleTime(false);
-    await updateConveyor.handle();*/
+    await updateConveyor.handle();
     /* const rows = await this.imagesTableClient.listEntities<ITableDocumentField>(
       {
         queryOptions: {
@@ -850,5 +867,6 @@ export class DocumentTableClient implements IDocumentTableClient {
         documentSourceRelationTableActions
       ),
     ]);*/
+    //hoods-2022-06-27T22:55:33.868Z
   }
 }
