@@ -7,11 +7,28 @@ export const DownloadDocumentRouter = Router().get(
   async (req: Request, res: Response, next) => {
     const di = getDIContainer();
     const controller = di.get(CONTROLLER.Document);
+    let document = "";
 
     try {
-      const document = await controller.getXMLDocument(
-        req.params.filename.replace(".xml", "")
-      );
+      const extension = (
+        req.params.filename.match(/\w+$/g) as RegExpMatchArray
+      )[0];
+
+      switch (extension) {
+        case "xml":
+          document = await controller.getXMLDocument(
+            req.params.filename.replace(".xml", "")
+          );
+          break;
+        case "csv":
+          document = await controller.getCSVDocument(
+            req.params.filename.replace(".csv", "")
+          );
+          break;
+        default:
+          throw new Error("Unknown type!");
+      }
+
       // const buffer = await API.downloadDocument(req.params.name);
 
       res.writeHead(200, {

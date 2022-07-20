@@ -264,7 +264,7 @@ export class LinkListScraper implements ILinkListScraper {
 
     if (nextPageTagHandles.length) {
       nextPageLink = await this.page.evaluate(
-        (a) => a.getAttribute("href") || "",
+        (a: any) => a.getAttribute("href") || "",
         nextPageTagHandles[0]
       );
     }

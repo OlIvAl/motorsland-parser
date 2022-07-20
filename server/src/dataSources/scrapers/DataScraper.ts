@@ -34,7 +34,7 @@ export class DataScraper {
       regexp,
       value: fieldValue,
     } = fieldSelector;
-    let elementHandlers: ElementHandle<Element>[] = [];
+    let elementHandlers: ElementHandle<Node>[] = [];
 
     if (fieldValue) {
       return { [field]: fieldValue };

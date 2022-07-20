@@ -18,3 +18,6 @@ export interface IDeleteDocumentUseCase {
 export interface IUpdateNewDocumentsCountUseCase {
   execute(uploading: UPLOADING_NAME): Promise<number>;
 }
+export interface IGetDocumentHeadersUseCase {
+  execute(uploading?: UPLOADING_NAME): Promise<Record<string, string>>;
+}

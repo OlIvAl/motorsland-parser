@@ -27,7 +27,8 @@ export const CustomTableRow: FC<IProps> = ({
       <TableCell>{createdOn}</TableCell>
       <TableCell height={70}>
         <Stack spacing={2} direction="row">
-          <DownloadBtn name={name} link={`/download/${name}.xml`} />
+          <DownloadBtn name={name} link={`/download/${name}.xml`} type="XML" />
+          <DownloadBtn name={name} link={`/download/${name}.csv`} type="CSV" />
           <Button
             variant="contained"
             color="error"

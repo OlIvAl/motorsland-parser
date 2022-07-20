@@ -5,9 +5,10 @@ import { API_ROOT } from "../../Bootstrap/constants";
 interface IProps {
   link: string;
   name: string;
+  type: "CSV" | "XML";
 }
 
-export const DownloadBtn: FC<IProps> = ({ link, name }) => {
+export const DownloadBtn: FC<IProps> = ({ link, name, type }) => {
   return (
     <Button
       variant="contained"
@@ -16,7 +17,7 @@ export const DownloadBtn: FC<IProps> = ({ link, name }) => {
       href={API_ROOT + link}
       download={name}
     >
-      Скачать XML
+      Скачать {type}
     </Button>
   );
 };

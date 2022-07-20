@@ -151,11 +151,13 @@ export class UploadingTableClient implements IUploadingTableClient {
       "Merge"
     );
   }
-  async getFields(uploading: UPLOADING_NAME): Promise<ITableField[]> {
+  async getFields(uploading?: UPLOADING_NAME): Promise<ITableField[]> {
     const fieldRelations =
       await this.uploadingFieldRelationTableClient.listEntities<ITableUploadingFieldRelation>(
         {
-          queryOptions: { filter: odata`PartitionKey eq ${uploading}` },
+          queryOptions: uploading
+            ? { filter: odata`PartitionKey eq ${uploading}` }
+            : undefined,
         }
       );
 

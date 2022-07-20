@@ -40,6 +40,20 @@ export class DocumentRepository implements IDocumentRepository {
     this.getLastDocumentVC = this.getLastDocumentVC.bind(this);
   }
 
+  async getHeaders(
+    uploading?: UPLOADING_NAME
+  ): Promise<Record<string, string>> {
+    const result = await this.uploadingTableClient.getFields(uploading);
+
+    return result.reduce(
+      (obj, field) => ({
+        ...obj,
+        [field.field]: field.title,
+      }),
+      {}
+    );
+  }
+
   async getDocuments(uploading: UPLOADING_NAME): Promise<IDocument[]> {
     const result = await this.documentTableClient.getAll(uploading);
 

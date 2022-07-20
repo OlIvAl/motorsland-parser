@@ -8,6 +8,7 @@ export interface IDocumentRepository {
   create(uploading: UPLOADING_NAME): Promise<IDocument>;
   delete(uploading: UPLOADING_NAME, name: string): Promise<void>;
   updateNewDocumentsCount(uploading: UPLOADING_NAME): Promise<number>;
+  getHeaders(uploading?: UPLOADING_NAME): Promise<Record<string, string>>;
 }
 
 export interface IDocumentDTO {

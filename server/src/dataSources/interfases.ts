@@ -26,7 +26,7 @@ export interface IUploadingTableClient {
   isAnyInProgress(): Promise<boolean>;
   getNewDocumentsCount(uploading: UPLOADING_NAME): Promise<number>;
   setNewDocumentsCount(uploading: UPLOADING_NAME, count: number): Promise<void>;
-  getFields(uploading: UPLOADING_NAME): Promise<ITableField[]>;
+  getFields(uploading?: UPLOADING_NAME): Promise<ITableField[]>;
   setFields(
     uploading: UPLOADING_NAME,
     fields: Record<string, string>

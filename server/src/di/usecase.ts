@@ -2,6 +2,7 @@ import { Container, token } from "brandi";
 import {
   ICreateDocumentUseCase,
   IDeleteDocumentUseCase,
+  IGetDocumentHeadersUseCase,
   IGetDocumentListUseCase,
   IGetDocumentUseCase,
   IUpdateNewDocumentsCountUseCase,
@@ -13,6 +14,7 @@ import { UpdateNewDocumentsCountUseCase } from "../domain/usecase/Document/Updat
 import { GetDocumentUseCase } from "../domain/usecase/Document/GetDocumentUseCase";
 import { GetUploadingListUseCase } from "../domain/usecase/Uploading/GetUploadingListUseCase";
 import { IGetUploadingListUseCase } from "../domain/usecase/Uploading/interfaces";
+import { GetDocumentHeadersUseCase } from "../domain/usecase/Document/GetDocumentHeadersUseCase";
 
 export const USE_CASE = {
   GetDocumentList: token<IGetDocumentListUseCase>("GetDocumentListUseCase"),
@@ -23,6 +25,9 @@ export const USE_CASE = {
     "UpdateNewDocumentsCountUseCase"
   ),
   GetUploadingList: token<IGetUploadingListUseCase>("GetUploadingListUseCase"),
+  GetDocumentHeaders: token<IGetDocumentHeadersUseCase>(
+    "GetDocumentHeadersUseCase"
+  ),
 };
 
 export function getContainerWithUseCases(container: Container): Container {
@@ -49,6 +54,10 @@ export function getContainerWithUseCases(container: Container): Container {
   container
     .bind(USE_CASE.GetUploadingList)
     .toInstance(GetUploadingListUseCase)
+    .inTransientScope();
+  container
+    .bind(USE_CASE.GetDocumentHeaders)
+    .toInstance(GetDocumentHeadersUseCase)
     .inTransientScope();
 
   return container;
