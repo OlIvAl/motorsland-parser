@@ -73,7 +73,12 @@ export class DocumentController implements IDocumentController {
         {}
       );
 
-    return await writeToString(mapResult, { headers: true, transform });
+    return await writeToString(mapResult, {
+      headers: Object.values(headers),
+      transform,
+      delimiter: ";",
+      alwaysWriteHeaders: true,
+    });
   }
   async create(uploading: UPLOADING_NAME): Promise<IDocumentDTO> {
     const result = await this.createDocumentUseCase.execute(uploading);
