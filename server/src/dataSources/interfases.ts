@@ -87,9 +87,6 @@ export interface IFieldData {
 export interface ITableDocumentField extends IFieldData {
   document: string;
 }
-export interface IUsefulFieldData
-  extends IFieldData,
-    Pick<ITableSource, "preVendorCode" | "markup" | "exchangeRate"> {}
 
 export interface ITableUploadingSource {
   linkListUrl: string;
@@ -97,22 +94,28 @@ export interface ITableUploadingSource {
 
 export interface IDataRow {
   uploading: string;
+
   vendor_code: string;
   price: string;
   name: string;
+  condition?: string;
+  mark?: string;
+  model?: string;
   body?: string;
-  constr_number?: string;
-  defects?: string;
-  description?: string;
+  number?: string;
+  kpp?: string;
   engine_mark?: string;
   engine_volume?: string;
   fuel_type?: string;
-  kpp?: string;
-  mark?: string;
-  model: string;
-  side?: string;
-  vin?: string;
   year?: string;
+  left_right?: string;
+  front_rear?: string;
+  up_down?: string;
+  description?: string;
+  status?: string;
+  authenticity?: string;
+  vin?: string;
+  constr_number?: string;
 }
 export interface ITableDocumentSourceRelation {
   document: string;

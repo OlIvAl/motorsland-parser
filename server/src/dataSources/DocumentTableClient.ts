@@ -109,7 +109,6 @@ export class DocumentTableClient implements IDocumentTableClient {
         name: dataRow.name,
         body: dataRow.body,
         constr_number: dataRow.constr_number,
-        defects: dataRow.defects,
         description: dataRow.description,
         engine_mark: dataRow.engine_mark,
         engine_volume: dataRow.engine_volume,
@@ -117,7 +116,6 @@ export class DocumentTableClient implements IDocumentTableClient {
         kpp: dataRow.kpp,
         mark: dataRow.mark,
         model: dataRow.model,
-        side: dataRow.side,
         vin: dataRow.vin,
         year: dataRow.year,
       };
@@ -406,6 +404,96 @@ export class DocumentTableClient implements IDocumentTableClient {
   }
 
   async migrate(): Promise<void> {
+    /*async function* getDataRows(
+      dataTableClient: TableClient
+    ): AsyncIterable<TableEntity<IDataRow>> {
+      const dataRows = await dataTableClient.listEntities<
+        TableEntityResult<IDataRow>
+      >({
+        queryOptions: {
+          filter: odata`side gt ''`,
+        },
+      });
+
+      for await (let dataRow of dataRows) {
+        const { timestamp, etag, ...data } = dataRow;
+        yield data as TableEntity<IDataRow>;
+      }
+    }
+
+    class TableTransform extends Transform {
+      #buffer: TableEntity<IDataRow>[] = [];
+
+      constructor(private dataTableClient: TableClient) {
+        super({ objectMode: true });
+      }
+
+      _transform(
+        chunk: TableEntity<IDataRow>,
+        encoding: BufferEncoding,
+        done: TransformCallback
+      ) {
+        if (this.#buffer.length < 50) {
+          done();
+        } else {
+          this.#transformFn().then(() => done());
+        }
+      }
+
+      _flush(done: TransformCallback) {
+        if (this.#buffer.length > 0) {
+          this.#transformFn().then(() => done());
+        } else {
+          done();
+        }
+      }
+
+      #transformFn(): Promise<any> {
+        return Promise.all(
+          this.#buffer.map(async (row) => {
+            console.log("Handled:", row.vendor_code);
+            await this.dataTableClient.updateEntity(
+              {
+                ...row,
+                left_right: "правая",
+                front_rear: "передняя",
+                side: undefined,
+              },
+              "Replace"
+            );
+
+            return Promise.resolve(true);
+          })
+        ).then(() => {
+          this.#buffer.forEach((item) => {
+            this.push(item);
+          });
+
+          this.#buffer = [];
+        });
+      }
+    }
+
+    console.log(getLocalTime(), `Start handling`);
+    const dataGenerator = await getDataRows(this.dataTableClient);
+
+    await pipeline(
+      Readable.from(dataGenerator, {
+        objectMode: true,
+      }),
+      new TableTransform(this.dataTableClient),
+      new Writable({
+        write(
+          chunk: any,
+          encoding: BufferEncoding,
+          callback: (error?: Error | null) => void
+        ) {
+          callback();
+        },
+        objectMode: true,
+      })
+    );
+    console.log(getLocalTime(), `Finish handling`);*/
     /*const sources = await this.getSources();
     const documents = [
       "trunk_lids-2022-07-13T22:32:28.686Z",
