@@ -1,14 +1,18 @@
 import { IDocument } from "../entity/Document/structures/interfaces";
 import { UPLOADING_NAME } from "../../constants";
-import { IItemData } from "../../dataSources/interfases";
+import { Transform, Writable } from "stream";
 
 export interface IDocumentRepository {
   getDocuments(uploading: UPLOADING_NAME): Promise<IDocument[]>;
-  getDocument(name: string): Promise<IItemData[]>;
+  getDocument(
+    name: string,
+    formatter: Transform,
+    writable: Writable
+  ): Promise<Writable>;
   create(uploading: UPLOADING_NAME): Promise<IDocument>;
   delete(uploading: UPLOADING_NAME, name: string): Promise<void>;
   updateNewDocumentsCount(uploading: UPLOADING_NAME): Promise<number>;
-  getHeaders(uploading?: UPLOADING_NAME): Promise<Record<string, string>>;
+  getHeaders(): Promise<Record<string, string>>;
 }
 
 export interface IDocumentDTO {

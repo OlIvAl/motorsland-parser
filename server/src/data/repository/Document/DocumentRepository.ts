@@ -8,7 +8,6 @@ import {
   IItemSourceDictionary,
   ISource,
   IUploadingTableClient,
-  IUsefulFieldData,
   IWatermarkSettings,
 } from "../../../dataSources/interfases";
 import { IDocumentBuilder } from "../../../dataSources/scrapers/interfaces";
@@ -21,6 +20,10 @@ import { injected } from "brandi";
 import { DATA_SOURCE_REMOTE } from "../../../di/dataSource";
 import { Conveyor } from "../../../libs/Conveyor";
 import { getLocalTime } from "../../../libs/getLocalTime";
+import { pipeline, Transform } from "stream";
+import { Readable, Writable } from "stream";
+import { PostProcessingTransform } from "../../../dataSources/Streams/PostProcessingTransform";
+import { AddImagesTransform } from "../../../dataSources/Streams/AddImagesTransform";
 
 // Todo: delete temporary files!!!!!!!!
 export class DocumentRepository implements IDocumentRepository {
@@ -37,13 +40,10 @@ export class DocumentRepository implements IDocumentRepository {
     this.create = this.create.bind(this);
     this.delete = this.delete.bind(this);
     this.imageFolderHandler = this.imageFolderHandler.bind(this);
-    this.getLastDocumentVC = this.getLastDocumentVC.bind(this);
   }
 
-  async getHeaders(
-    uploading?: UPLOADING_NAME
-  ): Promise<Record<string, string>> {
-    const result = await this.uploadingTableClient.getFields(uploading);
+  async getHeaders(): Promise<Record<string, string>> {
+    const result = await this.uploadingTableClient.getFields();
 
     return result.reduce(
       (obj, field) => ({
@@ -60,63 +60,42 @@ export class DocumentRepository implements IDocumentRepository {
     return ItemsListSchema.cast(result);
   }
 
-  async getDocument(name: string): Promise<IItemData[]> {
-    console.log(`${getLocalTime()} Начата выборка полей`);
-    const items = await this.documentTableClient.get(name);
+  async getDocument(
+    name: string,
+    formatter: Transform,
+    writable: Writable
+  ): Promise<Writable> {
+    const sources = await this.documentTableClient.getSources();
 
-    console.log(`${getLocalTime()} Закончена выборка полей`);
-
-    const conveyor = new Conveyor<IUsefulFieldData[], IItemData>(
-      items,
-      100,
-      async (fields) => {
-        const item = fields.reduce<IItemData>(
-          (acc, field) => ({
-            ...acc,
-            [field.name]: field.value,
-          }),
-          { name: "", price: "", vendor_code: "", images: [] }
-        );
-
-        item.images = await this.documentTableClient.getPagePublicImages(
-          item.vendor_code
-        );
-
-        // ToDo: придумать что то интереснее!!!
-        // ToDo: возвращать объект какой нибудь, чтобы доп поля к item относились
-        return this.postProcessingData(
-          item,
-          fields[0].preVendorCode,
-          fields[0].markup,
-          fields[0].exchangeRate
-        );
-      }
+    const dataGenerator = await this.documentTableClient.getDataRows(
+      name.replace(".csv", "")
     );
 
-    conveyor.setLogNumber(1000);
-    conveyor.setStartHandleTime(false);
+    console.log("Start:", getLocalTime());
 
-    return await conveyor.handle();
-  }
+    return pipeline(
+      Readable.from(dataGenerator, {
+        objectMode: true,
+      }),
+      new AddImagesTransform(this.documentTableClient, this.imagesStorage),
+      new PostProcessingTransform(sources),
+      formatter,
+      writable,
 
-  private postProcessingData(
-    item: IItemData,
-    preVendorCode: string,
-    markup: number,
-    exchangeRate: number
-  ): IItemData {
-    item.price = Math.ceil(
-      Number(item.price) * (1 + markup) * exchangeRate
-    ).toString();
-    item.vendor_code = preVendorCode + item.vendor_code;
-
-    return item;
+      (err) => {
+        if (err) {
+          console.error("Failed:", err);
+        } else {
+          console.log("Finish:", getLocalTime());
+        }
+      }
+    );
   }
 
   async updateNewDocumentsCount(uploading: UPLOADING_NAME): Promise<number> {
     let count: number = 0;
 
-    const lastDocumentVC = await this.getLastDocumentVC(uploading);
+    const lastDocumentVC: string[] = []; //await this.getLastDocumentVC(uploading);
     const sources = await this.uploadingTableClient.getUploadingSources(
       uploading
     );
@@ -480,7 +459,7 @@ export class DocumentRepository implements IDocumentRepository {
     return data;
   }
 
-  private async getLastDocumentVC(
+  /*private async getLastDocumentVC(
     uploading: UPLOADING_NAME
   ): Promise<string[]> {
     const lastDocument = await this.documentTableClient.getLast(uploading);
@@ -502,7 +481,7 @@ export class DocumentRepository implements IDocumentRepository {
     });
 
     return Array.from(vcSet);
-  }
+  }*/
 }
 
 injected(

@@ -1,13 +1,17 @@
 import { IDocumentList } from "../../entity/List/stuctures/interfaces";
 import { IDocument } from "../../entity/Document/structures/interfaces";
 import { UPLOADING_NAME } from "../../../constants";
-import { IItemData } from "../../../dataSources/interfases";
+import { Transform, Writable } from "stream";
 
 export interface IGetDocumentListUseCase {
   execute(uploading: UPLOADING_NAME): Promise<IDocumentList>;
 }
 export interface IGetDocumentUseCase {
-  execute(name: string): Promise<IItemData[]>;
+  execute(
+    name: string,
+    formatter: Transform,
+    writable: Writable
+  ): Promise<Writable>;
 }
 export interface ICreateDocumentUseCase {
   execute(uploading: UPLOADING_NAME): Promise<IDocument>;
@@ -19,5 +23,5 @@ export interface IUpdateNewDocumentsCountUseCase {
   execute(uploading: UPLOADING_NAME): Promise<number>;
 }
 export interface IGetDocumentHeadersUseCase {
-  execute(uploading?: UPLOADING_NAME): Promise<Record<string, string>>;
+  execute(): Promise<Record<string, string>>;
 }

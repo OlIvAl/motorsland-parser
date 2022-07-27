@@ -2,12 +2,12 @@ import {
   AzureNamedKeyCredential,
   odata,
   TableClient,
-  TableEntityResult,
 } from "@azure/data-tables";
 import { BlobClient } from "@azure/storage-blob";
 import { CONTAINER_NAME, UPLOADING_NAME } from "../constants";
 import {
   IAzureBlobStorage,
+  IDataRow,
   IDocumentInfo,
   IDocumentTableClient,
   IFieldData,
@@ -17,13 +17,13 @@ import {
   ITableDocumentSourceRelation,
   ITableImage,
   ITableSource,
-  IUsefulFieldData,
 } from "./interfases";
 import { Conveyor } from "../libs/Conveyor";
 import { getLocalTime } from "../libs/getLocalTime";
 
 export class DocumentTableClient implements IDocumentTableClient {
   private documentTableClient: TableClient;
+  private dataTableClient: TableClient;
   private documentFieldTableClient: TableClient;
   private documentSourceRelationTableClient: TableClient;
   private imagesTableClient: TableClient;
@@ -38,6 +38,11 @@ export class DocumentTableClient implements IDocumentTableClient {
     this.documentTableClient = new TableClient(
       `https://${process.env.AZURE_ACCOUNT}.table.core.windows.net`,
       "document",
+      credential
+    );
+    this.dataTableClient = new TableClient(
+      `https://${process.env.AZURE_ACCOUNT}.table.core.windows.net`,
+      "data",
       credential
     );
     this.documentFieldTableClient = new TableClient(
@@ -62,106 +67,74 @@ export class DocumentTableClient implements IDocumentTableClient {
     );
   }
 
-  async get(name: string): Promise<IUsefulFieldData[][]> {
-    const [sourcesRecord, dictionaryRecord] = await Promise.all([
-      (async (): Promise<
-        Record<
-          string,
-          Pick<ITableSource, "preVendorCode" | "markup" | "exchangeRate">
-        >
-      > => {
-        const sources =
-          await this.sourceTableClient.listEntities<ITableSource>();
+  async getSources(): Promise<
+    Record<
+      string,
+      Pick<ITableSource, "preVendorCode" | "markup" | "exchangeRate">
+    >
+  > {
+    const sources = await this.sourceTableClient.listEntities<ITableSource>();
 
-        let sourcesRec: Record<
-          string,
-          Pick<ITableSource, "preVendorCode" | "markup" | "exchangeRate">
-        > = {};
+    let sourcesRecord: Record<
+      string,
+      Pick<ITableSource, "preVendorCode" | "markup" | "exchangeRate">
+    > = {};
 
-        for await (const source of sources) {
-          sourcesRec = {
-            ...sourcesRec,
-            ...{
-              [source.rowKey as string]: {
-                preVendorCode: source.preVendorCode as string,
-                markup: source.markup,
-                exchangeRate: source.exchangeRate,
-              },
-            },
-          };
-        }
-        return sourcesRec;
-      })(),
-      (async (): Promise<Record<string, string>> => {
-        const dictionaries =
-          await this.documentSourceRelationTableClient.listEntities<ITableDocumentSourceRelation>(
-            {
-              queryOptions: { filter: odata`document eq ${name}` },
-            }
-          );
-
-        let dictionaryRec: Record<string, string> = {};
-
-        for await (let dictionary of dictionaries) {
-          dictionaryRec = {
-            ...dictionaryRec,
-            [dictionary.rowKey as string]: dictionary.partitionKey as string,
-          };
-        }
-
-        return dictionaryRec;
-      })(),
-    ]);
-
-    const fields =
-      await this.documentFieldTableClient.listEntities<ITableDocumentField>({
-        queryOptions: { filter: odata`document eq ${name}` },
-      });
-
-    let acc: Record<string, IUsefulFieldData[]> = {};
-
-    // Separate by vendor code
-    for await (let field of fields) {
-      // ToDo: придумать что то интереснее!!!
-      const usefulField: IUsefulFieldData = {
-        name: field.name,
-        value: field.value,
-        preVendorCode:
-          sourcesRecord[dictionaryRecord[field.partitionKey as string]]
-            .preVendorCode,
-        markup:
-          sourcesRecord[dictionaryRecord[field.partitionKey as string]].markup,
-        exchangeRate:
-          sourcesRecord[dictionaryRecord[field.partitionKey as string]]
-            .exchangeRate,
+    for await (const source of sources) {
+      sourcesRecord = {
+        ...sourcesRecord,
+        ...{
+          [source.rowKey as string]: {
+            preVendorCode: source.preVendorCode as string,
+            markup: source.markup,
+            exchangeRate: source.exchangeRate,
+          },
+        },
       };
-
-      if ((field.partitionKey as string) in acc) {
-        acc[field.partitionKey as string] = [
-          ...acc[field.partitionKey as string],
-          usefulField,
-        ];
-      } else {
-        acc[field.partitionKey as string] = [usefulField];
-      }
     }
 
-    return Object.values<IUsefulFieldData[]>(acc);
+    return sourcesRecord;
   }
-  async getPagePublicImages(vcId: string): Promise<string[]> {
-    const result = await this.imagesTableClient.listEntities<ITableImage>({
-      queryOptions: { filter: odata`PartitionKey eq ${vcId}` },
+
+  async *getDataRows(name: string): AsyncIterable<IDataRow> {
+    const dataRows = await this.dataTableClient.listEntities<IDataRow>({
+      queryOptions: { filter: odata`PartitionKey eq ${name}` },
     });
 
-    let arr: string[] = [];
+    for await (let dataRow of dataRows) {
+      yield {
+        uploading: dataRow.uploading,
+        vendor_code: dataRow.vendor_code,
+        price: dataRow.price,
+        name: dataRow.name,
+        body: dataRow.body,
+        constr_number: dataRow.constr_number,
+        defects: dataRow.defects,
+        description: dataRow.description,
+        engine_mark: dataRow.engine_mark,
+        engine_volume: dataRow.engine_volume,
+        fuel_type: dataRow.fuel_type,
+        kpp: dataRow.kpp,
+        mark: dataRow.mark,
+        model: dataRow.model,
+        side: dataRow.side,
+        vin: dataRow.vin,
+        year: dataRow.year,
+      };
+    }
+  }
+  async getImgSrcArr(vendorCode: string): Promise<string[]> {
+    const imageRows = await this.imagesTableClient.listEntities<ITableImage>({
+      queryOptions: { filter: odata`PartitionKey eq ${vendorCode}` },
+    });
 
-    for await (const item of result) {
-      arr.push(item.name);
+    let images: string[] = [];
+
+    for await (const item of imageRows) {
+      images.push(item.name);
     }
 
-    return await Promise.all(
-      arr.map((name) => this.imagesStorage.getPublicURL(name))
-    );
+    return images;
   }
   async getAll(uploading: UPLOADING_NAME): Promise<IDocumentInfo[]> {
     const result = await this.documentTableClient.listEntities<{}>({
@@ -433,6 +406,83 @@ export class DocumentTableClient implements IDocumentTableClient {
   }
 
   async migrate(): Promise<void> {
+    /*const sources = await this.getSources();
+    const documents = [
+      "trunk_lids-2022-07-13T22:32:28.686Z",
+      "backlamps-2022-07-13T21:06:29.329Z",
+      "bumpers-2022-07-14T10:15:57.197Z",
+      "doors-2022-07-13T10:56:53.196Z",
+      "engines-2022-07-05T05:53:25.079Z",
+      "fenders-2022-07-13T17:19:21.441Z",
+      "headlamps-2022-07-09T07:48:50.055Z",
+      "hoods-2022-07-13T15:04:29.466Z",
+      "mirrors-2022-07-13T06:36:12.988Z",
+      "transmissions-2022-07-06T04:16:25.594Z",
+    ];
+
+    for (let document of documents) {
+      console.log(getLocalTime(), `Start handle ${document}`);
+
+      const dataGenerator = await this.getDataRows(document);
+
+      await pipeline(
+        Readable.from(dataGenerator, {
+          objectMode: true,
+        }),
+        new AddImagesTransform(this, this.imagesStorage),
+        new PostProcessingTransform(sources),
+        fs.createWriteStream(EXAMPLE_FILE)
+      );
+    }
+
+    console.log(getLocalTime(), `Finish handling!!!`);*/
+    /*const documents = [
+      "trunk_lids-2022-07-13T22:32:28.686Z",
+      "backlamps-2022-07-13T21:06:29.329Z",
+      "bumpers-2022-07-14T10:15:57.197Z",
+      "doors-2022-07-13T10:56:53.196Z",
+      "engines-2022-07-05T05:53:25.079Z",
+      "fenders-2022-07-13T17:19:21.441Z",
+      "headlamps-2022-07-09T07:48:50.055Z",
+      "hoods-2022-07-13T15:04:29.466Z",
+      "mirrors-2022-07-13T06:36:12.988Z",
+      "transmissions-2022-07-06T04:16:25.594Z",
+    ];
+
+    for (let document of documents) {
+      console.log(getLocalTime(), `Start handle ${document}`);
+
+      await pipeline(
+        Readable.from(this.getDictionary(document), {
+          objectMode: true,
+          // @ts-ignore
+        }).map(
+          (dictionary: IDocumentSourceRelation) =>
+            this.getDocumentField(dictionary),
+          { concurrency: 1000 }
+        ),
+        new Writable({
+          objectMode: true,
+          write: (
+            chunk: IItemData & { uploading: string; document: string },
+            enc,
+            done
+          ) => {
+            const { document, ...data } = chunk;
+            this.dataTableClient
+              .createEntity({
+                partitionKey: document,
+                rowKey: data.vendor_code,
+                ...data,
+              })
+              .then(() => done());
+          },
+        })
+      );
+    }
+
+    console.log(getLocalTime(), `Finish handling!!!`);
+
     // update price
     /*const uploading = "transmissions";
 

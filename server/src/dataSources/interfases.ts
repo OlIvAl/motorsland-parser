@@ -26,7 +26,7 @@ export interface IUploadingTableClient {
   isAnyInProgress(): Promise<boolean>;
   getNewDocumentsCount(uploading: UPLOADING_NAME): Promise<number>;
   setNewDocumentsCount(uploading: UPLOADING_NAME, count: number): Promise<void>;
-  getFields(uploading?: UPLOADING_NAME): Promise<ITableField[]>;
+  getFields(): Promise<ITableField[]>;
   setFields(
     uploading: UPLOADING_NAME,
     fields: Record<string, string>
@@ -35,8 +35,14 @@ export interface IUploadingTableClient {
 }
 
 export interface IDocumentTableClient {
-  get(name: string): Promise<IUsefulFieldData[][]>;
-  getPagePublicImages(vcId: string): Promise<string[]>;
+  getSources(): Promise<
+    Record<
+      string,
+      Pick<ITableSource, "preVendorCode" | "markup" | "exchangeRate">
+    >
+  >;
+  getDataRows(name: string): AsyncIterable<IDataRow>;
+  getImgSrcArr(vendorCode: string): Promise<string[]>;
   getAll(uploading: UPLOADING_NAME): Promise<IDocumentInfo[]>;
   getLast(uploading: UPLOADING_NAME): Promise<IDocumentInfo | null>;
   addDocument(
@@ -89,6 +95,25 @@ export interface ITableUploadingSource {
   linkListUrl: string;
 }
 
+export interface IDataRow {
+  uploading: string;
+  vendor_code: string;
+  price: string;
+  name: string;
+  body?: string;
+  constr_number?: string;
+  defects?: string;
+  description?: string;
+  engine_mark?: string;
+  engine_volume?: string;
+  fuel_type?: string;
+  kpp?: string;
+  mark?: string;
+  model: string;
+  side?: string;
+  vin?: string;
+  year?: string;
+}
 export interface ITableDocumentSourceRelation {
   document: string;
 }
