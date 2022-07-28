@@ -11,7 +11,6 @@ export interface IDocumentRepository {
   ): Promise<Writable>;
   create(uploading: UPLOADING_NAME): Promise<IDocument>;
   delete(uploading: UPLOADING_NAME, name: string): Promise<void>;
-  updateNewDocumentsCount(uploading: UPLOADING_NAME): Promise<number>;
   getHeaders(): Promise<Record<string, string>>;
 }
 

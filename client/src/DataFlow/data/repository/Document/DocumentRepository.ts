@@ -30,9 +30,6 @@ export class DocumentRepository implements IDocumentRepository {
   async delete(uploading: string, id: ID): Promise<void> {
     await this.apiClient.delete(uploading, id);
   }
-  async updateNewDocumentsCount(uploading: string): Promise<number> {
-    return await this.apiClient.updateNewDocumentsCount(uploading);
-  }
 }
 
 injected(DocumentRepository, DATA_SOURCE_REMOTE.DocumentAPIClient);

@@ -1,7 +1,6 @@
 import express, { Express, Request, Response } from "express";
 import cors from "cors";
 import { GetDocumentListRouter } from "./routers/GetDocumentListRouter";
-import { UpdateNewDocumentsCountRouter } from "./routers/UpdateNewDocumentsCountRouter";
 import { CreateNewDocumentRouter } from "./routers/CreateNewDocumentRouter";
 import { DownloadDocumentRouter } from "./routers/DownloadDocumentRouter";
 import { DeleteDocumentRouter } from "./routers/DeleteDocumentRouter";
@@ -23,7 +22,6 @@ app.get("/", (req: Request, res: Response) => {
 
 app
   .use(GetDocumentListRouter)
-  .use(UpdateNewDocumentsCountRouter)
   .use(CreateNewDocumentRouter)
   .use(DeleteDocumentRouter)
   .use(DownloadDocumentRouter)

@@ -4,7 +4,6 @@ import { CustomTable } from "../components/CustomTable";
 import { LoadingButton } from "@mui/lab";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { IDocumentListViewModel } from "../../DataFlow/presentation/DocumentListViewModel/interfaces";
-import { NewDocumentsInfo } from "../components/NewDocumentsInfo";
 
 interface IProps extends Omit<IDocumentListViewModel, "getList"> {
   category: string;
@@ -14,13 +13,6 @@ interface IProps extends Omit<IDocumentListViewModel, "getList"> {
 const createItemHandler =
   (createItem: IDocumentListViewModel["createItem"], category: string) => () =>
     createItem(category);
-const updateNewDocumentsCountHandler =
-  (
-    updateNewDocumentsCount: IDocumentListViewModel["updateNewDocumentsCount"],
-    category: string
-  ) =>
-  () =>
-    updateNewDocumentsCount(category);
 const deleteItemHandler =
   (deleteItem: IDocumentListViewModel["deleteItem"], category: string) =>
   (id: ID) =>
@@ -36,7 +28,6 @@ export const DocumentListPage: FC<IProps> = ({
   createNewDocumentProcess,
   createItem,
   deleteItem,
-  updateNewDocumentsCount,
 }) => {
   const [deletedId, setDeletedId] = useState<ID>("");
 
@@ -77,17 +68,6 @@ export const DocumentListPage: FC<IProps> = ({
         >
           Создать выгрузку
         </LoadingButton>
-
-        <NewDocumentsInfo
-          loadingList={loadingList}
-          createNewItemProcess={createNewDocumentProcess}
-          loadingCount={loadingCount}
-          newDocumentsCount={newDocumentsCount}
-          updateNewDocumentsCount={updateNewDocumentsCountHandler(
-            updateNewDocumentsCount,
-            category
-          )}
-        />
       </div>
       <ConfirmDialog
         id={deletedId}

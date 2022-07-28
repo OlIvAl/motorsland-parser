@@ -6,7 +6,6 @@ import {
   ICreateItemUseCase,
   IDeleteItemUseCase,
   IGetListUseCase,
-  IUpdateNewDocumentsCountUseCase,
 } from "../../domain/usecase/Document/interfaces";
 import { IDocumentListModel } from "../../domain/entity/List/models/interfaces";
 import {
@@ -41,8 +40,7 @@ export class DocumentListViewModel implements IDocumentListViewModel {
     private model: IDocumentListModel,
     private getDocumentListUseCase: IGetListUseCase,
     private createDocumentUseCase: ICreateItemUseCase,
-    private deleteDocumentUseCase: IDeleteItemUseCase,
-    private updateNewDocumentsCountUseCase: IUpdateNewDocumentsCountUseCase
+    private deleteDocumentUseCase: IDeleteItemUseCase
   ) {
     makeObservable<IDocumentListViewModel, "model">(this, {
       list: computed,
@@ -54,7 +52,6 @@ export class DocumentListViewModel implements IDocumentListViewModel {
       getList: action.bound,
       createItem: action.bound,
       deleteItem: action.bound,
-      updateNewDocumentsCount: action.bound,
     });
   }
 
@@ -96,21 +93,6 @@ export class DocumentListViewModel implements IDocumentListViewModel {
       });
     }
   }
-
-  async updateNewDocumentsCount(category: string): Promise<void> {
-    this.loadingCount = true;
-
-    try {
-      this.model = await this.updateNewDocumentsCountUseCase.execute(
-        this.model,
-        category
-      );
-    } finally {
-      runInAction(() => {
-        this.loadingCount = false;
-      });
-    }
-  }
 }
 
 injected(
@@ -118,6 +100,5 @@ injected(
   BUSINESS_MODELS.DocumentList,
   USE_CASE.GetDocumentList,
   USE_CASE.CreateDocument,
-  USE_CASE.DeleteDocument,
-  USE_CASE.UpdateNewDocumentsCount
+  USE_CASE.DeleteDocument
 );

@@ -36,7 +36,6 @@ export class DocumentRepository implements IDocumentRepository {
   ) {
     this.getDocuments = this.getDocuments.bind(this);
     this.getDocument = this.getDocument.bind(this);
-    this.updateNewDocumentsCount = this.updateNewDocumentsCount.bind(this);
     this.create = this.create.bind(this);
     this.delete = this.delete.bind(this);
     this.imageFolderHandler = this.imageFolderHandler.bind(this);
@@ -90,40 +89,6 @@ export class DocumentRepository implements IDocumentRepository {
         }
       }
     );
-  }
-
-  async updateNewDocumentsCount(uploading: UPLOADING_NAME): Promise<number> {
-    let count: number = 0;
-
-    const lastDocumentVC: string[] = []; //await this.getLastDocumentVC(uploading);
-    const sources = await this.uploadingTableClient.getUploadingSources(
-      uploading
-    );
-    this.documentBuilder.setSources(sources);
-
-    await this.documentBuilder.dispose();
-    await this.documentBuilder.init();
-
-    console.log("Браузер открыт!");
-
-    try {
-      await this.documentBuilder.setVendorCodesListFromLastDocument(
-        lastDocumentVC
-      );
-
-      await this.documentBuilder.scrapNewLinks();
-      count = this.documentBuilder.getNewLinksLength();
-
-      await this.uploadingTableClient.setNewDocumentsCount(uploading, count);
-    } catch (e) {
-      console.log("Произошла ошибка!");
-      throw e;
-    } finally {
-      await this.documentBuilder.dispose();
-      console.log("Браузер заткрыт!");
-    }
-
-    return count;
   }
 
   async create(uploading: UPLOADING_NAME): Promise<IDocument> {
@@ -424,7 +389,6 @@ export class DocumentRepository implements IDocumentRepository {
 
   async delete(uploading: UPLOADING_NAME, name: string): Promise<void> {
     await this.documentTableClient.delete(uploading, name);
-    await this.updateNewDocumentsCount(uploading);
   }
 
   private async imageFolderHandler(

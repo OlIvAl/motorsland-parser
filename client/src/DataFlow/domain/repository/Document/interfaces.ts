@@ -10,7 +10,6 @@ export interface IDocumentRepository {
   getList(uploading: string): Promise<IDocumentList>;
   create(uploading: string): Promise<IDocument>;
   delete(uploading: string, id: ID): Promise<void>;
-  updateNewDocumentsCount(uploading: string): Promise<number>;
 }
 
 export interface IDocumentDTO {

@@ -6,7 +6,6 @@ import {
   IGetDocumentHeadersUseCase,
   IGetDocumentListUseCase,
   IGetDocumentUseCase,
-  IUpdateNewDocumentsCountUseCase,
 } from "../domain/usecase/Document/interfaces";
 import { injected } from "brandi";
 import { USE_CASE } from "../di/usecase";
@@ -22,7 +21,6 @@ export class DocumentController implements IDocumentController {
     private getDocumentUseCase: IGetDocumentUseCase,
     private createDocumentUseCase: ICreateDocumentUseCase,
     private deleteDocumentUseCase: IDeleteDocumentUseCase,
-    private updateNewDocumentsCountUseCase: IUpdateNewDocumentsCountUseCase,
     private getDocumentHeadersUseCase: IGetDocumentHeadersUseCase
   ) {}
 
@@ -80,9 +78,6 @@ export class DocumentController implements IDocumentController {
   async delete(uploading: UPLOADING_NAME, name: string): Promise<void> {
     return await this.deleteDocumentUseCase.execute(uploading, name);
   }
-  async updateNewDocumentsCount(uploading: UPLOADING_NAME): Promise<number> {
-    return await this.updateNewDocumentsCountUseCase.execute(uploading);
-  }
 
   protected dateMapper(obj: any): any {
     return {
@@ -98,6 +93,5 @@ injected(
   USE_CASE.GetDocument,
   USE_CASE.CreateDocument,
   USE_CASE.DeleteDocument,
-  USE_CASE.UpdateNewDocumentsCount,
   USE_CASE.GetDocumentHeaders
 );

@@ -9,7 +9,6 @@ export interface IDocumentController {
   getCSVDocument(name: string, res: any): Promise<Writable>;
   create(uploading: UPLOADING_NAME): Promise<IDocumentDTO>;
   delete(uploading: UPLOADING_NAME, name: string): Promise<void>;
-  updateNewDocumentsCount(uploading: UPLOADING_NAME): Promise<number>;
 }
 export interface IUploadingController {
   getList(): Promise<IUploading[]>;

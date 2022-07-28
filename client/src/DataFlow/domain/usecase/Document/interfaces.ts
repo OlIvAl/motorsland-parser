@@ -16,9 +16,3 @@ export interface IDeleteItemUseCase {
     category: string
   ): Promise<IDocumentListModel>;
 }
-export interface IUpdateNewDocumentsCountUseCase {
-  execute(
-    model: IDocumentListModel,
-    category: string
-  ): Promise<IDocumentListModel>;
-}

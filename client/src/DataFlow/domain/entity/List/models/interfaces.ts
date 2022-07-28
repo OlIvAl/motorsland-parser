@@ -1,6 +1,5 @@
 import { IDocumentList, IList } from "../stuctures/interfaces";
 import { IDocument } from "../../Document/structures/interfaces";
-import { IUpdateNewDocumentsCountUseCase } from "../../../usecase/Document/interfaces";
 
 export interface IListModel<M extends { id: ID }> {
   list: IList<M>;

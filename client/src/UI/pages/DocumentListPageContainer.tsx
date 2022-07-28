@@ -19,7 +19,6 @@ export const DocumentListPageContainer: FC<IProps> = observer(
       createNewDocumentProcess,
       createItem,
       deleteItem,
-      updateNewDocumentsCount,
     } = useInjection(VIEW_MODEL.DocumentList);
 
     return (
@@ -33,7 +32,6 @@ export const DocumentListPageContainer: FC<IProps> = observer(
         createNewDocumentProcess={createNewDocumentProcess}
         createItem={createItem}
         deleteItem={deleteItem}
-        updateNewDocumentsCount={updateNewDocumentsCount}
       />
     );
   }

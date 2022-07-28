@@ -19,9 +19,6 @@ export interface ICreateDocumentUseCase {
 export interface IDeleteDocumentUseCase {
   execute(uploading: UPLOADING_NAME, name: string): Promise<void>;
 }
-export interface IUpdateNewDocumentsCountUseCase {
-  execute(uploading: UPLOADING_NAME): Promise<number>;
-}
 export interface IGetDocumentHeadersUseCase {
   execute(): Promise<Record<string, string>>;
 }
