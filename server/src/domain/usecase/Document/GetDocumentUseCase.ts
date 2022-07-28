@@ -7,12 +7,8 @@ import { Transform, Writable } from "stream";
 export class GetDocumentUseCase implements IGetDocumentUseCase {
   constructor(private repository: IDocumentRepository) {}
 
-  execute(
-    name: string,
-    formatter: Transform,
-    writable: Writable
-  ): Promise<Writable> {
-    return this.repository.getDocument(name, formatter, writable);
+  execute(name: string): Promise<Writable> {
+    return this.repository.getDocument(name);
   }
 }
 

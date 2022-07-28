@@ -23,7 +23,7 @@ export const DownloadDocumentRouter = Router().get(
           );
           break;*/
         case "csv":
-          stream = await controller.getCSVDocument(req.params.filename, res);
+          (await controller.getCSVDocument(req.params.filename)).pipe(res);
           break;
         default:
           throw new Error("Unknown type!");
@@ -37,6 +37,7 @@ export const DownloadDocumentRouter = Router().get(
       finished(res, (err) => {
         if (err) {
           console.error("failed", err);
+          res.sendStatus(400);
         } else {
           console.log("Finish:", getLocalTime());
         }

@@ -20,7 +20,7 @@ import { injected } from "brandi";
 import { DATA_SOURCE_REMOTE } from "../../../di/dataSource";
 import { Conveyor } from "../../../libs/Conveyor";
 import { getLocalTime } from "../../../libs/getLocalTime";
-import { pipeline, Transform } from "stream";
+import { PassThrough, pipeline, Transform } from "stream";
 import { Readable, Writable } from "stream";
 import { PostProcessingTransform } from "../../../dataSources/Streams/PostProcessingTransform";
 import { AddImagesTransform } from "../../../dataSources/Streams/AddImagesTransform";
@@ -59,11 +59,7 @@ export class DocumentRepository implements IDocumentRepository {
     return ItemsListSchema.cast(result);
   }
 
-  async getDocument(
-    name: string,
-    formatter: Transform,
-    writable: Writable
-  ): Promise<Writable> {
+  async getDocument(name: string): Promise<Writable> {
     const sources = await this.documentTableClient.getSources();
 
     const dataGenerator = await this.documentTableClient.getDataRows(
@@ -78,9 +74,7 @@ export class DocumentRepository implements IDocumentRepository {
       }),
       new AddImagesTransform(this.documentTableClient, this.imagesStorage),
       new PostProcessingTransform(sources),
-      formatter,
-      writable,
-
+      new PassThrough(),
       (err) => {
         if (err) {
           console.error("Failed:", err);

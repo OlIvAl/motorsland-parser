@@ -6,7 +6,7 @@ import { Writable } from "stream";
 export interface IDocumentController {
   getList(uploading: UPLOADING_NAME): Promise<IDocumentListDTO>;
   getXMLDocument(name: string): Promise<string>;
-  getCSVDocument(name: string, res: any): Promise<Writable>;
+  getCSVDocument(name: string): Promise<Writable>;
   create(uploading: UPLOADING_NAME): Promise<IDocumentDTO>;
   delete(uploading: UPLOADING_NAME, name: string): Promise<void>;
 }

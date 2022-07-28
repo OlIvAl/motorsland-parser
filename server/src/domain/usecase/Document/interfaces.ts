@@ -7,11 +7,7 @@ export interface IGetDocumentListUseCase {
   execute(uploading: UPLOADING_NAME): Promise<IDocumentList>;
 }
 export interface IGetDocumentUseCase {
-  execute(
-    name: string,
-    formatter: Transform,
-    writable: Writable
-  ): Promise<Writable>;
+  execute(name: string): Promise<Writable>;
 }
 export interface ICreateDocumentUseCase {
   execute(uploading: UPLOADING_NAME): Promise<IDocument>;

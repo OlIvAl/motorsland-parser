@@ -46,7 +46,7 @@ export class DocumentController implements IDocumentController {
 
     return create({}).dec({ encoding: "UTF-8" }).end({ prettyPrint: false });
   }
-  async getCSVDocument(name: UPLOADING_NAME, writable: Writable): Promise<any> {
+  async getCSVDocument(name: UPLOADING_NAME): Promise<any> {
     type CSVItem = Omit<IItemData, "images"> & { images: string };
 
     const headers = await this.getDocumentHeadersUseCase.execute();
@@ -60,15 +60,13 @@ export class DocumentController implements IDocumentController {
         {}
       );
 
-    return await this.getDocumentUseCase.execute(
-      name,
+    return (await this.getDocumentUseCase.execute(name)).pipe(
       format({
         headers: Object.values(headers),
         transform,
         delimiter: ";",
         alwaysWriteHeaders: true,
-      }),
-      writable
+      })
     );
   }
   async create(uploading: UPLOADING_NAME): Promise<IDocumentDTO> {
