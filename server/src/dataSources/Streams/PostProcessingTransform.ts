@@ -27,13 +27,13 @@ export class PostProcessingTransform extends Transform {
     encoding: BufferEncoding,
     done: TransformCallback
   ) {
-    const { uploading, ...data } = chunk;
+    const { source, ...data } = chunk;
 
     const result = PostProcessingTransform.postProcessingData(
       data,
-      this.sources[uploading].preVendorCode,
-      this.sources[uploading].markup,
-      this.sources[uploading].exchangeRate
+      this.sources[source].preVendorCode,
+      this.sources[source].markup,
+      this.sources[source].exchangeRate
     );
 
     this.push(result);
@@ -44,6 +44,7 @@ export class PostProcessingTransform extends Transform {
   _flush(done: TransformCallback) {
     this.sources = {};
     console.log(getLocalTime(), "Handled:", this.#count);
+
     done();
   }
 
@@ -56,7 +57,10 @@ export class PostProcessingTransform extends Transform {
     item.price = item.price
       ? Math.ceil(Number(item.price) * (1 + markup) * exchangeRate).toString()
       : "";
-    item.vendor_code = preVendorCode + item.vendor_code;
+    item.vendor_code = `${preVendorCode}-${item.vendor_code}`;
+    item.condition = "Б/У";
+    item.status = "на заказ";
+    item.authenticity = "оригинал";
 
     return item;
   }

@@ -93,7 +93,7 @@ export interface ITableUploadingSource {
 }
 
 export interface IDataRow {
-  uploading: string;
+  source: string;
 
   vendor_code: string;
   price: string;

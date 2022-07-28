@@ -2,6 +2,7 @@ import {
   AzureNamedKeyCredential,
   odata,
   TableClient,
+  TableEntityResult,
 } from "@azure/data-tables";
 import { BlobClient } from "@azure/storage-blob";
 import { CONTAINER_NAME, UPLOADING_NAME } from "../constants";
@@ -97,28 +98,19 @@ export class DocumentTableClient implements IDocumentTableClient {
   }
 
   async *getDataRows(name: string): AsyncIterable<IDataRow> {
-    const dataRows = await this.dataTableClient.listEntities<IDataRow>({
-      queryOptions: { filter: odata`PartitionKey eq ${name}` },
+    const dataRows = await this.dataTableClient.listEntities<
+      TableEntityResult<IDataRow>
+    >({
+      queryOptions: {
+        // filter: odata`source eq 'motorlandby.ru'`,
+        filter: odata`PartitionKey eq ${name}`,
+      },
     });
 
     for await (let dataRow of dataRows) {
-      yield {
-        uploading: dataRow.uploading,
-        vendor_code: dataRow.vendor_code,
-        price: dataRow.price,
-        name: dataRow.name,
-        body: dataRow.body,
-        constr_number: dataRow.constr_number,
-        description: dataRow.description,
-        engine_mark: dataRow.engine_mark,
-        engine_volume: dataRow.engine_volume,
-        fuel_type: dataRow.fuel_type,
-        kpp: dataRow.kpp,
-        mark: dataRow.mark,
-        model: dataRow.model,
-        vin: dataRow.vin,
-        year: dataRow.year,
-      };
+      const { partitionKey, rowKey, etag, timestamp, ...data } = dataRow;
+
+      yield data;
     }
   }
   async getImgSrcArr(vendorCode: string): Promise<string[]> {
@@ -154,8 +146,6 @@ export class DocumentTableClient implements IDocumentTableClient {
     const result = await this.documentTableClient.listEntities<{}>({
       queryOptions: { filter: odata`PartitionKey eq ${uploading}` },
     });
-
-    // for await (item of result) {}
 
     let arr = [];
 
@@ -409,11 +399,7 @@ export class DocumentTableClient implements IDocumentTableClient {
     ): AsyncIterable<TableEntity<IDataRow>> {
       const dataRows = await dataTableClient.listEntities<
         TableEntityResult<IDataRow>
-      >({
-        queryOptions: {
-          filter: odata`side gt ''`,
-        },
-      });
+      >();
 
       for await (let dataRow of dataRows) {
         const { timestamp, etag, ...data } = dataRow;
@@ -433,6 +419,8 @@ export class DocumentTableClient implements IDocumentTableClient {
         encoding: BufferEncoding,
         done: TransformCallback
       ) {
+        this.#buffer.push(chunk);
+
         if (this.#buffer.length < 50) {
           done();
         } else {
@@ -455,9 +443,8 @@ export class DocumentTableClient implements IDocumentTableClient {
             await this.dataTableClient.updateEntity(
               {
                 ...row,
-                left_right: "правая",
-                front_rear: "передняя",
-                side: undefined,
+                uploading: undefined,
+                source: row.source,
               },
               "Replace"
             );
@@ -493,7 +480,7 @@ export class DocumentTableClient implements IDocumentTableClient {
         objectMode: true,
       })
     );
-    console.log(getLocalTime(), `Finish handling`);*/
+    console.log(getLocalTime(), `Finish handling`); */
     /*const sources = await this.getSources();
     const documents = [
       "trunk_lids-2022-07-13T22:32:28.686Z",
