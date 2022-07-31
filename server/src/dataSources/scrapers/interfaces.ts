@@ -21,9 +21,8 @@ export interface IDocumentBuilder {
 
 export interface ILinkListScraper {
   setSource(source: ISource): void;
-  setVendorCodesListFromLastDocument(codes: string[]): void;
 
-  getNewLinks(): Promise<string[]>;
+  getNewLinks(): Promise<void>;
 }
 
 export interface IBrowserFacade {

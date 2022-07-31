@@ -5,7 +5,7 @@ import { Transform, Writable } from "stream";
 export interface IDocumentRepository {
   getDocuments(uploading: UPLOADING_NAME): Promise<IDocument[]>;
   getDocument(name: string): Promise<Writable>;
-  create(uploading: UPLOADING_NAME): Promise<IDocument>;
+  create(sources: string[]): Promise<IDocument>;
   delete(uploading: UPLOADING_NAME, name: string): Promise<void>;
   getHeaders(): Promise<Record<string, string>>;
 }

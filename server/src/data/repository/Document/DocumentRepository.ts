@@ -20,10 +20,12 @@ import { injected } from "brandi";
 import { DATA_SOURCE_REMOTE } from "../../../di/dataSource";
 import { Conveyor } from "../../../libs/Conveyor";
 import { getLocalTime } from "../../../libs/getLocalTime";
-import { PassThrough, pipeline, Transform } from "stream";
-import { Readable, Writable } from "stream";
+import { PassThrough, pipeline, Readable, Writable } from "stream";
 import { PostProcessingTransform } from "../../../dataSources/Streams/PostProcessingTransform";
 import { AddImagesTransform } from "../../../dataSources/Streams/AddImagesTransform";
+import { SourceNameToSourceObjTransform } from "./streams/SourceNameToSourceObjTransform";
+import { RequestProductLinksTransform } from "./streams/RequestProductLinksTransform";
+import { BrowserFacade } from "../../../dataSources/scrapers/BrowserFacade";
 
 // Todo: delete temporary files!!!!!!!!
 export class DocumentRepository implements IDocumentRepository {
@@ -74,7 +76,7 @@ export class DocumentRepository implements IDocumentRepository {
       }),
       new AddImagesTransform(this.documentTableClient, this.imagesStorage),
       new PostProcessingTransform(sources),
-      new PassThrough(),
+      new PassThrough({ objectMode: true }),
       (err) => {
         if (err) {
           console.error("Failed:", err);
@@ -85,36 +87,43 @@ export class DocumentRepository implements IDocumentRepository {
     );
   }
 
-  async create(uploading: UPLOADING_NAME): Promise<IDocument> {
-    if (await this.uploadingTableClient.isAnyInProgress()) {
-      throw new BadRequest(ErrCodes.PROCESS_IS_BUSY);
-    }
+  async create(sources: string[] = []): Promise<IDocument> {
+    try {
+      console.log("Начался процесс создания документа!");
 
-    let itemsBySources: IItemData[][] = [];
+      pipeline(
+        Readable.from(["f-avto.by", "motorlandby.ru", "stopgo.by"], {
+          objectMode: true,
+        }),
+        new SourceNameToSourceObjTransform(this.uploadingTableClient),
+        // @ts-ignore
+        // .filter(async (source: ISource) => !source.disabled),
+        new RequestProductLinksTransform(new BrowserFacade()),
+        new Writable({
+          objectMode: true,
+          write(
+            chunk: any,
+            encoding: BufferEncoding,
+            callback: (error?: Error | null) => void
+          ) {
+            console.log("chunk =>", chunk);
+            callback();
+          },
+        }),
+        (err) => {
+          if (err) {
+            console.error("Failed:", err);
+          } else {
+            console.log("Finish:", getLocalTime());
+          }
+        }
+      );
+      /*
+      let itemsBySources: IItemData[][] = [];
     let items: IItemData[] = [];
     let dictionary: IItemSourceDictionary[] = [];
 
-    try {
-      // await this.uploadingTableClient.setProgress(uploading);
-      console.log("Начался процесс создания документа!");
-
-      let newLinks: string[][] = [];
-
-      // ToDo: return!!!
-      // const lastDocumentVC = await this.getLastDocumentVC(uploading);
-      const sources = await this.uploadingTableClient.getUploadingSources(
-        uploading
-      );
-
-      await this.documentBuilder.dispose();
-      await this.documentBuilder.init();
-
       console.log("Браузер открыт!");
-
-      await this.documentBuilder.setSources(sources);
-      // ToDo: return!!!
-      // await this.documentBuilder.setVendorCodesListFromLastDocument(lastDocumentVC);
-      await this.documentBuilder.setVendorCodesListFromLastDocument([]);
 
       if (
         !(await this.tempStorage.isBlobExist(`${uploading}_new_links.json`))
@@ -186,14 +195,14 @@ export class DocumentRepository implements IDocumentRepository {
 
       // await this.deleteUploadingTempFiles(uploading);
 
-      console.log(`Время окончания: ${getLocalTime()}`);
+      console.log(`Время окончания: ${getLocalTime()}`);*/
 
       return {
         ...new Document(),
         ...{
-          id: resp.name,
-          name: resp.name,
-          createdOn: date,
+          id: "",
+          name: "",
+          createdOn: new Date(),
         },
       };
     } catch (e) {
@@ -202,8 +211,6 @@ export class DocumentRepository implements IDocumentRepository {
       console.log(e);
 
       throw e;
-    } finally {
-      await this.uploadingTableClient.unsetProgress(uploading);
     }
   }
 
@@ -416,30 +423,6 @@ export class DocumentRepository implements IDocumentRepository {
     ).filter((str) => Boolean(str));
     return data;
   }
-
-  /*private async getLastDocumentVC(
-    uploading: UPLOADING_NAME
-  ): Promise<string[]> {
-    const lastDocument = await this.documentTableClient.getLast(uploading);
-    const lastDocumentName = lastDocument ? lastDocument.name : "";
-
-    if (!lastDocumentName) {
-      return [];
-    }
-
-    let vcSet = new Set<string>();
-
-    const documentInfo = await this.documentTableClient.get(lastDocumentName);
-    documentInfo.forEach((fieldInfo) => {
-      fieldInfo.forEach((field) => {
-        if (field.name === "vendor_code") {
-          vcSet.add(field.value as string);
-        }
-      });
-    });
-
-    return Array.from(vcSet);
-  }*/
 }
 
 injected(

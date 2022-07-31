@@ -102,8 +102,8 @@ export class DocumentTableClient implements IDocumentTableClient {
       TableEntityResult<IDataRow>
     >({
       queryOptions: {
-        // filter: odata`source eq 'motorlandby.ru'`,
-        filter: odata`PartitionKey eq ${name}`,
+        filter: odata`source eq 'motorlandby.ru'`,
+        // filter: odata`PartitionKey eq ${name}`,
       },
     });
 

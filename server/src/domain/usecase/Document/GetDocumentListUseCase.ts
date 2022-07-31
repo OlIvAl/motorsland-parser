@@ -8,25 +8,18 @@ import { injected } from "brandi";
 import { REPOSITORY } from "../../../di/repository";
 
 export class GetDocumentListUseCase implements IGetDocumentListUseCase {
-  constructor(
-    private documentRepository: IDocumentRepository,
-    private uploadingRepository: IUploadingRepository
-  ) {}
+  constructor(private documentRepository: IDocumentRepository) {}
   async execute(uploading: UPLOADING_NAME): Promise<IDocumentList> {
     const model = new DocumentListModel();
 
-    const [list, newDocumentsCount, progress] = await Promise.all([
+    const [list] = await Promise.all([
       this.documentRepository.getDocuments(uploading),
-      this.uploadingRepository.getNewDocumentsCount(uploading),
-      this.uploadingRepository.getUploadingProgress(uploading),
     ]);
 
     model.setItems(list);
-    model.setNewDocumentsCount(newDocumentsCount);
-    model.setProgress(progress);
 
     return model.list;
   }
 }
 
-injected(GetDocumentListUseCase, REPOSITORY.Document, REPOSITORY.Uploading);
+injected(GetDocumentListUseCase, REPOSITORY.Document);

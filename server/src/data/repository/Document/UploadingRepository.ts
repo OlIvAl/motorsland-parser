@@ -11,15 +11,6 @@ export class UploadingRepository implements IUploadingRepository {
   async getList(): Promise<IUploading[]> {
     return await this.uploadingTableClient.getList();
   }
-  async getUploadingProgress(uploading: UPLOADING_NAME): Promise<boolean> {
-    return await this.uploadingTableClient.getProgress(uploading);
-  }
-  async getCommonUploadingProgress(uploading: string): Promise<boolean> {
-    return await this.uploadingTableClient.isAnyInProgress();
-  }
-  async getNewDocumentsCount(uploading: UPLOADING_NAME): Promise<number> {
-    return await this.uploadingTableClient.getNewDocumentsCount(uploading);
-  }
 }
 
 injected(UploadingRepository, DATA_SOURCE_REMOTE.UploadingTableClient);

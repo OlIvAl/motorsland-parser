@@ -9,19 +9,14 @@ import {
   ITableField,
   ITableWatermarkSettings,
   ITableSource,
-  ITableUploadingFieldRelation,
-  ITableUploadingFieldSource,
-  ITableUploadingSource,
-  IUploadingItem,
+  ITableCatalogLink,
   IUploadingTableClient,
+  IWatermarkSettings,
 } from "./interfases";
 import { IUploading } from "../domain/entity/Uploading/structures/interfaces";
 
 export class UploadingTableClient implements IUploadingTableClient {
-  private uploadingTableClient: TableClient;
-  private uploadingSourceTableClient: TableClient;
-  private uploadingFieldSourceTableClient: TableClient;
-  private uploadingFieldRelationTableClient: TableClient;
+  private catalogLinksTableClient: TableClient;
   private watermarkSettingsTableClient: TableClient;
   private sourceTableClient: TableClient;
   private fieldTableClient: TableClient;
@@ -32,14 +27,9 @@ export class UploadingTableClient implements IUploadingTableClient {
       process.env.AZURE_ACCOUNT_KEY as string
     );
 
-    this.uploadingTableClient = new TableClient(
+    this.catalogLinksTableClient = new TableClient(
       `https://${process.env.AZURE_ACCOUNT}.table.core.windows.net`,
-      "uploading",
-      credential
-    );
-    this.uploadingSourceTableClient = new TableClient(
-      `https://${process.env.AZURE_ACCOUNT}.table.core.windows.net`,
-      "uploadingSource",
+      "catalogLinks",
       credential
     );
     this.sourceTableClient = new TableClient(
@@ -52,16 +42,6 @@ export class UploadingTableClient implements IUploadingTableClient {
       "watermarkSettings",
       credential
     );
-    this.uploadingFieldSourceTableClient = new TableClient(
-      `https://${process.env.AZURE_ACCOUNT}.table.core.windows.net`,
-      "uploadingFieldSource",
-      credential
-    );
-    this.uploadingFieldRelationTableClient = new TableClient(
-      `https://${process.env.AZURE_ACCOUNT}.table.core.windows.net`,
-      "uploadingFieldRelation",
-      credential
-    );
     this.fieldTableClient = new TableClient(
       `https://${process.env.AZURE_ACCOUNT}.table.core.windows.net`,
       "field",
@@ -70,12 +50,11 @@ export class UploadingTableClient implements IUploadingTableClient {
   }
 
   async getList(): Promise<IUploading[]> {
-    const uploadings =
-      await this.uploadingTableClient.listEntities<IUploading>();
+    const uploadings: any[] = [];
 
     let result: IUploading[] = [];
 
-    for await (const uploading of uploadings) {
+    for (const uploading of uploadings) {
       result.push({
         id: uploading.name,
         name: uploading.name,
@@ -87,70 +66,6 @@ export class UploadingTableClient implements IUploadingTableClient {
     return result;
   }
 
-  async getProgress(uploading: UPLOADING_NAME): Promise<boolean> {
-    return (
-      await this.uploadingTableClient.getEntity<IUploadingItem>(
-        "uploading",
-        uploading
-      )
-    ).progress;
-  }
-  async setProgress(uploading: UPLOADING_NAME): Promise<void> {
-    await this.uploadingTableClient.updateEntity<Partial<IUploadingItem>>(
-      {
-        partitionKey: "uploading",
-        rowKey: uploading,
-        progress: true,
-      },
-      "Merge"
-    );
-  }
-  async unsetProgress(uploading: UPLOADING_NAME): Promise<void> {
-    await this.uploadingTableClient.updateEntity<Partial<IUploadingItem>>(
-      {
-        partitionKey: "uploading",
-        rowKey: uploading,
-        progress: false,
-      },
-      "Merge"
-    );
-  }
-  async isAnyInProgress(): Promise<boolean> {
-    const result = await this.uploadingTableClient.listEntities<IUploadingItem>(
-      {
-        queryOptions: { filter: odata`progress eq true` },
-      }
-    );
-
-    let arr = [];
-
-    for await (const item of result) {
-      arr.push(item);
-    }
-
-    return Boolean(arr.length);
-  }
-  async getNewDocumentsCount(uploading: UPLOADING_NAME): Promise<number> {
-    return (
-      await this.uploadingTableClient.getEntity<IUploadingItem>(
-        "uploading",
-        uploading
-      )
-    ).newDocumentsCount;
-  }
-  async setNewDocumentsCount(
-    uploading: UPLOADING_NAME,
-    count: number
-  ): Promise<void> {
-    await this.uploadingTableClient.updateEntity<Partial<IUploadingItem>>(
-      {
-        partitionKey: "uploading",
-        rowKey: uploading,
-        newDocumentsCount: count,
-      },
-      "Merge"
-    );
-  }
   async getFields(): Promise<ITableField[]> {
     const fieldRows = await this.fieldTableClient.listEntities<ITableField>();
 
@@ -171,81 +86,63 @@ export class UploadingTableClient implements IUploadingTableClient {
     return Promise.resolve(undefined);
   }
 
-  async getUploadingSources(uploading: UPLOADING_NAME): Promise<ISource[]> {
-    const uploadingSources =
-      await this.uploadingSourceTableClient.listEntities<ITableUploadingSource>(
-        {
-          queryOptions: { filter: odata`uploading eq ${uploading}` },
-        }
-      );
+  async getLinks(source: string): Promise<string[]> {
+    const catalogLinksRows =
+      await this.catalogLinksTableClient.listEntities<ITableCatalogLink>({
+        queryOptions: { filter: odata`RowKey eq ${source}` },
+      });
 
-    let result: ISource[] = [];
-    for await (const uploadingSource of uploadingSources) {
-      let item: ISource;
-      const source = await this.sourceTableClient.getEntity<ITableSource>(
-        "uploadingSource",
-        uploadingSource.rowKey as string
-      );
+    const links = [];
 
-      if (source.disabled) {
-        continue;
-      }
-      // ToDo: оптимизировать!!!
-      const [fieldRows, watermarkSettingsRows] = await Promise.all([
-        this.uploadingFieldSourceTableClient.listEntities<ITableUploadingFieldSource>(
-          {
-            queryOptions: {
-              filter: odata`uploading eq ${uploading} and source eq ${uploadingSource.rowKey}`,
-            },
-          }
-        ),
-        this.watermarkSettingsTableClient.listEntities<ITableWatermarkSettings>(
-          {
-            queryOptions: {
-              filter: odata`source eq ${uploadingSource.rowKey}`,
-            },
-          }
-        ),
-      ]);
-
-      const watermarkSettings: ITableWatermarkSettings = (
-        await watermarkSettingsRows.next()
-      ).value;
-
-      // Привязать настройки полей к испочникам!!!
-      item = {
-        name: uploadingSource.rowKey as string,
-        linkListUrl: uploadingSource.linkListUrl,
-        lastPageXpath: source.lastPageXpath,
-        nextPageXpath: source.nextPageXpath,
-        linkXpath: source.linkXpath,
-        listPageExpression: source.listPageExpression,
-        preVendorCode: source.preVendorCode,
-        site: source.site,
-        markup: source.markup,
-        exchangeRate: source.exchangeRate,
-        fields: [],
-        imagesXPath: source.imagesXPath,
-        watermarkSettings: watermarkSettings.watermark
-          ? {
-              watermarkScale: watermarkSettings.watermarkScale,
-              position: watermarkSettings.position,
-            }
-          : undefined,
-        disabled: source.disabled,
-      };
-
-      for await (const field of fieldRows) {
-        item.fields.push({
-          field: field.field,
-          xpath: field.xpath,
-          regexp: field.regexp,
-          cleanRegexp: field.cleanRegexp,
-          value: field.value,
-        });
-      }
-      result.push(item);
+    for await (const catalogLinksRow of catalogLinksRows) {
+      links.push(catalogLinksRow.linkListUrl);
     }
-    return result;
+
+    return links;
+  }
+  async getWatermarkSettings(
+    source: string
+  ): Promise<IWatermarkSettings | undefined> {
+    const watermarkSettingsRows =
+      this.watermarkSettingsTableClient.listEntities<ITableWatermarkSettings>({
+        queryOptions: {
+          filter: odata`source eq ${source}`,
+        },
+      });
+
+    const watermarkSettings: ITableWatermarkSettings = (
+      await watermarkSettingsRows.next()
+    ).value;
+
+    return watermarkSettings.watermark
+      ? {
+          watermarkScale: watermarkSettings.watermarkScale,
+          position: watermarkSettings.position,
+        }
+      : undefined;
+  }
+
+  async getSources(source: string): Promise<ISource> {
+    const sourceObj = await this.sourceTableClient.getEntity<ITableSource>(
+      "uploadingSource",
+      source
+    );
+
+    return {
+      name: sourceObj.rowKey as string,
+      lastPageXpath: sourceObj.lastPageXpath,
+      nextPageXpath: sourceObj.nextPageXpath,
+      linkXpath: sourceObj.linkXpath,
+      listPageExpression: sourceObj.listPageExpression,
+      preVendorCode: sourceObj.preVendorCode,
+      site: sourceObj.site,
+      markup: sourceObj.markup,
+      exchangeRate: sourceObj.exchangeRate,
+      imagesXPath: sourceObj.imagesXPath,
+      disabled: sourceObj.disabled,
+      linkListUrls: [],
+      fields: [],
+      watermarkSettings: undefined,
+    };
   }
 }

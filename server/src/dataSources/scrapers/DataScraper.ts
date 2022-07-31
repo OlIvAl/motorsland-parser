@@ -1,9 +1,9 @@
 import { IFieldSelector, IItemData, ISource } from "../interfases";
 import { ElementHandle, Page } from "puppeteer";
-import { Conveyor } from "../../libs/Conveyor";
 import { IBrowserFacade } from "./interfaces";
 import { BrowserFacade } from "./BrowserFacade";
 import { getLocalTime } from "../../libs/getLocalTime";
+import { Promise } from "bluebird";
 
 export class DataScraper {
   private source?: ISource;
@@ -203,17 +203,10 @@ export class DataScraper {
 
     console.log(`Время начала: ${getLocalTime()}`);
 
-    const conveyor = new Conveyor<string, IItemData | undefined>(
-      newLinksList,
-      chunkSize,
-      this.scrapDataByPage,
-      [this.source]
-    );
-
-    conveyor.setStartHandleTime(false);
-
-    return (await conveyor.handle()).filter((obj) =>
-      Boolean(obj)
-    ) as IItemData[];
+    return (
+      await Promise.map(newLinksList, this.scrapDataByPage, {
+        concurrency: chunkSize,
+      })
+    ).filter((obj) => Boolean(obj)) as IItemData[];
   }
 }

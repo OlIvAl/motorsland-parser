@@ -20,18 +20,14 @@ export interface IAzureBlobStorage {
 
 export interface IUploadingTableClient {
   getList(): Promise<IUploading[]>;
-  getProgress(uploading: UPLOADING_NAME): Promise<boolean>;
-  setProgress(uploading: UPLOADING_NAME): Promise<void>;
-  unsetProgress(uploading: UPLOADING_NAME): Promise<void>;
-  isAnyInProgress(): Promise<boolean>;
-  getNewDocumentsCount(uploading: UPLOADING_NAME): Promise<number>;
-  setNewDocumentsCount(uploading: UPLOADING_NAME, count: number): Promise<void>;
   getFields(): Promise<ITableField[]>;
   setFields(
     uploading: UPLOADING_NAME,
     fields: Record<string, string>
   ): Promise<void>;
-  getUploadingSources(uploading: UPLOADING_NAME): Promise<ISource[]>;
+  getLinks(source: string): Promise<string[]>;
+  getWatermarkSettings(source: string): Promise<IWatermarkSettings | undefined>;
+  getSources(source: string): Promise<ISource>;
 }
 
 export interface IDocumentTableClient {
@@ -88,7 +84,7 @@ export interface ITableDocumentField extends IFieldData {
   document: string;
 }
 
-export interface ITableUploadingSource {
+export interface ITableCatalogLink {
   linkListUrl: string;
 }
 
@@ -168,8 +164,9 @@ export interface ITableImage {
   name: string;
   document: string;
 }
-export interface ISource extends ITableSource, ITableUploadingSource {
+export interface ISource extends ITableSource {
   name: string;
+  linkListUrls: string[];
   fields: IFieldSelector[];
   watermarkSettings?: IWatermarkSettings;
 }

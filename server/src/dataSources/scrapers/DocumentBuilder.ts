@@ -4,6 +4,7 @@ import { BrowserFacade } from "./BrowserFacade";
 import { LinkListScraper } from "./LinkListScraper";
 import { DataScraper } from "./DataScraper";
 import { getLocalTime } from "../../libs/getLocalTime";
+import { Readable } from "stream";
 
 export class DocumentBuilder implements IDocumentBuilder {
   private browser?: IBrowserFacade;
@@ -55,7 +56,7 @@ export class DocumentBuilder implements IDocumentBuilder {
       throw new Error("VendorCodesListFromLastDocument не проинициализирован!");
     }
 
-    const linkListScraper = new LinkListScraper(this.browser);
+    const linkListScraper = new LinkListScraper(new Readable(), this.browser);
 
     let result: string[][] = [];
 
@@ -64,17 +65,12 @@ export class DocumentBuilder implements IDocumentBuilder {
     for (let source of sources) {
       console.log(`Начат сбор новых ссылок с ${source.name}`);
 
-      linkListScraper.setVendorCodesListFromLastDocument(
-        this.vendorCodesListFromLastDocument
-      );
       linkListScraper.setSource(source);
 
-      const sourceResult = await linkListScraper.getNewLinks();
-
-      result = [...result, sourceResult];
+      result = [];
 
       console.log(
-        `Закончен сбора новых ссылок с ${source.name}. Результат: ${sourceResult.length} ссылок`
+        `Закончен сбора новых ссылок с ${source.name}. Результат: ссылок`
       );
     }
     console.log(
