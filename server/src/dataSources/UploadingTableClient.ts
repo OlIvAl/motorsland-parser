@@ -3,7 +3,6 @@ import {
   odata,
   TableClient,
 } from "@azure/data-tables";
-import { UPLOADING_NAME } from "../constants";
 import {
   ISource,
   ITableField,
@@ -12,6 +11,8 @@ import {
   ITableCatalogLink,
   IUploadingTableClient,
   IWatermarkSettings,
+  IFieldSelector,
+  ITableUploadingFieldSource,
 } from "./interfases";
 import { IUploading } from "../domain/entity/Uploading/structures/interfaces";
 
@@ -20,6 +21,7 @@ export class UploadingTableClient implements IUploadingTableClient {
   private watermarkSettingsTableClient: TableClient;
   private sourceTableClient: TableClient;
   private fieldTableClient: TableClient;
+  private fieldSourceTableClient: TableClient;
 
   constructor() {
     const credential = new AzureNamedKeyCredential(
@@ -45,6 +47,11 @@ export class UploadingTableClient implements IUploadingTableClient {
     this.fieldTableClient = new TableClient(
       `https://${process.env.AZURE_ACCOUNT}.table.core.windows.net`,
       "field",
+      credential
+    );
+    this.fieldSourceTableClient = new TableClient(
+      `https://${process.env.AZURE_ACCOUNT}.table.core.windows.net`,
+      "fieldSource",
       credential
     );
   }
@@ -79,10 +86,30 @@ export class UploadingTableClient implements IUploadingTableClient {
 
     return result;
   }
-  async setFields(
-    uploading: UPLOADING_NAME,
-    fields: Record<string, string>
-  ): Promise<void> {
+  async getFieldSelectorsBySource(source: string): Promise<IFieldSelector[]> {
+    const fieldRows =
+      await this.fieldSourceTableClient.listEntities<ITableUploadingFieldSource>(
+        {
+          queryOptions: {
+            filter: odata`source eq ${source}`,
+          },
+        }
+      );
+
+    let result: IFieldSelector[] = [];
+    for await (const fieldRow of fieldRows) {
+      result.push({
+        field: fieldRow.field,
+        xpath: fieldRow.xpath,
+        regexp: fieldRow.regexp,
+        cleanRegexp: fieldRow.cleanRegexp,
+        value: fieldRow.value,
+      });
+    }
+
+    return result;
+  }
+  async setFields(fields: Record<string, string>): Promise<void> {
     return Promise.resolve(undefined);
   }
 

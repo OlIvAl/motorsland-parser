@@ -1,6 +1,9 @@
 import { Transform, TransformCallback } from "stream";
 import {
+  IFieldSelector,
   ISource,
+  ISourceOfCategory,
+  ITableField,
   IUploadingTableClient,
   IWatermarkSettings,
 } from "../../../../dataSources/interfases";
@@ -18,16 +21,32 @@ export class SourceNameToSourceObjTransform extends Transform {
       this.uploadingTableClient.getSources(source),
       this.uploadingTableClient.getLinks(source),
       this.uploadingTableClient.getWatermarkSettings(source),
+      this.uploadingTableClient.getFieldSelectorsBySource(source),
     ]).then(
-      ([source, links, watermarkSettings]: [
+      ([source, links, watermarkSettings, fields]: [
         ISource,
         string[],
-        IWatermarkSettings | undefined
+        IWatermarkSettings | undefined,
+        IFieldSelector[]
       ]) => {
         source.linkListUrls = links;
         source.watermarkSettings = watermarkSettings;
+        source.fields = fields;
 
-        done(null, source);
+        const sourceOfCategoryArr = source.linkListUrls.map<ISourceOfCategory>(
+          (link) => {
+            const { linkListUrls, ...data } = source;
+
+            return {
+              ...data,
+              linkListUrl: data.site + link,
+            };
+          }
+        );
+
+        for (let sourceOfCategory of sourceOfCategoryArr) {
+          done(null, sourceOfCategory);
+        }
       }
     );
   }

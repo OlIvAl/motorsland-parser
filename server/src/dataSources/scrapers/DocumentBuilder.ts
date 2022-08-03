@@ -56,7 +56,7 @@ export class DocumentBuilder implements IDocumentBuilder {
       throw new Error("VendorCodesListFromLastDocument не проинициализирован!");
     }
 
-    const linkListScraper = new LinkListScraper(new Readable(), this.browser);
+    const linkListScraper = new LinkListScraper(this.browser);
 
     let result: string[][] = [];
 
@@ -65,6 +65,7 @@ export class DocumentBuilder implements IDocumentBuilder {
     for (let source of sources) {
       console.log(`Начат сбор новых ссылок с ${source.name}`);
 
+      // @ts-ignore
       linkListScraper.setSource(source);
 
       result = [];

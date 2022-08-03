@@ -21,10 +21,8 @@ export interface IAzureBlobStorage {
 export interface IUploadingTableClient {
   getList(): Promise<IUploading[]>;
   getFields(): Promise<ITableField[]>;
-  setFields(
-    uploading: UPLOADING_NAME,
-    fields: Record<string, string>
-  ): Promise<void>;
+  getFieldSelectorsBySource(source: string): Promise<IFieldSelector[]>;
+  setFields(fields: Record<string, string>): Promise<void>;
   getLinks(source: string): Promise<string[]>;
   getWatermarkSettings(source: string): Promise<IWatermarkSettings | undefined>;
   getSources(source: string): Promise<ISource>;
@@ -169,4 +167,7 @@ export interface ISource extends ITableSource {
   linkListUrls: string[];
   fields: IFieldSelector[];
   watermarkSettings?: IWatermarkSettings;
+}
+export interface ISourceOfCategory extends Omit<ISource, "linkListUrls"> {
+  linkListUrl: string;
 }

@@ -4,7 +4,6 @@ import {
   TableClient,
   TableEntityResult,
 } from "@azure/data-tables";
-import { BlobClient } from "@azure/storage-blob";
 import { CONTAINER_NAME, UPLOADING_NAME } from "../constants";
 import {
   IAzureBlobStorage,
@@ -14,19 +13,18 @@ import {
   IFieldData,
   IItemData,
   IItemSourceDictionary,
-  ITableDocumentField,
-  ITableDocumentSourceRelation,
   ITableImage,
   ITableSource,
 } from "./interfases";
 import { Conveyor } from "../libs/Conveyor";
 import { getLocalTime } from "../libs/getLocalTime";
+import { AzureBlobStorage } from "./AzureBlobStorage";
+import { BrowserFacade } from "./scrapers/BrowserFacade";
+import { DataScraper } from "./scrapers/DataScraper";
 
 export class DocumentTableClient implements IDocumentTableClient {
   private documentTableClient: TableClient;
   private dataTableClient: TableClient;
-  private documentFieldTableClient: TableClient;
-  private documentSourceRelationTableClient: TableClient;
   private imagesTableClient: TableClient;
   private sourceTableClient: TableClient;
 
@@ -46,19 +44,9 @@ export class DocumentTableClient implements IDocumentTableClient {
       "data",
       credential
     );
-    this.documentFieldTableClient = new TableClient(
-      `https://${process.env.AZURE_ACCOUNT}.table.core.windows.net`,
-      "documentField",
-      credential
-    );
     this.imagesTableClient = new TableClient(
       `https://${process.env.AZURE_ACCOUNT}.table.core.windows.net`,
       "images",
-      credential
-    );
-    this.documentSourceRelationTableClient = new TableClient(
-      `https://${process.env.AZURE_ACCOUNT}.table.core.windows.net`,
-      "documentSourceRelation",
       credential
     );
     this.sourceTableClient = new TableClient(
@@ -219,61 +207,6 @@ export class DocumentTableClient implements IDocumentTableClient {
         document.length
       } элементов`
     );
-    console.log("Начато сохранение данных полей!");
-    const fieldDataConveyor = new Conveyor<IFieldData[], void>(
-      dataFromPages,
-      100,
-      async (row) => {
-        const vendorCodeIndex = row.findIndex(
-          (field) => field.name === "vendor_code"
-        ) as number;
-        const vendorCode = row[vendorCodeIndex].value as string;
-
-        await Promise.all(
-          row.map((field) => {
-            try {
-              return this.documentFieldTableClient.createEntity<ITableDocumentField>(
-                {
-                  partitionKey: vendorCode,
-                  rowKey: field.name,
-                  name: field.name,
-                  value: field.value,
-                  document: fileName,
-                }
-              );
-            } catch (e) {
-              console.log("error data => ", vendorCode, field.name);
-              throw e;
-            }
-          })
-        );
-      }
-    );
-    fieldDataConveyor.setLogNumber(1000);
-    fieldDataConveyor.setStartHandleTime(false);
-    await fieldDataConveyor.handle();
-
-    const dictionaryConveyor = new Conveyor<IItemSourceDictionary, void>(
-      dictionary,
-      100,
-      async (row) => {
-        try {
-          await this.documentSourceRelationTableClient.createEntity<ITableDocumentSourceRelation>(
-            {
-              partitionKey: row.sourceName,
-              rowKey: row.vendorCode,
-              document: fileName,
-            }
-          );
-        } catch (e) {
-          console.log("error data => ", row.sourceName, row.vendorCode);
-          throw e;
-        }
-      }
-    );
-    dictionaryConveyor.setLogNumber(1000);
-    dictionaryConveyor.setStartHandleTime(false);
-    await dictionaryConveyor.handle();
 
     console.log(
       `${getLocalTime()} Сохранение данных полей товаров завершилось успешно! Сохранено ${
@@ -293,107 +226,111 @@ export class DocumentTableClient implements IDocumentTableClient {
     };
   }
   async delete(uploading: UPLOADING_NAME, name: string): Promise<void> {
-    const [imagesSelectResult, documentFieldsSelectResult, dictionaryResult] =
-      await Promise.all([
-        this.imagesTableClient.listEntities<ITableImage>({
-          queryOptions: { filter: odata`document eq ${name}` },
-        }),
-        this.documentFieldTableClient.listEntities<ITableDocumentField>({
-          queryOptions: { filter: odata`document eq ${name}` },
-        }),
-        this.documentSourceRelationTableClient.listEntities<ITableDocumentSourceRelation>(
-          {
-            queryOptions: { filter: odata`document eq ${name}` },
-          }
-        ),
-      ]);
-
-    let names: string[] = [];
-    let imagesKeysPairs: { partitionKey: string; rowKey: string }[] = [];
-    for await (const item of imagesSelectResult) {
-      names.push(item.name as string);
-      imagesKeysPairs.push({
-        partitionKey: item.partitionKey as string,
-        rowKey: item.rowKey as string,
-      });
-    }
-
-    let documentFieldsKeysPairs: { partitionKey: string; rowKey: string }[] =
-      [];
-    for await (const item of documentFieldsSelectResult) {
-      documentFieldsKeysPairs.push({
-        partitionKey: item.partitionKey as string,
-        rowKey: item.rowKey as string,
-      });
-    }
-
-    let dictionaryFieldsKeysPairs: { partitionKey: string; rowKey: string }[] =
-      [];
-    for await (const item of dictionaryResult) {
-      dictionaryFieldsKeysPairs.push({
-        partitionKey: item.partitionKey as string,
-        rowKey: item.rowKey as string,
-      });
-    }
-
-    console.log("Сбор данных о полях документа и картинках завершен!");
-
-    const blobClients = names.map(
-      (name) =>
-        new BlobClient(
-          process.env.AZURE_STORAGE_CONNECTION_STRING as string,
-          CONTAINER_NAME.IMAGES_CONTAINER_NAME,
-          name
-        )
-    );
-
-    await this.imagesStorage.deleteBlobs(blobClients);
-
-    console.log("Картинки удалены успешно!");
-
-    const documentFieldConveyor = new Conveyor<
-      { partitionKey: string; rowKey: string },
-      void
-    >(documentFieldsKeysPairs, 100, async (keysPair) => {
-      await this.documentFieldTableClient.deleteEntity(
-        keysPair.partitionKey,
-        keysPair.rowKey
-      );
-    });
-    const documentSourceRelationConveyor = new Conveyor<
-      { partitionKey: string; rowKey: string },
-      void
-    >(dictionaryFieldsKeysPairs, 100, async (keysPair) => {
-      await this.documentSourceRelationTableClient.deleteEntity(
-        keysPair.partitionKey,
-        keysPair.rowKey
-      );
-    });
-    const imagesConveyor = new Conveyor<
-      { partitionKey: string; rowKey: string },
-      void
-    >(imagesKeysPairs, 100, async (keysPair) => {
-      await this.imagesTableClient.deleteEntity(
-        keysPair.partitionKey,
-        keysPair.rowKey
-      );
-    });
-
-    imagesConveyor.setLogNumber(10000);
-    await imagesConveyor.handle();
-
-    documentFieldConveyor.setLogNumber(1000);
-    await documentFieldConveyor.handle();
-
-    documentSourceRelationConveyor.setLogNumber(1000);
-    await documentSourceRelationConveyor.handle();
-
-    await this.documentTableClient.deleteEntity(uploading, name);
-
-    console.log("Остальные данные о документе удалены успешно!");
+    return Promise.resolve();
   }
 
   async migrate(): Promise<void> {
+    const uploadings: any[] = [
+      {
+        category: "backlamps",
+        index: 3,
+        document: "backlamps-2022-07-13T21:06:29.329Z",
+      },
+    ];
+
+    for (let uploading of uploadings) {
+      const tempStorage = new AzureBlobStorage(
+        CONTAINER_NAME.TEMP_CONTAINER_NAME
+      );
+
+      const motorlandLinks: string[] = JSON.parse(
+        (
+          await tempStorage.getBuffer(`${uploading.category}_new_links.json`)
+        ).toString()
+      )[uploading.index];
+
+      console.log(`Взято ${motorlandLinks.length} ссылок`);
+
+      const browser = new BrowserFacade();
+      await browser.init();
+
+      const conveyor = new Conveyor<
+        string,
+        { vendor_code?: string; year?: string }
+      >(motorlandLinks, 10, async (link) => {
+        const page = await browser.openNewPage();
+
+        await page.goto(link, {
+          waitUntil: "networkidle2",
+          timeout: 0,
+        });
+
+        const [year, vendorCode] = await Promise.all([
+          DataScraper.getFieldBySelector(page, {
+            field: "year",
+            xpath: "//th[contains(., 'Год')]/following-sibling::td/text()",
+          }),
+          DataScraper.getFieldBySelector(page, {
+            field: "vendor_code",
+            xpath: "//th[contains(., 'Артикул')]/following-sibling::td/text()",
+          }),
+        ]);
+
+        await BrowserFacade.closePage(page);
+
+        console.log({
+          ...vendorCode,
+          ...year,
+        });
+
+        if (!vendorCode.vendor_code) {
+          return {
+            vendor_code: undefined,
+            year: undefined,
+          };
+        }
+
+        const result = {
+          ...vendorCode,
+          ...year,
+        };
+
+        return result;
+      });
+
+      conveyor.setStartHandleTime(false);
+      const arr = await conveyor.handle();
+
+      console.log(arr);
+
+      await browser.dispose();
+
+      const updateConveyor = new Conveyor<
+        { vendor_code?: string; year?: string },
+        void
+      >(arr, 100, async (obj) => {
+        if (!obj.vendor_code || !obj.year) {
+          return undefined;
+        }
+
+        try {
+          await this.dataTableClient.updateEntity<Partial<any>>(
+            {
+              partitionKey: uploading.document,
+              rowKey: obj.vendor_code,
+              year: obj.year,
+            },
+            "Merge"
+          );
+        } catch (e) {
+          console.log(e);
+          console.log("Error => ", obj.vendor_code, obj.year);
+        }
+      });
+
+      updateConveyor.setStartHandleTime(false);
+      await updateConveyor.handle();
+    }
     /*async function* getDataRows(
       dataTableClient: TableClient
     ): AsyncIterable<TableEntity<IDataRow>> {

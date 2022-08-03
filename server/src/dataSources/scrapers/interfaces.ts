@@ -1,4 +1,9 @@
-import { IItemData, IItemSourceDictionary, ISource } from "../interfases";
+import {
+  IItemData,
+  IItemSourceDictionary,
+  ISource,
+  ISourceOfCategory,
+} from "../interfases";
 import { Page } from "puppeteer";
 
 export interface IDocumentBuilder {
@@ -20,9 +25,9 @@ export interface IDocumentBuilder {
 }
 
 export interface ILinkListScraper {
-  setSource(source: ISource): void;
+  setSource(source: ISourceOfCategory): void;
 
-  getNewLinks(): Promise<void>;
+  getNewLinks(): AsyncIterable<string>;
 }
 
 export interface IBrowserFacade {
