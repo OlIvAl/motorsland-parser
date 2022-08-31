@@ -7,7 +7,7 @@ export interface IDocumentController {
   getList(uploading: UPLOADING_NAME): Promise<IDocumentListDTO>;
   getXMLDocument(name: string): Promise<string>;
   getCSVDocument(name: string): Promise<Writable>;
-  create(sources?: string[]): Promise<IDocumentDTO>;
+  create(sourceName: string): Promise<IDocumentDTO>;
   delete(uploading: UPLOADING_NAME, name: string): Promise<void>;
 }
 export interface IUploadingController {

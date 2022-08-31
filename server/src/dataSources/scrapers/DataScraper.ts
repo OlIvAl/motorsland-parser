@@ -1,4 +1,4 @@
-import { IFieldSelector, IItemData, ISource } from "../interfases";
+import { IFieldSelector, IItemData, IPageSource } from "../interfases";
 import { ElementHandle, Page } from "puppeteer";
 import { IBrowserFacade } from "./interfaces";
 import { BrowserFacade } from "./BrowserFacade";
@@ -6,7 +6,7 @@ import { getLocalTime } from "../../libs/getLocalTime";
 import { Promise } from "bluebird";
 
 export class DataScraper {
-  private source?: ISource;
+  private source?: IPageSource;
 
   constructor(private browser: IBrowserFacade) {
     this.getNewPage = this.getNewPage.bind(this);
@@ -15,7 +15,7 @@ export class DataScraper {
     this.scrapDataByPage = this.scrapDataByPage.bind(this);
   }
 
-  setSource(source: ISource): void {
+  setSource(source: IPageSource): void {
     this.source = source;
   }
 
@@ -29,12 +29,15 @@ export class DataScraper {
   ): Promise<Record<string, string | undefined>> {
     const {
       field,
-      xpath,
-      cleanRegexp,
-      regexp,
+      xpaths,
+      cleanRegexps,
+      regexps,
       value: fieldValue,
     } = fieldSelector;
     let elementHandlers: ElementHandle<Node>[] = [];
+    const xpath = xpaths[0];
+    const cleanRegexp = cleanRegexps ? cleanRegexps[0] : "";
+    const regexp = regexps ? regexps[0] : "";
 
     if (fieldValue) {
       return { [field]: fieldValue };

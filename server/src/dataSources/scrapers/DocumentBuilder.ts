@@ -96,7 +96,7 @@ export class DocumentBuilder implements IDocumentBuilder {
       console.log(
         `${getLocalTime()} Начата обработка позиций от ${this.sources[i].name}`
       );
-      dataScraper.setSource(this.sources[i]);
+      // dataScraper.init(this.sources[i]);
 
       const sourceItems = await dataScraper.assembleScrapedData(
         this.newLinks[i]

@@ -5,27 +5,24 @@ import {
   IAzureBlobStorage,
   IDocumentTableClient,
   IItemData,
-  IItemSourceDictionary,
-  ISource,
   IUploadingTableClient,
   IWatermarkSettings,
 } from "../../../dataSources/interfases";
-import { IDocumentBuilder } from "../../../dataSources/scrapers/interfaces";
 import { ImageBuilder } from "../../../dataSources/ImageBuilder";
 import { ItemsListSchema } from "../../validationSchemas/Document";
-import { BadRequest } from "http-json-errors";
-import { ErrCodes } from "../../../errCodes";
 import { UPLOADING_NAME } from "../../../constants";
 import { injected } from "brandi";
 import { DATA_SOURCE_REMOTE } from "../../../di/dataSource";
-import { Conveyor } from "../../../libs/Conveyor";
 import { getLocalTime } from "../../../libs/getLocalTime";
-import { PassThrough, pipeline, Readable, Writable } from "stream";
+import { PassThrough, Readable, Writable, pipeline } from "stream";
+import { pipeline as asyncPipeline } from "stream/promises";
 import { PostProcessingTransform } from "../../../dataSources/Streams/PostProcessingTransform";
 import { AddImagesTransform } from "../../../dataSources/Streams/AddImagesTransform";
-import { SourceNameToSourceObjTransform } from "./streams/SourceNameToSourceObjTransform";
+import { LinkListScraper } from "../../../dataSources/scrapers/LinkListScraper";
 import { RequestProductLinksTransform } from "./streams/RequestProductLinksTransform";
-import { BrowserFacade } from "../../../dataSources/scrapers/BrowserFacade";
+
+import { connect, IResult, Table } from "mssql";
+import { InsertLinksWritable } from "./streams/InsertLinksTransform";
 
 // Todo: delete temporary files!!!!!!!!
 export class DocumentRepository implements IDocumentRepository {
@@ -33,8 +30,7 @@ export class DocumentRepository implements IDocumentRepository {
     private documentTableClient: IDocumentTableClient,
     private uploadingTableClient: IUploadingTableClient,
     private imagesStorage: IAzureBlobStorage,
-    private tempStorage: IAzureBlobStorage,
-    private documentBuilder: IDocumentBuilder
+    private linkListScraper: LinkListScraper
   ) {
     this.getDocuments = this.getDocuments.bind(this);
     this.getDocument = this.getDocument.bind(this);
@@ -87,115 +83,52 @@ export class DocumentRepository implements IDocumentRepository {
     );
   }
 
-  async create(sources: string[] = []): Promise<IDocument> {
+  async create(sourceName: string): Promise<IDocument> {
+    const uploadingName = `${sourceName}-${new Date().toISOString()}`;
     try {
+      const pool = await connect(process.env.DB_CONNECTION_STRING as string);
+
+      const result = pool
+        .request()
+        .query(
+          `insert into [dbo].[uploadings] (name) values ('${uploadingName}')`
+        );
+
+      const [listLinks, listSource] = await Promise.all([
+        this.uploadingTableClient.getLinks(sourceName),
+        this.uploadingTableClient.getListSource(sourceName),
+      ]);
+
       console.log("Начался процесс создания документа!");
 
-      pipeline(
-        Readable.from(["f-avto.by", "motorlandby.ru", "stopgo.by"], {
-          objectMode: true,
-        }),
-        new SourceNameToSourceObjTransform(this.uploadingTableClient),
-        // @ts-ignore
-        // .filter(async (source: ISource) => !source.disabled),
-        new RequestProductLinksTransform(new BrowserFacade()),
-        new Writable({
-          objectMode: true,
-          write(
-            chunk: any,
-            encoding: BufferEncoding,
-            callback: (error?: Error | null) => void
-          ) {
-            console.log("chunk =>", chunk);
-            callback();
-          },
-        }),
-        (err) => {
+      /*await asyncPipeline(
+        Readable.from(listLinks),
+        new RequestProductLinksTransform(this.linkListScraper, listSource),
+        new InsertLinksWritable(
+          new Table("[dbo].[meta_item_links]"),
+          pool.request(),
+          uploadingName
+        )
+      );
+
+      const selectLinkListRequest = pool.request();
+      selectLinkListRequest.stream = true;
+
+      // @ts-ignore
+      const selectStream = selectLinkListRequest.toReadableStream();
+
+      selectLinkListRequest.query<any>(
+        `select * from [dbo].[meta_item_links] where uploading_id=${uploadingName}`,
+        (err, recordset) => {
           if (err) {
-            console.error("Failed:", err);
-          } else {
-            console.log("Finish:", getLocalTime());
+            throw err;
           }
+
+          console.log(recordset);
         }
       );
-      /*
-      let itemsBySources: IItemData[][] = [];
-    let items: IItemData[] = [];
-    let dictionary: IItemSourceDictionary[] = [];
 
-      console.log("Браузер открыт!");
-
-      if (
-        !(await this.tempStorage.isBlobExist(`${uploading}_new_links.json`))
-      ) {
-        newLinks = await this.getNewLinksFromPages(uploading);
-      }
-      if (
-        !(await this.tempStorage.isBlobExist(
-          `${uploading}_items_by_sources.json`
-        ))
-      ) {
-        newLinks = await this.getNewLinksFromTempStorage(uploading);
-      }
-
-      this.documentBuilder.setNewLinks(newLinks);
-
-      if (
-        !(await this.tempStorage.isBlobExist(
-          `${uploading}_items_by_sources.json`
-        ))
-      ) {
-        [itemsBySources, dictionary] = await this.getDataFromPages(uploading);
-      }
-      if (
-        await this.tempStorage.isBlobExist(`${uploading}_items_by_sources.json`)
-      ) {
-        [itemsBySources, dictionary] = await Promise.all([
-          this.getItemsBySourceFromTempStorage(uploading),
-          this.getDictionaryFromTempStorage(uploading),
-        ]);
-      }
-
-      await this.documentBuilder.dispose();
-      console.log("Браузер заткрыт!");
-
-      const chunkSize = 10;
-
-      console.log(`Время начала: ${getLocalTime()}`);
-
-      if (
-        !(await this.tempStorage.isBlobExist(
-          `${uploading}_items_with_images.json`
-        ))
-      ) {
-        items = await this.getHandledData(
-          uploading,
-          itemsBySources,
-          chunkSize,
-          sources
-        );
-      } else {
-        [items, dictionary] = await Promise.all([
-          this.getHandledDataFromTempStorage(uploading),
-          this.getDictionaryFromTempStorage(uploading),
-        ]);
-      }
-
-      const date = new Date();
-
-      const resp = await this.documentTableClient.addDocument(
-        uploading,
-        items,
-        dictionary
-      );
-
-      console.log(`Новая выгрузка ${resp.name} добавлена в БД!`);
-
-      await this.uploadingTableClient.setNewDocumentsCount(uploading, 0);
-
-      // await this.deleteUploadingTempFiles(uploading);
-
-      console.log(`Время окончания: ${getLocalTime()}`);*/
+      await asyncPipeline(selectStream, new PassThrough());*/
 
       return {
         ...new Document(),
@@ -206,185 +139,11 @@ export class DocumentRepository implements IDocumentRepository {
         },
       };
     } catch (e) {
-      await this.documentBuilder.dispose();
+      // await this.linkListScraper.dispose();
       console.log("Произошла ошибка! Браузер закрыт, если был открыт!");
       console.log(e);
 
       throw e;
-    }
-  }
-
-  private async getNewLinksFromPages(
-    uploading: UPLOADING_NAME
-  ): Promise<string[][]> {
-    await this.documentBuilder.scrapNewLinks();
-
-    const newLinks = this.documentBuilder.getNewLinks();
-
-    if (this.documentBuilder.getNewLinksLength() < 50) {
-      // ToDo: update new links count!
-      throw new BadRequest(ErrCodes.LESS_THAN_50_ITEMS);
-    }
-    await this.tempStorage.upload(
-      Buffer.from(JSON.stringify(newLinks)),
-      `${uploading}_new_links.json`,
-      "text/plain"
-    );
-    console.log("Список новых ссылок записан в хранилище!");
-
-    return newLinks;
-  }
-
-  private async getNewLinksFromTempStorage(
-    uploading: UPLOADING_NAME
-  ): Promise<string[][]> {
-    const newLinks = JSON.parse(
-      (
-        await this.tempStorage.getBuffer(`${uploading}_new_links.json`)
-      ).toString()
-    );
-
-    console.log(
-      `Список из ${newLinks.flat().length} новых ссылок взят из хранилища!`
-    );
-
-    return newLinks;
-  }
-
-  private async getDataFromPages(
-    uploading: UPLOADING_NAME
-  ): Promise<[IItemData[][], IItemSourceDictionary[]]> {
-    await this.documentBuilder.scrapData();
-
-    const itemsBySources = this.documentBuilder.getItemsBySources();
-    const dictionary = this.documentBuilder.getDictionary();
-
-    await this.tempStorage.upload(
-      Buffer.from(JSON.stringify(itemsBySources)),
-      `${uploading}_items_by_sources.json`,
-      "text/plain"
-    );
-    await this.tempStorage.upload(
-      Buffer.from(JSON.stringify(dictionary)),
-      `${uploading}_dictionary.json`,
-      "text/plain"
-    );
-    console.log("Список собранных данных записан в хранилище!");
-
-    return [itemsBySources, dictionary];
-  }
-
-  private async getItemsBySourceFromTempStorage(
-    uploading: UPLOADING_NAME
-  ): Promise<IItemData[][]> {
-    const docObj = JSON.parse(
-      (
-        await this.tempStorage.getBuffer(`${uploading}_items_by_sources.json`)
-      ).toString()
-    );
-
-    console.log(
-      `Список из ${
-        docObj.flat().length
-      } элементов собранных данных взят из хранилища!`
-    );
-
-    return docObj;
-  }
-  private async getDictionaryFromTempStorage(
-    uploading: UPLOADING_NAME
-  ): Promise<IItemSourceDictionary[]> {
-    return JSON.parse(
-      (
-        await this.tempStorage.getBuffer(`${uploading}_dictionary.json`)
-      ).toString()
-    );
-  }
-
-  private async getHandledData(
-    uploading: UPLOADING_NAME,
-    itemsBySources: IItemData[][],
-    chunkSize: number,
-    sources: ISource[]
-  ): Promise<IItemData[]> {
-    let result: IItemData[] = [];
-
-    for (let i = 0; i < sources.length; i++) {
-      const source = sources[i];
-      console.log(
-        `${getLocalTime()} Начата обработка картинок от ${source.name}`
-      );
-
-      const conveyor = new Conveyor<IItemData, IItemData>(
-        itemsBySources[i],
-        chunkSize,
-        this.imageFolderHandler,
-        [source.watermarkSettings]
-      );
-
-      const resultOfSource = await conveyor.handle();
-
-      result = [...result, ...resultOfSource];
-
-      console.log(
-        `${getLocalTime()} Завершена обработка картинок от ${source.name}`
-      );
-    }
-
-    await this.tempStorage.upload(
-      Buffer.from(JSON.stringify(result)),
-      `${uploading}_items_with_images.json`,
-      "text/plain"
-    );
-    console.log("Список обработанных данных записан в хранилище!");
-
-    return result;
-  }
-
-  private async getHandledDataFromTempStorage(
-    uploading: UPLOADING_NAME
-  ): Promise<IItemData[]> {
-    const result = JSON.parse(
-      (
-        await this.tempStorage.getBuffer(`${uploading}_items_with_images.json`)
-      ).toString()
-    );
-
-    console.log(
-      `Список из ${
-        result.flat().length
-      } обработанных элементов собранных данных взят из хранилища!`
-    );
-
-    return result;
-  }
-
-  private async deleteUploadingTempFiles(
-    uploading: UPLOADING_NAME
-  ): Promise<void> {
-    if (await this.tempStorage.isBlobExist(`${uploading}_new_links.json`)) {
-      await this.tempStorage.deleteBlob(`${uploading}_new_links.json`);
-      console.log("Удален new_links.json после сбора данных со страниц!");
-    }
-    if (await this.tempStorage.isBlobExist(`${uploading}_dictionary.json`)) {
-      await this.tempStorage.deleteBlob(`${uploading}_dictionary.json`);
-      console.log("Удален dictionary.json после сбора данных со страниц!");
-    }
-    if (
-      await this.tempStorage.isBlobExist(`${uploading}_items_by_sources.json`)
-    ) {
-      await this.tempStorage.deleteBlob(`${uploading}_items_by_sources.json`);
-      console.log(
-        "Удален items_by_sources.json после успешного обработки изображений!"
-      );
-    }
-    if (
-      await this.tempStorage.isBlobExist(`${uploading}_items_with_images.json`)
-    ) {
-      await this.tempStorage.deleteBlob(`${uploading}_items_with_images.json`);
-      console.log(
-        "Удален items_with_images.json после успешного добавления нового документа в БД!"
-      );
     }
   }
 
@@ -430,6 +189,5 @@ injected(
   DATA_SOURCE_REMOTE.DocumentTableClient,
   DATA_SOURCE_REMOTE.UploadingTableClient,
   DATA_SOURCE_REMOTE.ImageStorage,
-  DATA_SOURCE_REMOTE.TempStorage,
-  DATA_SOURCE_REMOTE.DocumentBuilder
+  DATA_SOURCE_REMOTE.LinkListScraper
 );

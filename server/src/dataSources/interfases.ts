@@ -25,7 +25,7 @@ export interface IUploadingTableClient {
   setFields(fields: Record<string, string>): Promise<void>;
   getLinks(source: string): Promise<string[]>;
   getWatermarkSettings(source: string): Promise<IWatermarkSettings | undefined>;
-  getSources(source: string): Promise<ISource>;
+  getListSource(source: string): Promise<IListSource>;
 }
 
 export interface IDocumentTableClient {
@@ -124,9 +124,9 @@ export interface ITableField {
 export interface ITableUploadingFieldSource {
   source: string;
   field: string;
-  xpath: string;
-  cleanRegexp?: string;
-  regexp?: string;
+  xpaths: string[];
+  cleanRegexps?: string[];
+  regexps?: string[];
   value?: string;
 }
 export interface ITableWatermarkSettings {
@@ -142,10 +142,11 @@ export interface IWatermarkSettings
 export interface IFieldSelector
   extends Pick<
     ITableUploadingFieldSource,
-    "field" | "xpath" | "regexp" | "cleanRegexp" | "value"
+    "field" | "xpaths" | "regexps" | "cleanRegexps" | "value"
   > {}
 
 export interface ITableSource {
+  name: string;
   lastPageXpath?: string;
   nextPageXpath?: string;
   linkXpath: string;
@@ -165,9 +166,21 @@ export interface ITableImage {
 export interface ISource extends ITableSource {
   name: string;
   linkListUrls: string[];
-  fields: IFieldSelector[];
+
   watermarkSettings?: IWatermarkSettings;
 }
-export interface ISourceOfCategory extends Omit<ISource, "linkListUrls"> {
-  linkListUrl: string;
+export interface IListSource
+  extends Pick<
+    ITableSource,
+    | "lastPageXpath"
+    | "nextPageXpath"
+    | "linkXpath"
+    | "listPageExpression"
+    | "site"
+  > {
+  name: string;
+}
+export interface IPageSource
+  extends Pick<ITableSource, "imagesXPath" | "name"> {
+  fields: IFieldSelector[];
 }

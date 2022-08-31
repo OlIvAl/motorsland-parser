@@ -4,7 +4,6 @@ import {
   TableClient,
 } from "@azure/data-tables";
 import {
-  ISource,
   ITableField,
   ITableWatermarkSettings,
   ITableSource,
@@ -13,6 +12,7 @@ import {
   IWatermarkSettings,
   IFieldSelector,
   ITableUploadingFieldSource,
+  IListSource,
 } from "./interfases";
 import { IUploading } from "../domain/entity/Uploading/structures/interfaces";
 
@@ -100,9 +100,9 @@ export class UploadingTableClient implements IUploadingTableClient {
     for await (const fieldRow of fieldRows) {
       result.push({
         field: fieldRow.field,
-        xpath: fieldRow.xpath,
-        regexp: fieldRow.regexp,
-        cleanRegexp: fieldRow.cleanRegexp,
+        xpaths: fieldRow.xpaths,
+        regexps: fieldRow.regexps,
+        cleanRegexps: fieldRow.cleanRegexps,
         value: fieldRow.value,
       });
     }
@@ -149,7 +149,7 @@ export class UploadingTableClient implements IUploadingTableClient {
       : undefined;
   }
 
-  async getSources(source: string): Promise<ISource> {
+  async getListSource(source: string): Promise<IListSource> {
     const sourceObj = await this.sourceTableClient.getEntity<ITableSource>(
       "uploadingSource",
       source
@@ -161,15 +161,7 @@ export class UploadingTableClient implements IUploadingTableClient {
       nextPageXpath: sourceObj.nextPageXpath,
       linkXpath: sourceObj.linkXpath,
       listPageExpression: sourceObj.listPageExpression,
-      preVendorCode: sourceObj.preVendorCode,
       site: sourceObj.site,
-      markup: sourceObj.markup,
-      exchangeRate: sourceObj.exchangeRate,
-      imagesXPath: sourceObj.imagesXPath,
-      disabled: sourceObj.disabled,
-      linkListUrls: [],
-      fields: [],
-      watermarkSettings: undefined,
     };
   }
 }

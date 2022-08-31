@@ -55,9 +55,9 @@ export class PostProcessingTransform extends Transform {
     exchangeRate: number
   ): IItemData {
     item.price = item.price
-      ? Math.ceil(Number(item.price) * (1 + markup) * exchangeRate).toString()
+      ? Math.ceil(Number(item.price) * exchangeRate).toString()
       : "";
-    item.vendor_code = `${preVendorCode}-${item.vendor_code}`;
+    // item.vendor_code = `${preVendorCode}-${item.vendor_code}`;
     item.condition = "Б/У";
     item.status = "на заказ";
     item.authenticity = "оригинал";

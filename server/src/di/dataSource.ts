@@ -4,17 +4,17 @@ import {
   IDocumentTableClient,
   IUploadingTableClient,
 } from "../dataSources/interfases";
-import { IDocumentBuilder } from "../dataSources/scrapers/interfaces";
 import { AzureBlobStorage } from "../dataSources/AzureBlobStorage";
 import { CONTAINER_NAME } from "../constants";
-import { DocumentBuilder } from "../dataSources/scrapers/DocumentBuilder";
 import { UploadingTableClient } from "../dataSources/UploadingTableClient";
 import { DocumentTableClient } from "../dataSources/DocumentTableClient";
+import { LinkListScraper } from "../dataSources/scrapers/LinkListScraper";
+import { BrowserFacade } from "../dataSources/scrapers/BrowserFacade";
 
 export const DATA_SOURCE_REMOTE = {
   ImageStorage: token<IAzureBlobStorage>("ImageStorage"),
   TempStorage: token<IAzureBlobStorage>("TempStorage"),
-  DocumentBuilder: token<IDocumentBuilder>("DocumentBuilder"),
+  LinkListScraper: token<LinkListScraper>("LinkListScraper"),
   UploadingTableClient: token<IUploadingTableClient>("UploadingTableClient"),
   DocumentTableClient: token<IDocumentTableClient>("DocumentTableClient"),
 };
@@ -23,6 +23,22 @@ export const DATA_SOURCE_REMOTE = {
  * Return container with data source child container
  */
 export function getContainerWithDataSource(container: Container): Container {
+  const tediousConnectionConfig = {
+    server: process.env.SQL_SERVER,
+    authentication: {
+      type: "default",
+      options: {
+        userName: process.env.SQL_SERVER_LOGIN,
+        password: process.env.SQL_SERVER_PASSWORD,
+      },
+    },
+    options: {
+      port: 1433,
+      database: process.env.SQL_DB,
+      trustServerCertificate: true,
+    },
+  };
+
   const imagesStorage = new AzureBlobStorage(
     CONTAINER_NAME.IMAGES_CONTAINER_NAME
   );
@@ -32,8 +48,8 @@ export function getContainerWithDataSource(container: Container): Container {
   container.bind(DATA_SOURCE_REMOTE.TempStorage).toConstant(tempStorage);
 
   container
-    .bind(DATA_SOURCE_REMOTE.DocumentBuilder)
-    .toConstant(new DocumentBuilder());
+    .bind(DATA_SOURCE_REMOTE.LinkListScraper)
+    .toConstant(new LinkListScraper(new BrowserFacade()));
 
   container
     .bind(DATA_SOURCE_REMOTE.UploadingTableClient)
@@ -41,7 +57,7 @@ export function getContainerWithDataSource(container: Container): Container {
 
   container
     .bind(DATA_SOURCE_REMOTE.DocumentTableClient)
-    .toConstant(new DocumentTableClient(imagesStorage));
+    .toConstant(new DocumentTableClient());
 
   return container;
 }

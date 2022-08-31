@@ -1,41 +1,33 @@
-import { Readable, Transform, TransformCallback } from "stream";
-import { ISource, ISourceOfCategory } from "../../../../dataSources/interfases";
-import { IBrowserFacade } from "../../../../dataSources/scrapers/interfaces";
+import { Transform, TransformCallback } from "stream";
+import { IListSource } from "../../../../dataSources/interfases";
 import { LinkListScraper } from "../../../../dataSources/scrapers/LinkListScraper";
 
 export class RequestProductLinksTransform extends Transform {
-  #linkListScraper?: LinkListScraper;
-
-  constructor(private browser: IBrowserFacade) {
+  constructor(
+    private linkListScraper: LinkListScraper,
+    private listSource: IListSource
+  ) {
     super({ objectMode: true });
   }
   _construct(callback: (error?: Error | null) => void) {
-    return this.browser
-      .init()
-      .then(() => {
-        this.#linkListScraper = new LinkListScraper(this.browser);
-      })
-      .then(() => {
-        callback();
-      });
+    return this.linkListScraper.init().then(() => {
+      this.linkListScraper.setSource(this.listSource);
+      callback();
+    });
   }
 
   async _transform(
-    source: ISourceOfCategory,
+    url: string,
     encoding: BufferEncoding,
     done: TransformCallback
   ) {
-    if (!this.#linkListScraper) {
-      throw new Error("linkListScraper не проинициализировано!");
+    for await (let links of this.linkListScraper.getNewLinks(url)) {
+      links.forEach((link) => this.push(link));
     }
 
-    this.#linkListScraper.setSource(source);
-
-    const generator = await this.#linkListScraper.getNewLinks();
-
-    for await (let link of generator) {
-      console.log("link => ", link);
-      done(null, link);
-    }
+    done();
+  }
+  _flush(callback: TransformCallback) {
+    this.linkListScraper.dispose().then(() => callback());
   }
 }

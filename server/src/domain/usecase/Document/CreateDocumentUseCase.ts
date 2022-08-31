@@ -6,8 +6,8 @@ import { REPOSITORY } from "../../../di/repository";
 
 export class CreateDocumentUseCase implements ICreateDocumentUseCase {
   constructor(private repository: IDocumentRepository) {}
-  async execute(sources: string[] = []): Promise<IDocument> {
-    return await this.repository.create(sources);
+  async execute(sourceName: string): Promise<IDocument> {
+    return await this.repository.create(sourceName);
   }
 }
 

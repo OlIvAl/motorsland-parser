@@ -3,13 +3,13 @@ import { CONTROLLER } from "../di/controller";
 import { getDIContainer } from "../di";
 
 export const CreateNewDocumentRouter = Router().post(
-  "/documents",
+  "/documents/:sourceName",
   async (req: Request, res: Response, next) => {
     const di = getDIContainer();
     const controller = di.get(CONTROLLER.Document);
 
     try {
-      const result = await controller.create();
+      const result = await controller.create(req.params.sourceName);
 
       res.json(result);
     } catch (e) {

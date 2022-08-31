@@ -1,59 +1,36 @@
 import { Page } from "puppeteer";
-import { IBrowserFacade, ILinkListScraper } from "./interfaces";
-import { ISourceOfCategory } from "../interfases";
+import { IBrowserFacade } from "./interfaces";
 import { BrowserFacade } from "./BrowserFacade";
+import { IListSource } from "../interfases";
 
-export class LinkListScraper implements ILinkListScraper {
+export class LinkListScraper {
   private site?: string;
-  private linkListUrl?: string;
   private lastPageXpath?: string;
   private nextPageXpath?: string;
   private linkXpath?: string;
   private listPageExpression?: string;
-  private preVendorCode?: string;
 
   constructor(private browser: IBrowserFacade) {
     this.setSource = this.setSource.bind(this);
     this.getNewLinks = this.getNewLinks.bind(this);
-    this.getLinks = this.getLinks.bind(this);
     this.scrapLinks = this.scrapLinks.bind(this);
   }
 
-  setSource(source: ISourceOfCategory): void {
+  async init(): Promise<void> {
+    this.browser = new BrowserFacade();
+    await this.browser.init();
+  }
+
+  setSource(source: IListSource): void {
     this.linkXpath = source.linkXpath;
     this.lastPageXpath = source.lastPageXpath;
     this.nextPageXpath = source.nextPageXpath;
     this.listPageExpression = source.listPageExpression;
     this.site = source.site;
-    this.linkListUrl = source.linkListUrl;
-    this.preVendorCode = source.preVendorCode;
   }
 
-  async *getNewLinks(): AsyncIterable<string> {
-    if (!this.linkListUrl) {
-      throw new Error("linkListUrl не проинициализировано!");
-    }
-
-    if (this.lastPageXpath) {
-      for await (let link of await this.getLinks(
-        this.linkListUrl,
-        this.lastPageXpath
-      )) {
-        yield link;
-      }
-    } else if (this.nextPageXpath) {
-      for await (let link of await this.getLinks(
-        this.linkListUrl,
-        this.nextPageXpath
-      )) {
-        yield link;
-      }
-    } else {
-      throw new Error("I do not know, how I can do it!!!");
-    }
-
-    // ToDo: KOSTYLLLLLL!!!!!!
-    /*if (this.site === "https://f-avto.by/") {
+  // ToDo: KOSTYLLLLLL!!!!!!
+  /*if (this.site === "https://f-avto.by/") {
       await this.page.setCookie({
         name: "from_country",
         value: "RU",
@@ -61,7 +38,7 @@ export class LinkListScraper implements ILinkListScraper {
         path: "/",
       });
     }*/
-    /*if (this.site === "https://www.autopriwos.ru/") {
+  /*if (this.site === "https://www.autopriwos.ru/") {
       await this.page.setCookie(
         {
           name: "ADBSESSION",
@@ -78,62 +55,25 @@ export class LinkListScraper implements ILinkListScraper {
       );
     }*/
 
-    /*await Promise.map(
-      this.urls,
-      async (url: string) => {
-        if (this.lastPageXpath) {
-          return await this.getLinks(url, this.lastPageXpath);
-        } else if (this.nextPageXpath) {
-          return await this.getLinks(url, this.nextPageXpath);
-        } else {
-          throw new Error("I do not know, how I can do it!!!");
-        }
-      },
-      { concurrency: 10 }
-    );*/
-
-    /*const urlsIterableIterator: IterableIterator<string> = this.linkListUrl.values();
-
-    const workers = Array(10).fill(urlsIterableIterator).map(this.doWork);
-
-    return await Promise.allSettled(workers);*/
-  }
-
-  /*private async *doWork(
-    iterableIterator: IterableIterator<string>
-  ): AsyncIterable<string> {
-    for (let url of iterableIterator) {
-      if (this.lastPageXpath) {
-        for await (let link of await this.getLinks(url, this.lastPageXpath)) {
-          yield link;
-        }
-      } else if (this.nextPageXpath) {
-        for await (let link of await this.getLinks(url, this.nextPageXpath)) {
-          yield link;
-        }
-      } else {
-        throw new Error("I do not know, how I can do it!!!");
-      }
+  async *getNewLinks(linkListUrl: string): AsyncIterable<string[]> {
+    if (!this.lastPageXpath && !this.nextPageXpath) {
+      throw new Error("pageXpath не проинициализировано!");
     }
-  }*/
-
-  private async *getLinks(url: string, xpath: string): AsyncIterable<string> {
     if (!this.listPageExpression) {
       throw new Error("listPageExpression не проинициализировано!");
     }
 
+    const xpath: string = (this.lastPageXpath || this.nextPageXpath) as string;
     let pageNumber = 0;
-
     const page = await this.browser.openNewPage();
 
     do {
       pageNumber = pageNumber + 1;
       const urlWithPage = LinkListScraper.getUrl(
-        url,
+        linkListUrl,
         this.listPageExpression,
         pageNumber
       );
-
       const resultUrl = new RegExp(`^${this.site}`).test(urlWithPage)
         ? urlWithPage
         : this.site + urlWithPage;
@@ -146,32 +86,16 @@ export class LinkListScraper implements ILinkListScraper {
       // @ts-ignore
       console.log("pages =>", (await page.browser().pages()).length);
 
-      const scrapLinksGenerator = await this.scrapLinks(page);
-
-      for await (let link of scrapLinksGenerator) {
-        yield link;
-      }
+      yield await this.scrapLinks(page);
 
       console.log(`Завершился сбор ссылок с ${resultUrl}!`);
-
-      if (!(await LinkListScraper.isNextPageExist(page, xpath))) {
-        break;
-      }
-    } while (true);
+    } while (await LinkListScraper.isNextPageExist(page, xpath));
+    // } while (pageNumber < 3);
 
     await BrowserFacade.closePage(page);
   }
 
-  private static async isNextPageExist(
-    page: Page,
-    xpath: string
-  ): Promise<boolean> {
-    const nextPageTagHandles = await page.$x(xpath);
-
-    return !!nextPageTagHandles.length;
-  }
-
-  private async *scrapLinks(page: Page): AsyncIterable<string> {
+  private async scrapLinks(page: Page): Promise<string[]> {
     if (!this.linkXpath) {
       throw new Error("linkXpath не проинициализировано!");
     }
@@ -183,10 +107,20 @@ export class LinkListScraper implements ILinkListScraper {
       throw new Error("Ссылки на товары не найдены!");
     }
 
-    for (let linksFromListHandle of linksFromListHandles) {
-      // @ts-ignore
-      yield await page.evaluate((a) => a.href || "", linksFromListHandle);
-    }
+    return await Promise.all(
+      linksFromListHandles.map((handler) =>
+        page.evaluate((a: any) => a.href || "", handler)
+      )
+    );
+  }
+
+  private static async isNextPageExist(
+    page: Page,
+    xpath: string
+  ): Promise<boolean> {
+    const nextPageTagHandles = await page.$x(xpath);
+
+    return !!nextPageTagHandles.length;
   }
 
   private static getUrl(
@@ -200,5 +134,17 @@ export class LinkListScraper implements ILinkListScraper {
     );
 
     return baseUrl + listPageSubStr;
+  }
+
+  async dispose(): Promise<void> {
+    this.linkXpath = undefined;
+    this.lastPageXpath = undefined;
+    this.nextPageXpath = undefined;
+    this.listPageExpression = undefined;
+    this.site = undefined;
+
+    if (this.browser) {
+      await this.browser.dispose();
+    }
   }
 }

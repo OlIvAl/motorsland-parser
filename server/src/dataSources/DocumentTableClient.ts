@@ -6,7 +6,6 @@ import {
 } from "@azure/data-tables";
 import { CONTAINER_NAME, UPLOADING_NAME } from "../constants";
 import {
-  IAzureBlobStorage,
   IDataRow,
   IDocumentInfo,
   IDocumentTableClient,
@@ -28,7 +27,7 @@ export class DocumentTableClient implements IDocumentTableClient {
   private imagesTableClient: TableClient;
   private sourceTableClient: TableClient;
 
-  constructor(private imagesStorage: IAzureBlobStorage) {
+  constructor() {
     const credential = new AzureNamedKeyCredential(
       process.env.AZURE_ACCOUNT as string,
       process.env.AZURE_ACCOUNT_KEY as string
@@ -90,7 +89,7 @@ export class DocumentTableClient implements IDocumentTableClient {
       TableEntityResult<IDataRow>
     >({
       queryOptions: {
-        filter: odata`source eq 'motorlandby.ru'`,
+        filter: odata`source eq 'autopriwos.ru'`,
         // filter: odata`PartitionKey eq ${name}`,
       },
     });
@@ -230,107 +229,107 @@ export class DocumentTableClient implements IDocumentTableClient {
   }
 
   async migrate(): Promise<void> {
-    const uploadings: any[] = [
-      {
-        category: "backlamps",
-        index: 3,
-        document: "backlamps-2022-07-13T21:06:29.329Z",
-      },
-    ];
+    const uploading: any = {
+      category: "fenders",
+      index: 1,
+      document: "fenders-2022-07-13T17:19:21.441Z",
+    };
+    const tempStorage = new AzureBlobStorage(
+      CONTAINER_NAME.TEMP_CONTAINER_NAME
+    );
 
-    for (let uploading of uploadings) {
-      const tempStorage = new AzureBlobStorage(
-        CONTAINER_NAME.TEMP_CONTAINER_NAME
-      );
+    const motorlandLinks: string[] = JSON.parse(
+      (
+        await tempStorage.getBuffer(`${uploading.category}_new_links.json`)
+      ).toString()
+    )[uploading.index];
 
-      const motorlandLinks: string[] = JSON.parse(
-        (
-          await tempStorage.getBuffer(`${uploading.category}_new_links.json`)
-        ).toString()
-      )[uploading.index];
+    console.log(`Взято ${motorlandLinks.length} ссылок`);
 
-      console.log(`Взято ${motorlandLinks.length} ссылок`);
+    const browser = new BrowserFacade();
+    await browser.init();
 
-      const browser = new BrowserFacade();
-      await browser.init();
+    const conveyor = new Conveyor<
+      string,
+      { vendor_code?: string; year?: string }
+    >(motorlandLinks, 33, async (link) => {
+      const page = await browser.openNewPage();
 
-      const conveyor = new Conveyor<
-        string,
-        { vendor_code?: string; year?: string }
-      >(motorlandLinks, 10, async (link) => {
-        const page = await browser.openNewPage();
+      await page.goto(link, {
+        waitUntil: "networkidle2",
+        timeout: 0,
+      });
 
-        await page.goto(link, {
-          waitUntil: "networkidle2",
-          timeout: 0,
-        });
+      const [year, vendorCode] = await Promise.all([
+        DataScraper.getFieldBySelector(page, {
+          field: "year",
+          xpaths: [
+            '//table[@id="_part_details_table"]//td[contains(., "Год:")]/following-sibling::td/text()',
+          ],
+        }),
+        DataScraper.getFieldBySelector(page, {
+          field: "vendor_code",
+          xpaths: [
+            '//table[@id="_part_details_table"]//td[contains(., "Артикул:")]/following-sibling::td/text()',
+          ],
+        }),
+      ]);
 
-        const [year, vendorCode] = await Promise.all([
-          DataScraper.getFieldBySelector(page, {
-            field: "year",
-            xpath: "//th[contains(., 'Год')]/following-sibling::td/text()",
-          }),
-          DataScraper.getFieldBySelector(page, {
-            field: "vendor_code",
-            xpath: "//th[contains(., 'Артикул')]/following-sibling::td/text()",
-          }),
-        ]);
+      await BrowserFacade.closePage(page);
 
-        await BrowserFacade.closePage(page);
-
+      if (!vendorCode.vendor_code) {
+        console.log("Failed link =>", link);
+      } else {
         console.log({
           ...vendorCode,
           ...year,
         });
+      }
 
-        if (!vendorCode.vendor_code) {
-          return {
-            vendor_code: undefined,
-            year: undefined,
-          };
-        }
-
-        const result = {
-          ...vendorCode,
-          ...year,
+      if (!vendorCode.vendor_code) {
+        return {
+          vendor_code: undefined,
+          year: undefined,
         };
+      }
 
-        return result;
-      });
+      return {
+        ...vendorCode,
+        ...year,
+      };
+    });
 
-      conveyor.setStartHandleTime(false);
-      const arr = await conveyor.handle();
+    conveyor.setStartHandleTime(false);
+    const arr = await conveyor.handle();
 
-      console.log(arr);
+    await browser.dispose();
 
-      await browser.dispose();
+    const updateConveyor = new Conveyor<
+      { vendor_code?: string; year?: string },
+      void
+    >(arr, 100, async (obj) => {
+      if (!obj.vendor_code || !obj.year) {
+        return undefined;
+      }
 
-      const updateConveyor = new Conveyor<
-        { vendor_code?: string; year?: string },
-        void
-      >(arr, 100, async (obj) => {
-        if (!obj.vendor_code || !obj.year) {
-          return undefined;
-        }
+      try {
+        await this.dataTableClient.updateEntity<Partial<any>>(
+          {
+            partitionKey: uploading.document,
+            rowKey: obj.vendor_code,
+            year: obj.year,
+            left_right: "правая",
+            front_rear: "передняя",
+          },
+          "Merge"
+        );
+      } catch (e) {
+        console.log("Error => ", obj.vendor_code);
+      }
+    });
 
-        try {
-          await this.dataTableClient.updateEntity<Partial<any>>(
-            {
-              partitionKey: uploading.document,
-              rowKey: obj.vendor_code,
-              year: obj.year,
-            },
-            "Merge"
-          );
-        } catch (e) {
-          console.log(e);
-          console.log("Error => ", obj.vendor_code, obj.year);
-        }
-      });
-
-      updateConveyor.setStartHandleTime(false);
-      await updateConveyor.handle();
-    }
+    updateConveyor.setStartHandleTime(false);
+    await updateConveyor.handle();
     /*async function* getDataRows(
       dataTableClient: TableClient
     ): AsyncIterable<TableEntity<IDataRow>> {

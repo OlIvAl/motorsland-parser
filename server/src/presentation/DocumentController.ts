@@ -69,8 +69,8 @@ export class DocumentController implements IDocumentController {
       })
     );
   }
-  async create(sources: string[] = []): Promise<IDocumentDTO> {
-    const result = await this.createDocumentUseCase.execute(sources);
+  async create(sourceName: string): Promise<IDocumentDTO> {
+    const result = await this.createDocumentUseCase.execute(sourceName);
     return this.dateMapper(result);
   }
   async delete(uploading: UPLOADING_NAME, name: string): Promise<void> {

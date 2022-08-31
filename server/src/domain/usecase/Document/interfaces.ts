@@ -10,7 +10,7 @@ export interface IGetDocumentUseCase {
   execute(name: string): Promise<Writable>;
 }
 export interface ICreateDocumentUseCase {
-  execute(sources: string[]): Promise<IDocument>;
+  execute(sourceName: string): Promise<IDocument>;
 }
 export interface IDeleteDocumentUseCase {
   execute(uploading: UPLOADING_NAME, name: string): Promise<void>;
